@@ -41,7 +41,7 @@ export default async function ApiKeysPage() {
                 </tr>
               </thead>
               <tbody>
-                {keys.map((k) => (
+                {keys.map((k: import("@prisma/client").ApiKey) => (
                   <tr key={k.id} className="border-b last:border-0">
                     <td className="py-3 text-white">{k.name}</td>
                     <td className="py-3 text-muted font-mono text-xs">

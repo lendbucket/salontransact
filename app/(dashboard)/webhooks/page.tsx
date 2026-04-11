@@ -29,7 +29,7 @@ export default async function WebhooksPage() {
           </div>
         ) : (
           <div className="space-y-3">
-            {hooks.map((h) => (
+            {hooks.map((h: import("@prisma/client").Webhook) => (
               <div
                 key={h.id}
                 className="flex items-center justify-between border rounded-lg px-4 py-3"
