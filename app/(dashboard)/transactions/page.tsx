@@ -19,7 +19,7 @@ export default async function TransactionsPage() {
       </p>
 
       <TransactionsTable
-        transactions={transactions.map((t) => ({
+        transactions={transactions.map((t: { id: string; merchantId: string; stripePaymentId: string | null; amount: number; currency: string; status: string; description: string | null; customerEmail: string | null; customerName: string | null; fee: number; net: number; refunded: boolean; refundAmount: number; metadata: unknown; createdAt: Date; updatedAt: Date }) => ({
           id: t.id,
           createdAt: t.createdAt.toISOString(),
           customerEmail: t.customerEmail,

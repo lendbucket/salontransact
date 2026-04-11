@@ -78,7 +78,7 @@ export default async function DashboardPage() {
       </p>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {stats.map((stat) => {
+        {stats.map((stat: { label: string; value: string; icon: typeof DollarSign }) => {
           const Icon = stat.icon;
           return (
             <div key={stat.label} className="card p-5">
@@ -116,7 +116,7 @@ export default async function DashboardPage() {
                 </tr>
               </thead>
               <tbody>
-                {recent.map((tx) => (
+                {recent.map((tx: { id: string; merchantId: string; stripePaymentId: string | null; amount: number; currency: string; status: string; description: string | null; customerEmail: string | null; customerName: string | null; fee: number; net: number; refunded: boolean; refundAmount: number; metadata: unknown; createdAt: Date; updatedAt: Date }) => (
                   <tr key={tx.id} className="border-b last:border-0">
                     <td className="py-3 text-muted">
                       {format(tx.createdAt, "MMM d, yyyy")}

@@ -37,7 +37,7 @@ export function TransactionsTable({ transactions }: { transactions: Tx[] }) {
     const q = query.trim().toLowerCase();
     if (!q) return transactions;
     return transactions.filter(
-      (t) =>
+      (t: Tx) =>
         (t.customerEmail ?? "").toLowerCase().includes(q) ||
         (t.customerName ?? "").toLowerCase().includes(q) ||
         (t.description ?? "").toLowerCase().includes(q) ||
@@ -56,7 +56,7 @@ export function TransactionsTable({ transactions }: { transactions: Tx[] }) {
       "Net",
       "Status",
     ];
-    const rows = filtered.map((t) => [
+    const rows = filtered.map((t: Tx) => [
       format(new Date(t.createdAt), "yyyy-MM-dd HH:mm"),
       t.customerName ?? "",
       t.customerEmail ?? "",
@@ -67,7 +67,7 @@ export function TransactionsTable({ transactions }: { transactions: Tx[] }) {
       t.status,
     ]);
     const csv = [headers, ...rows]
-      .map((row) => row.map((cell) => `"${cell}"`).join(","))
+      .map((row: string[]) => row.map((cell: string) => `"${cell}"`).join(","))
       .join("\n");
 
     const blob = new Blob([csv], { type: "text/csv" });
@@ -118,7 +118,7 @@ export function TransactionsTable({ transactions }: { transactions: Tx[] }) {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((t) => (
+              {filtered.map((t: Tx) => (
                 <tr key={t.id} className="border-b last:border-0">
                   <td className="py-3 text-muted whitespace-nowrap">
                     {format(new Date(t.createdAt), "MMM d, HH:mm")}

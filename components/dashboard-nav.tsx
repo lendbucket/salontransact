@@ -13,7 +13,9 @@ import {
   LogOut,
 } from "lucide-react";
 
-const links = [
+type NavLink = { href: string; label: string; icon: typeof LayoutDashboard };
+
+const links: NavLink[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/transactions", label: "Transactions", icon: CreditCard },
   { href: "/payouts", label: "Payouts", icon: Wallet },
@@ -57,7 +59,7 @@ export function Sidebar({
       </div>
 
       <nav className="flex flex-col gap-1 flex-1">
-        {links.map((link) => {
+        {links.map((link: NavLink) => {
           const Icon = link.icon;
           const active = pathname === link.href;
           return (
@@ -97,7 +99,7 @@ export function BottomNav() {
       className="md:hidden fixed bottom-0 left-0 right-0 border-t flex justify-around z-50"
       style={{ background: "#0d1117" }}
     >
-      {mobileLinks.map((link) => {
+      {mobileLinks.map((link: NavLink) => {
         const Icon = link.icon;
         const active = pathname === link.href;
         return (

@@ -49,7 +49,7 @@ export default async function PayoutsPage() {
                 </tr>
               </thead>
               <tbody>
-                {payouts.map((p) => (
+                {payouts.map((p: { id: string; merchantId: string; stripePayoutId: string | null; amount: number; currency: string; status: string; arrivalDate: Date | null; description: string | null; createdAt: Date; updatedAt: Date }) => (
                   <tr key={p.id} className="border-b last:border-0">
                     <td className="py-3 text-muted whitespace-nowrap">
                       {format(p.createdAt, "MMM d, yyyy")}
