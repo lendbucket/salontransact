@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(npx prisma:*)",
+      "Bash(npx dotenv-cli:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}
