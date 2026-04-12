@@ -4,17 +4,7 @@ import { useState, useMemo } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import {
-  Loader2,
-  DollarSign,
-  Users,
-  Activity,
-  Shield,
-  Lock,
-  Check,
-  Eye,
-  EyeOff,
-} from "lucide-react";
+import { Loader2, Eye, EyeOff, Shield, Lock, Check } from "lucide-react";
 
 function GoogleIcon() {
   return (
@@ -27,55 +17,17 @@ function GoogleIcon() {
   );
 }
 
-function MiniBarChart() {
-  return (
-    <div className="flex items-end gap-0.5 h-6 mt-2">
-      {[40, 65, 50, 80, 60, 90, 75, 95].map((h, i) => (
-        <div
-          key={i}
-          className="w-1 rounded-sm"
-          style={{
-            height: `${h}%`,
-            background: `rgba(99,91,255,${0.3 + i * 0.08})`,
-          }}
-        />
-      ))}
-    </div>
-  );
-}
+const STRENGTH_COLORS = ["#ef4444", "#f59e0b", "#635bff", "#22c55e"];
+const STRENGTH_LABELS = ["", "Weak", "Fair", "Good", "Strong"];
 
-const STATS = [
-  {
-    icon: DollarSign,
-    value: "$2.4M+",
-    label: "Processed this month",
-    extra: "mini-chart",
-  },
-  {
-    icon: Users,
-    value: "500+",
-    label: "Salon businesses trust SalonTransact",
-    extra: null,
-  },
-  {
-    icon: Activity,
-    value: "99.9%",
-    label: "Uptime SLA guaranteed",
-    extra: null,
-  },
-];
-
-function passwordStrength(pw: string): { score: number; color: string; label: string } {
-  if (pw.length === 0) return { score: 0, color: "#e5e7eb", label: "" };
+function passwordStrength(pw: string): number {
+  if (pw.length === 0) return 0;
   let score = 0;
   if (pw.length >= 8) score++;
   if (/[A-Z]/.test(pw)) score++;
   if (/[0-9]/.test(pw)) score++;
   if (/[^A-Za-z0-9]/.test(pw)) score++;
-  if (score <= 1) return { score: 25, color: "#ef4444", label: "Weak" };
-  if (score === 2) return { score: 50, color: "#f59e0b", label: "Fair" };
-  if (score === 3) return { score: 75, color: "#635bff", label: "Good" };
-  return { score: 100, color: "#22c55e", label: "Strong" };
+  return score;
 }
 
 export default function RegisterPage() {
@@ -143,312 +95,243 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen flex">
-      {/* ── LEFT PANEL (60%) ── */}
-      <div
-        className="hidden lg:flex lg:w-[60%] flex-col justify-between relative overflow-hidden"
-        style={{
-          background:
-            "linear-gradient(135deg, #0a0f1a 0%, #0d1117 40%, #1a0533 100%)",
-        }}
-      >
-        {/* Animated orbs */}
-        <div className="auth-orb auth-orb-1" />
-        <div className="auth-orb auth-orb-2" />
-        <div className="auth-orb auth-orb-3" />
+    <div
+      className="min-h-screen flex flex-col items-center justify-center px-4 py-12 relative overflow-hidden"
+      style={{ background: "#0a0f1a" }}
+    >
+      {/* Animated orbs */}
+      <div className="auth-orb auth-orb-1" />
+      <div className="auth-orb auth-orb-2" />
+      <div className="auth-orb auth-orb-3" />
 
-        <div className="relative z-10 p-12 flex flex-col justify-between h-full">
-          {/* Top: Logo */}
-          <div>
-            <span className="text-white font-semibold text-2xl">
-              SalonTransact
-            </span>
-            <p className="text-xs mt-1" style={{ color: "#635bff" }}>
-              by Reyna Pay
-            </p>
+      {/* Content */}
+      <div className="relative z-10 w-full max-w-[400px]">
+        {/* Logo */}
+        <div className="flex items-center justify-center gap-3 mb-10">
+          <div
+            className="w-10 h-10 rounded-xl flex items-center justify-center"
+            style={{
+              background: "#635bff",
+              filter: "drop-shadow(0 0 20px rgba(99,91,255,0.4))",
+            }}
+          >
+            <span className="text-white font-bold text-lg">ST</span>
           </div>
-
-          {/* Center: Hero */}
-          <div className="max-w-lg">
-            <h1 className="text-5xl font-bold text-white leading-tight">
-              Start processing payments
-            </h1>
-            <h1
-              className="text-5xl font-bold leading-tight mt-1"
-              style={{ color: "#635bff" }}
-            >
-              in minutes.
-            </h1>
-
-            {/* Stat cards */}
-            <div className="mt-10 space-y-4">
-              {STATS.map((s) => {
-                const Icon = s.icon;
-                return (
-                  <div
-                    key={s.label}
-                    className="p-5 rounded-xl"
-                    style={{
-                      background: "#111827",
-                      border: "1px solid rgba(255,255,255,0.06)",
-                      boxShadow:
-                        "inset 0 1px 0 rgba(255,255,255,0.03), 0 0 0 1px rgba(0,0,0,0.25), 0 4px 8px rgba(0,0,0,0.4)",
-                    }}
-                  >
-                    <div className="flex items-center gap-4">
-                      <div
-                        className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-                        style={{ background: "rgba(99,91,255,0.12)" }}
-                      >
-                        <Icon
-                          className="w-4 h-4"
-                          style={{ color: "#635bff" }}
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xl font-bold text-white">
-                          {s.value}
-                        </p>
-                        <p className="text-xs text-muted mt-0.5">{s.label}</p>
-                      </div>
-                      {s.extra === "mini-chart" && <MiniBarChart />}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Bottom: Trust badges */}
-          <div className="flex items-center gap-3">
-            {[
-              { icon: Shield, label: "PCI DSS Compliant" },
-              { icon: Lock, label: "256-bit SSL" },
-              { icon: Check, label: "Stripe Verified Partner" },
-            ].map((b) => {
-              const Icon = b.icon;
-              return (
-                <div
-                  key={b.label}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md"
-                  style={{
-                    background: "rgba(255,255,255,0.04)",
-                    border: "1px solid rgba(255,255,255,0.06)",
-                  }}
-                >
-                  <Icon className="w-3 h-3" style={{ color: "#635bff" }} />
-                  <span className="text-[10px] text-muted font-medium">
-                    {b.label}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
+          <span className="text-white font-semibold text-xl">
+            SalonTransact
+          </span>
         </div>
-      </div>
 
-      {/* ── RIGHT PANEL (40%) ── */}
-      <div
-        className="flex-1 flex flex-col items-center justify-center px-6 py-12"
-        style={{ background: "#ffffff" }}
-      >
-        <div className="w-full max-w-[400px]">
-          {/* Logo mark */}
-          <div className="flex items-center gap-3 mb-10 lg:hidden">
-            <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center"
-              style={{ background: "#635bff" }}
-            >
-              <span className="text-white font-bold text-lg">S</span>
-            </div>
-            <span
-              className="font-semibold text-base"
-              style={{ color: "#111827" }}
-            >
-              SalonTransact
-            </span>
-          </div>
-
-          <h2
-            className="text-[28px] font-bold mb-1"
-            style={{ color: "#111827" }}
+        {/* Heading */}
+        <div className="text-center mb-8">
+          <h1
+            className="text-[32px] font-bold text-white mb-2"
+            style={{ letterSpacing: "-0.5px" }}
           >
             Create your account
-          </h2>
-          <p className="text-sm mb-8" style={{ color: "#6b7280" }}>
-            Start your free merchant account today
+          </h1>
+          <p className="text-[15px]" style={{ color: "#6b7280" }}>
+            Start accepting payments in minutes
           </p>
+        </div>
 
-          {/* Google button */}
-          <button
-            type="button"
-            onClick={handleGoogleSignUp}
-            disabled={googleLoading}
-            className="auth-btn-google"
-          >
-            {googleLoading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <GoogleIcon />
-            )}
-            Continue with Google
-          </button>
+        {/* Google button */}
+        <button
+          type="button"
+          onClick={handleGoogleSignUp}
+          disabled={googleLoading}
+          className="auth-btn-google"
+        >
+          {googleLoading ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <GoogleIcon />
+          )}
+          Continue with Google
+        </button>
 
-          <div className="auth-divider">
-            <span>or</span>
+        {/* Divider */}
+        <div className="auth-divider">
+          <span>or</span>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={onSubmit} className="space-y-4">
+          <div>
+            <label
+              className="block text-sm font-medium mb-1.5"
+              style={{ color: "#9ca3af" }}
+            >
+              Business name
+            </label>
+            <input
+              type="text"
+              required
+              value={businessName}
+              onChange={(e) => setBusinessName(e.target.value)}
+              className="auth-input"
+              placeholder="Your salon name"
+            />
           </div>
 
-          {/* Form */}
-          <form onSubmit={onSubmit} className="space-y-4">
-            <div>
-              <label
-                className="block text-sm font-medium mb-1.5"
-                style={{ color: "#374151" }}
-              >
-                Business name
-              </label>
-              <input
-                type="text"
-                required
-                value={businessName}
-                onChange={(e) => setBusinessName(e.target.value)}
-                className="auth-input"
-                placeholder="Your salon name"
-              />
-            </div>
+          <div>
+            <label
+              className="block text-sm font-medium mb-1.5"
+              style={{ color: "#9ca3af" }}
+            >
+              Email address
+            </label>
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="auth-input"
+              placeholder="you@example.com"
+            />
+          </div>
 
-            <div>
-              <label
-                className="block text-sm font-medium mb-1.5"
-                style={{ color: "#374151" }}
-              >
-                Email address
-              </label>
+          <div>
+            <label
+              className="block text-sm font-medium mb-1.5"
+              style={{ color: "#9ca3af" }}
+            >
+              Password
+            </label>
+            <div className="relative">
               <input
-                type="email"
+                type={showPassword ? "text" : "password"}
                 required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 className="auth-input"
-                placeholder="you@example.com"
+                style={{ paddingRight: 44 }}
+                placeholder="At least 8 characters"
               />
-            </div>
-
-            <div>
-              <label
-                className="block text-sm font-medium mb-1.5"
-                style={{ color: "#374151" }}
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer"
+                style={{ color: "#6b7280" }}
+                aria-label={showPassword ? "Hide password" : "Show password"}
               >
-                Password
-              </label>
-              <div className="relative">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="auth-input"
-                  style={{ paddingRight: 40 }}
-                  placeholder="At least 8 characters"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer"
-                  style={{ color: "#9ca3af" }}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                >
-                  {showPassword ? (
-                    <EyeOff className="w-4 h-4" />
-                  ) : (
-                    <Eye className="w-4 h-4" />
-                  )}
-                </button>
-              </div>
-              {/* Strength bar */}
-              {password.length > 0 && (
-                <div className="mt-2 flex items-center gap-2">
-                  <div
-                    className="flex-1 h-[3px] rounded-full overflow-hidden"
-                    style={{ background: "#e5e7eb" }}
-                  >
+                {showPassword ? (
+                  <EyeOff className="w-4 h-4" />
+                ) : (
+                  <Eye className="w-4 h-4" />
+                )}
+              </button>
+            </div>
+            {/* Strength bar: 4 segments */}
+            {password.length > 0 && (
+              <div className="mt-2.5 flex items-center gap-2">
+                <div className="flex gap-1 flex-1">
+                  {[0, 1, 2, 3].map((i) => (
                     <div
-                      className="strength-bar"
+                      key={i}
+                      className="strength-segment"
                       style={{
-                        width: `${strength.score}%`,
-                        background: strength.color,
+                        background:
+                          i < strength
+                            ? STRENGTH_COLORS[strength - 1]
+                            : "rgba(255,255,255,0.06)",
                       }}
                     />
-                  </div>
-                  <span
-                    className="text-[10px] font-medium"
-                    style={{ color: strength.color }}
-                  >
-                    {strength.label}
-                  </span>
+                  ))}
                 </div>
-              )}
-            </div>
-
-            <div>
-              <label
-                className="block text-sm font-medium mb-1.5"
-                style={{ color: "#374151" }}
-              >
-                Confirm password
-              </label>
-              <input
-                type="password"
-                required
-                value={confirm}
-                onChange={(e) => setConfirm(e.target.value)}
-                className="auth-input"
-                placeholder="Confirm your password"
-              />
-            </div>
-
-            {error && (
-              <div
-                className="text-sm rounded-lg px-3 py-2"
-                style={{
-                  color: "#ef4444",
-                  background: "rgba(239,68,68,0.08)",
-                }}
-              >
-                {error}
+                <span
+                  className="text-[10px] font-medium"
+                  style={{
+                    color:
+                      strength > 0
+                        ? STRENGTH_COLORS[strength - 1]
+                        : "#4b5563",
+                  }}
+                >
+                  {STRENGTH_LABELS[strength]}
+                </span>
               </div>
             )}
+          </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="auth-btn-primary"
+          <div>
+            <label
+              className="block text-sm font-medium mb-1.5"
+              style={{ color: "#9ca3af" }}
             >
-              {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-              Create Account
-            </button>
-          </form>
+              Confirm password
+            </label>
+            <input
+              type="password"
+              required
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              className="auth-input"
+              placeholder="Confirm your password"
+            />
+          </div>
 
-          <p
-            className="text-sm text-center mt-8"
-            style={{ color: "#6b7280" }}
-          >
-            Already have an account?{" "}
-            <Link
-              href="/login"
-              style={{ color: "#635bff", fontWeight: 500 }}
+          {error && (
+            <div
+              className="text-sm rounded-xl px-3 py-2.5"
+              style={{
+                color: "#ef4444",
+                background: "rgba(239,68,68,0.08)",
+                border: "1px solid rgba(239,68,68,0.15)",
+              }}
             >
-              Sign in
-            </Link>
-          </p>
+              {error}
+            </div>
+          )}
 
-          <p
-            className="text-[11px] text-center mt-6 leading-relaxed"
-            style={{ color: "#9ca3af" }}
+          <button
+            type="submit"
+            disabled={loading}
+            className="auth-btn-primary"
           >
-            By creating an account you agree to our Terms of Service and Privacy
-            Policy
-          </p>
+            {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+            Create Account
+          </button>
+        </form>
+
+        {/* Footer link */}
+        <p
+          className="text-sm text-center mt-8"
+          style={{ color: "#6b7280" }}
+        >
+          Already have an account?{" "}
+          <Link href="/login" style={{ color: "#635bff", fontWeight: 500 }}>
+            Sign in
+          </Link>
+        </p>
+
+        {/* Trust badges */}
+        <div className="flex items-center justify-center gap-3 mt-10">
+          {[
+            { icon: Shield, label: "PCI DSS" },
+            { icon: Lock, label: "256-bit SSL" },
+            { icon: Check, label: "Stripe Verified" },
+          ].map((b) => {
+            const Icon = b.icon;
+            return (
+              <div
+                key={b.label}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg"
+                style={{
+                  background: "rgba(255,255,255,0.03)",
+                  border: "1px solid rgba(255,255,255,0.06)",
+                }}
+              >
+                <Icon className="w-3 h-3" style={{ color: "#635bff" }} />
+                <span
+                  className="text-[10px] font-medium"
+                  style={{ color: "#4b5563" }}
+                >
+                  {b.label}
+                </span>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>

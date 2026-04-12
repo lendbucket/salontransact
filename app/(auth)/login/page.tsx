@@ -4,7 +4,7 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Loader2, Check, Eye, EyeOff, Shield, Lock } from "lucide-react";
+import { Loader2, Eye, EyeOff, Shield, Lock, Check } from "lucide-react";
 
 function GoogleIcon() {
   return (
@@ -16,21 +16,6 @@ function GoogleIcon() {
     </svg>
   );
 }
-
-const FEATURES = [
-  "Stripe-powered security & compliance",
-  "Real-time transaction monitoring",
-  "Next-day payouts to your bank",
-];
-
-const TICKER_ITEMS = [
-  { name: "Luxe Hair Studio", amount: "$127.00", time: "2s ago" },
-  { name: "The Barber Collective", amount: "$45.00", time: "8s ago" },
-  { name: "Zen Nail Spa", amount: "$89.50", time: "15s ago" },
-  { name: "Crown & Glory Salon", amount: "$210.00", time: "22s ago" },
-  { name: "Fresh Cuts NYC", amount: "$67.00", time: "31s ago" },
-  { name: "Glow Up Beauty", amount: "$155.00", time: "45s ago" },
-];
 
 export default function LoginPage() {
   const router = useRouter();
@@ -69,293 +54,188 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex">
-      {/* ── LEFT PANEL (60%) ── */}
-      <div
-        className="hidden lg:flex lg:w-[60%] flex-col justify-between relative overflow-hidden"
-        style={{
-          background:
-            "linear-gradient(135deg, #0a0f1a 0%, #0d1117 40%, #1a0533 100%)",
-        }}
-      >
-        {/* Animated orbs */}
-        <div className="auth-orb auth-orb-1" />
-        <div className="auth-orb auth-orb-2" />
-        <div className="auth-orb auth-orb-3" />
+    <div
+      className="min-h-screen flex flex-col items-center justify-center px-4 relative overflow-hidden"
+      style={{ background: "#0a0f1a" }}
+    >
+      {/* Animated orbs */}
+      <div className="auth-orb auth-orb-1" />
+      <div className="auth-orb auth-orb-2" />
+      <div className="auth-orb auth-orb-3" />
 
-        {/* Content */}
-        <div className="relative z-10 p-12 flex flex-col justify-between h-full">
-          {/* Top: Logo */}
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-white font-semibold text-2xl">
-                SalonTransact
-              </span>
-            </div>
-            <p className="text-xs mt-1" style={{ color: "#635bff" }}>
-              by Reyna Pay
-            </p>
+      {/* Content */}
+      <div className="relative z-10 w-full max-w-[400px]">
+        {/* Logo */}
+        <div className="flex items-center justify-center gap-3 mb-10">
+          <div
+            className="w-10 h-10 rounded-xl flex items-center justify-center"
+            style={{
+              background: "#635bff",
+              filter: "drop-shadow(0 0 20px rgba(99,91,255,0.4))",
+            }}
+          >
+            <span className="text-white font-bold text-lg">ST</span>
           </div>
-
-          {/* Center: Hero text */}
-          <div className="max-w-lg">
-            <h1 className="text-5xl font-bold text-white leading-tight">
-              The payment infrastructure
-            </h1>
-            <h1
-              className="text-5xl font-bold italic leading-tight mt-1"
-              style={{ color: "#635bff" }}
-            >
-              built for salons.
-            </h1>
-            <p
-              className="mt-6 text-base leading-relaxed max-w-md"
-              style={{ color: "#9ca3af" }}
-            >
-              Process payments, manage payouts, and grow your salon business
-              &mdash; all in one place.
-            </p>
-
-            {/* Feature checklist */}
-            <div className="mt-8 space-y-3">
-              {FEATURES.map((f) => (
-                <div key={f} className="flex items-center gap-3">
-                  <div
-                    className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
-                    style={{ background: "rgba(99,91,255,0.2)" }}
-                  >
-                    <Check className="w-3 h-3" style={{ color: "#635bff" }} />
-                  </div>
-                  <span className="text-sm text-white">{f}</span>
-                </div>
-              ))}
-            </div>
-
-            {/* Live transaction ticker */}
-            <div
-              className="mt-10 rounded-xl overflow-hidden"
-              style={{
-                background: "rgba(17,24,39,0.6)",
-                border: "1px solid rgba(255,255,255,0.06)",
-                backdropFilter: "blur(12px)",
-                height: 140,
-              }}
-            >
-              <div className="px-4 py-2.5 flex items-center gap-2" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-                <div className="w-1.5 h-1.5 rounded-full bg-success" />
-                <span className="text-[10px] uppercase tracking-wider text-muted font-medium">
-                  Live transactions
-                </span>
-              </div>
-              <div className="overflow-hidden" style={{ height: 104 }}>
-                <div className="ticker-scroll">
-                  {[...TICKER_ITEMS, ...TICKER_ITEMS].map((item, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center justify-between px-4 py-2.5"
-                      style={{ borderBottom: "1px solid rgba(255,255,255,0.03)" }}
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-1.5 h-1.5 rounded-full bg-success" />
-                        <span className="text-xs text-white">{item.name}</span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs font-medium text-white">
-                          {item.amount}
-                        </span>
-                        <span className="text-[10px] text-muted">
-                          {item.time}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Bottom: Trust badges */}
-          <div className="flex items-center gap-3">
-            {[
-              { icon: Shield, label: "PCI DSS Compliant" },
-              { icon: Lock, label: "256-bit SSL" },
-              { icon: Check, label: "Stripe Verified Partner" },
-            ].map((b) => {
-              const Icon = b.icon;
-              return (
-                <div
-                  key={b.label}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md"
-                  style={{
-                    background: "rgba(255,255,255,0.04)",
-                    border: "1px solid rgba(255,255,255,0.06)",
-                  }}
-                >
-                  <Icon className="w-3 h-3" style={{ color: "#635bff" }} />
-                  <span className="text-[10px] text-muted font-medium">
-                    {b.label}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
+          <span className="text-white font-semibold text-xl">
+            SalonTransact
+          </span>
         </div>
-      </div>
 
-      {/* ── RIGHT PANEL (40%) ── */}
-      <div
-        className="flex-1 flex flex-col items-center justify-center px-6 py-12"
-        style={{ background: "#ffffff" }}
-      >
-        <div className="w-full max-w-[400px]">
-          {/* Logo mark */}
-          <div className="flex items-center gap-3 mb-10">
-            <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center"
-              style={{ background: "#635bff" }}
-            >
-              <span className="text-white font-bold text-lg">S</span>
-            </div>
-            <span
-              className="font-semibold text-base"
-              style={{ color: "#111827" }}
-            >
-              SalonTransact
-            </span>
-          </div>
-
-          <h2
-            className="text-[28px] font-bold mb-1"
-            style={{ color: "#111827" }}
+        {/* Heading */}
+        <div className="text-center mb-8">
+          <h1
+            className="text-[32px] font-bold text-white mb-2"
+            style={{ letterSpacing: "-0.5px" }}
           >
             Welcome back
-          </h2>
-          <p className="text-sm mb-8" style={{ color: "#6b7280" }}>
-            Sign in to your merchant portal
+          </h1>
+          <p className="text-[15px]" style={{ color: "#6b7280" }}>
+            Sign in to your SalonTransact portal
           </p>
+        </div>
 
-          {/* Google button */}
-          <button
-            type="button"
-            onClick={handleGoogleSignIn}
-            disabled={googleLoading}
-            className="auth-btn-google"
-          >
-            {googleLoading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <GoogleIcon />
-            )}
-            Continue with Google
-          </button>
+        {/* Google button */}
+        <button
+          type="button"
+          onClick={handleGoogleSignIn}
+          disabled={googleLoading}
+          className="auth-btn-google"
+        >
+          {googleLoading ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <GoogleIcon />
+          )}
+          Continue with Google
+        </button>
 
-          {/* Divider */}
-          <div className="auth-divider">
-            <span>or</span>
+        {/* Divider */}
+        <div className="auth-divider">
+          <span>or</span>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={onSubmit} className="space-y-4">
+          <div>
+            <label
+              className="block text-sm font-medium mb-1.5"
+              style={{ color: "#9ca3af" }}
+            >
+              Email address
+            </label>
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="auth-input"
+              placeholder="you@example.com"
+            />
           </div>
 
-          {/* Form */}
-          <form onSubmit={onSubmit} className="space-y-4">
-            <div>
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
               <label
-                className="block text-sm font-medium mb-1.5"
-                style={{ color: "#374151" }}
+                className="block text-sm font-medium"
+                style={{ color: "#9ca3af" }}
               >
-                Email address
+                Password
               </label>
+              <Link
+                href="/forgot-password"
+                className="text-[13px] font-medium"
+                style={{ color: "#635bff" }}
+              >
+                Forgot password?
+              </Link>
+            </div>
+            <div className="relative">
               <input
-                type="email"
+                type={showPassword ? "text" : "password"}
                 required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 className="auth-input"
-                placeholder="you@example.com"
+                style={{ paddingRight: 44 }}
+                placeholder="Enter your password"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer"
+                style={{ color: "#6b7280" }}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? (
+                  <EyeOff className="w-4 h-4" />
+                ) : (
+                  <Eye className="w-4 h-4" />
+                )}
+              </button>
             </div>
+          </div>
 
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label
-                  className="block text-sm font-medium"
-                  style={{ color: "#374151" }}
-                >
-                  Password
-                </label>
-                <Link
-                  href="/forgot-password"
-                  className="text-xs font-medium"
-                  style={{ color: "#635bff" }}
-                >
-                  Forgot password?
-                </Link>
-              </div>
-              <div className="relative">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="auth-input"
-                  style={{ paddingRight: 40 }}
-                  placeholder="Enter your password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer"
-                  style={{ color: "#9ca3af" }}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                >
-                  {showPassword ? (
-                    <EyeOff className="w-4 h-4" />
-                  ) : (
-                    <Eye className="w-4 h-4" />
-                  )}
-                </button>
-              </div>
+          {error && (
+            <div
+              className="text-sm rounded-xl px-3 py-2.5"
+              style={{
+                color: "#ef4444",
+                background: "rgba(239,68,68,0.08)",
+                border: "1px solid rgba(239,68,68,0.15)",
+              }}
+            >
+              {error}
             </div>
+          )}
 
-            {error && (
+          <button
+            type="submit"
+            disabled={loading}
+            className="auth-btn-primary"
+          >
+            {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+            Sign in
+          </button>
+        </form>
+
+        {/* Footer link */}
+        <p
+          className="text-sm text-center mt-8"
+          style={{ color: "#6b7280" }}
+        >
+          Don&apos;t have an account?{" "}
+          <Link href="/register" style={{ color: "#635bff", fontWeight: 500 }}>
+            Create one
+          </Link>
+        </p>
+
+        {/* Trust badges */}
+        <div className="flex items-center justify-center gap-3 mt-10">
+          {[
+            { icon: Shield, label: "PCI DSS" },
+            { icon: Lock, label: "256-bit SSL" },
+            { icon: Check, label: "Stripe Verified" },
+          ].map((b) => {
+            const Icon = b.icon;
+            return (
               <div
-                className="text-sm rounded-lg px-3 py-2"
+                key={b.label}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg"
                 style={{
-                  color: "#ef4444",
-                  background: "rgba(239,68,68,0.08)",
+                  background: "rgba(255,255,255,0.03)",
+                  border: "1px solid rgba(255,255,255,0.06)",
                 }}
               >
-                {error}
+                <Icon className="w-3 h-3" style={{ color: "#635bff" }} />
+                <span
+                  className="text-[10px] font-medium"
+                  style={{ color: "#4b5563" }}
+                >
+                  {b.label}
+                </span>
               </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="auth-btn-primary"
-            >
-              {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-              Sign in
-            </button>
-          </form>
-
-          <p
-            className="text-sm text-center mt-8"
-            style={{ color: "#6b7280" }}
-          >
-            Don&apos;t have an account?{" "}
-            <Link
-              href="/register"
-              style={{ color: "#635bff", fontWeight: 500 }}
-            >
-              Create one
-            </Link>
-          </p>
-
-          <p
-            className="text-[11px] text-center mt-6 leading-relaxed"
-            style={{ color: "#9ca3af" }}
-          >
-            By signing in you agree to our Terms of Service and Privacy Policy
-          </p>
+            );
+          })}
         </div>
       </div>
     </div>
