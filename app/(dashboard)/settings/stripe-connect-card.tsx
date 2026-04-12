@@ -1,7 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, ExternalLink, CheckCircle2, AlertCircle } from "lucide-react";
+import {
+  Loader2,
+  ExternalLink,
+  CheckCircle2,
+  AlertCircle,
+} from "lucide-react";
 
 type Props = {
   stripeAccountId: string | null;
@@ -40,24 +45,24 @@ export function StripeConnectCard({
   }
 
   return (
-    <div className="card p-6">
-      <h2 className="text-lg font-semibold text-white mb-1">
+    <div className="st-card p-6">
+      <h2 className="text-base font-semibold text-foreground mb-1">
         Stripe Connect
       </h2>
-      <p className="text-sm text-muted mb-6">
+      <p className="text-sm text-secondary mb-6">
         Accept payments and receive payouts via Stripe
       </p>
 
       {stripeAccountId && (
-        <div className="mb-6 space-y-2">
+        <div className="mb-6 space-y-3">
           <div className="flex items-center gap-2 text-sm">
             {chargesEnabled ? (
               <CheckCircle2 className="w-4 h-4" style={{ color: "#22c55e" }} />
             ) : (
               <AlertCircle className="w-4 h-4" style={{ color: "#f59e0b" }} />
             )}
-            <span className="text-white">Charges</span>
-            <span className="text-muted">
+            <span className="text-foreground">Charges</span>
+            <span className="text-secondary">
               {chargesEnabled ? "enabled" : "pending"}
             </span>
           </div>
@@ -67,14 +72,15 @@ export function StripeConnectCard({
             ) : (
               <AlertCircle className="w-4 h-4" style={{ color: "#f59e0b" }} />
             )}
-            <span className="text-white">Payouts</span>
-            <span className="text-muted">
+            <span className="text-foreground">Payouts</span>
+            <span className="text-secondary">
               {payoutsEnabled ? "enabled" : "pending"}
             </span>
           </div>
           <p className="text-xs text-muted pt-1">
-            Account: <span className="font-mono">{stripeAccountId}</span> ·
-            Status: {status}
+            Account:{" "}
+            <span className="font-mono">{stripeAccountId}</span>{" "}
+            &middot; Status: {status}
           </p>
         </div>
       )}
@@ -92,7 +98,7 @@ export function StripeConnectCard({
         <button
           onClick={startOnboarding}
           disabled={loading}
-          className="btn-primary flex items-center gap-2 disabled:opacity-60"
+          className="btn-primary flex items-center gap-2"
         >
           {loading ? (
             <Loader2 className="w-4 h-4 animate-spin" />

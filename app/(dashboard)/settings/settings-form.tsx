@@ -56,104 +56,104 @@ export function SettingsForm({ merchant }: { merchant: Merchant }) {
   }
 
   return (
-    <form onSubmit={onSubmit} className="card p-6">
-      <h2 className="text-lg font-semibold text-white mb-1">
-        Business details
+    <form onSubmit={onSubmit} className="st-card p-6">
+      <h2 className="text-base font-semibold text-foreground mb-1">
+        Business Details
       </h2>
-      <p className="text-sm text-muted mb-6">
+      <p className="text-sm text-secondary mb-6">
         Used on receipts and customer-facing screens
       </p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="sm:col-span-2">
-          <label className="block text-sm font-medium text-muted mb-2">
+          <label className="block text-sm font-medium text-secondary mb-2">
             Business name
           </label>
           <input
             value={form.businessName}
             onChange={(e) => update("businessName", e.target.value)}
-            className="input"
+            className="st-input"
             required
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-muted mb-2">
+          <label className="block text-sm font-medium text-secondary mb-2">
             Business type
           </label>
           <input
             value={form.businessType}
             onChange={(e) => update("businessType", e.target.value)}
-            className="input"
+            className="st-input"
             placeholder="Salon, Spa, ..."
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-muted mb-2">
+          <label className="block text-sm font-medium text-secondary mb-2">
             Email
           </label>
           <input
             type="email"
             value={form.email}
             onChange={(e) => update("email", e.target.value)}
-            className="input"
+            className="st-input"
             required
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-muted mb-2">
+          <label className="block text-sm font-medium text-secondary mb-2">
             Phone
           </label>
           <input
             value={form.phone}
             onChange={(e) => update("phone", e.target.value)}
-            className="input"
+            className="st-input"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-muted mb-2">
+          <label className="block text-sm font-medium text-secondary mb-2">
             Address
           </label>
           <input
             value={form.address}
             onChange={(e) => update("address", e.target.value)}
-            className="input"
+            className="st-input"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-muted mb-2">
+          <label className="block text-sm font-medium text-secondary mb-2">
             City
           </label>
           <input
             value={form.city}
             onChange={(e) => update("city", e.target.value)}
-            className="input"
+            className="st-input"
           />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-muted mb-2">
+            <label className="block text-sm font-medium text-secondary mb-2">
               State
             </label>
             <input
               value={form.state}
               onChange={(e) => update("state", e.target.value)}
-              className="input"
+              className="st-input"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-muted mb-2">
+            <label className="block text-sm font-medium text-secondary mb-2">
               ZIP
             </label>
             <input
               value={form.zip}
               onChange={(e) => update("zip", e.target.value)}
-              className="input"
+              className="st-input"
             />
           </div>
         </div>
@@ -172,7 +172,7 @@ export function SettingsForm({ merchant }: { merchant: Merchant }) {
         <button
           type="submit"
           disabled={saving}
-          className="btn-primary flex items-center gap-2 disabled:opacity-60"
+          className="btn-primary flex items-center gap-2"
         >
           {saving && <Loader2 className="w-4 h-4 animate-spin" />}
           Save changes

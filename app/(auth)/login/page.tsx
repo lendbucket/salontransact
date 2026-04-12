@@ -4,7 +4,7 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Loader2 } from "lucide-react";
+import { Loader2, Zap, Shield, BarChart3 } from "lucide-react";
 
 function GoogleIcon() {
   return (
@@ -28,6 +28,24 @@ function GoogleIcon() {
     </svg>
   );
 }
+
+const features = [
+  {
+    icon: Zap,
+    title: "Instant Payouts",
+    desc: "Get funds deposited to your bank account within hours, not days.",
+  },
+  {
+    icon: Shield,
+    title: "Stripe-Powered Security",
+    desc: "PCI DSS Level 1 compliant with end-to-end encryption on every transaction.",
+  },
+  {
+    icon: BarChart3,
+    title: "Real-Time Analytics",
+    desc: "Track revenue, monitor trends, and export reports from your dashboard.",
+  },
+];
 
 export default function LoginPage() {
   const router = useRouter();
@@ -65,21 +83,84 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="auth-bg min-h-screen flex items-center justify-center px-4">
-      <div className="w-full max-w-[440px]">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold tracking-tight" style={{ color: "#0a2540" }}>
+    <div className="min-h-screen flex">
+      {/* Left branding panel -- desktop only */}
+      <div
+        className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12"
+        style={{ background: "#0d1117" }}
+      >
+        <div>
+          <h1
+            className="text-2xl font-semibold"
+            style={{ color: "#635bff" }}
+          >
             SalonTransact
           </h1>
-          <p className="mt-1.5 text-sm" style={{ color: "#425466" }}>
-            Powered by Reyna Pay
+          <p className="text-foreground text-3xl font-semibold mt-16 leading-tight max-w-md">
+            Payment infrastructure built for salons
           </p>
+          <p className="text-secondary mt-3 max-w-sm">
+            Accept payments, manage payouts, and grow your business with
+            enterprise-grade tools.
+          </p>
+
+          <div className="mt-12 space-y-4">
+            {features.map((f) => {
+              const Icon = f.icon;
+              return (
+                <div
+                  key={f.title}
+                  className="p-4 rounded-xl"
+                  style={{
+                    background: "#111827",
+                    border: "1px solid rgba(255,255,255,0.06)",
+                    boxShadow:
+                      "inset 0 1px 0 rgba(255,255,255,0.02), inset 0 0 0 1px rgba(255,255,255,0.02), 0 0 0 1px rgba(0,0,0,0.25), 0 2px 2px rgba(0,0,0,0.1), 0 4px 4px rgba(0,0,0,0.1), 0 8px 8px rgba(0,0,0,0.1)",
+                  }}
+                >
+                  <div className="flex items-center gap-3 mb-2">
+                    <div
+                      className="w-8 h-8 rounded-lg flex items-center justify-center"
+                      style={{ background: "rgba(99,91,255,0.12)" }}
+                    >
+                      <Icon
+                        className="w-4 h-4"
+                        style={{ color: "#635bff" }}
+                      />
+                    </div>
+                    <span className="text-foreground font-medium text-sm">
+                      {f.title}
+                    </span>
+                  </div>
+                  <p className="text-secondary text-xs leading-relaxed pl-11">
+                    {f.desc}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
-        <div className="auth-card">
-          <h2 className="text-xl font-semibold mb-6" style={{ color: "#0a2540" }}>
-            Sign in to your account
+        <p className="text-muted text-xs">
+          Powered by Reyna Pay LLC &middot; Stripe Connect Certified
+        </p>
+      </div>
+
+      {/* Right form panel */}
+      <div
+        className="flex-1 flex items-center justify-center px-6 py-12"
+        style={{ background: "#ffffff" }}
+      >
+        <div className="w-full max-w-[400px]">
+          <h2
+            className="text-2xl font-semibold mb-1"
+            style={{ color: "#111827" }}
+          >
+            Welcome back
           </h2>
+          <p className="text-sm mb-8" style={{ color: "#6b7280" }}>
+            Sign in to your merchant dashboard
+          </p>
 
           <button
             type="button"
@@ -101,7 +182,10 @@ export default function LoginPage() {
 
           <form onSubmit={onSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-1.5" style={{ color: "#425466" }}>
+              <label
+                className="block text-sm font-medium mb-1.5"
+                style={{ color: "#374151" }}
+              >
                 Email
               </label>
               <input
@@ -116,7 +200,10 @@ export default function LoginPage() {
 
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-sm font-medium" style={{ color: "#425466" }}>
+                <label
+                  className="block text-sm font-medium"
+                  style={{ color: "#374151" }}
+                >
                   Password
                 </label>
                 <Link
@@ -133,12 +220,18 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="auth-input"
-                placeholder="••••••••"
+                placeholder="Enter your password"
               />
             </div>
 
             {error && (
-              <div className="text-sm rounded-md px-3 py-2" style={{ color: "#ef4444", background: "rgba(239,68,68,0.08)" }}>
+              <div
+                className="text-sm rounded-md px-3 py-2"
+                style={{
+                  color: "#ef4444",
+                  background: "rgba(239,68,68,0.08)",
+                }}
+              >
                 {error}
               </div>
             )}
@@ -153,10 +246,16 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <p className="text-sm text-center mt-6" style={{ color: "#425466" }}>
+          <p
+            className="text-sm text-center mt-8"
+            style={{ color: "#6b7280" }}
+          >
             Don&apos;t have an account?{" "}
-            <Link href="/register" style={{ color: "#635bff", fontWeight: 500 }}>
-              Sign up
+            <Link
+              href="/register"
+              style={{ color: "#635bff", fontWeight: 500 }}
+            >
+              Create one
             </Link>
           </p>
         </div>

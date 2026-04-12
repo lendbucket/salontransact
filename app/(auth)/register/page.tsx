@@ -4,7 +4,7 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Loader2 } from "lucide-react";
+import { Loader2, DollarSign, Users, Activity } from "lucide-react";
 
 function GoogleIcon() {
   return (
@@ -28,6 +28,24 @@ function GoogleIcon() {
     </svg>
   );
 }
+
+const stats = [
+  {
+    icon: DollarSign,
+    value: "$2.4M+",
+    label: "Processed",
+  },
+  {
+    icon: Users,
+    value: "500+",
+    label: "Merchants",
+  },
+  {
+    icon: Activity,
+    value: "99.9%",
+    label: "Uptime",
+  },
+];
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -91,21 +109,79 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="auth-bg min-h-screen flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-[440px]">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold tracking-tight" style={{ color: "#0a2540" }}>
+    <div className="min-h-screen flex">
+      {/* Left branding panel -- desktop only */}
+      <div
+        className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12"
+        style={{ background: "#0d1117" }}
+      >
+        <div>
+          <h1
+            className="text-2xl font-semibold"
+            style={{ color: "#635bff" }}
+          >
             SalonTransact
           </h1>
-          <p className="mt-1.5 text-sm" style={{ color: "#425466" }}>
-            Powered by Reyna Pay
+          <p className="text-foreground text-3xl font-semibold mt-16 leading-tight max-w-md">
+            Join 500+ salon businesses
           </p>
+          <p className="text-secondary mt-3 max-w-sm">
+            Get started in minutes. No setup fees, no hidden costs.
+          </p>
+
+          <div className="mt-12 grid grid-cols-3 gap-4">
+            {stats.map((s) => {
+              const Icon = s.icon;
+              return (
+                <div
+                  key={s.label}
+                  className="p-5 rounded-xl text-center"
+                  style={{
+                    background: "#111827",
+                    border: "1px solid rgba(255,255,255,0.06)",
+                    boxShadow:
+                      "inset 0 1px 0 rgba(255,255,255,0.02), inset 0 0 0 1px rgba(255,255,255,0.02), 0 0 0 1px rgba(0,0,0,0.25), 0 2px 2px rgba(0,0,0,0.1), 0 4px 4px rgba(0,0,0,0.1), 0 8px 8px rgba(0,0,0,0.1)",
+                  }}
+                >
+                  <div
+                    className="w-10 h-10 rounded-lg flex items-center justify-center mx-auto mb-3"
+                    style={{ background: "rgba(99,91,255,0.12)" }}
+                  >
+                    <Icon
+                      className="w-4 h-4"
+                      style={{ color: "#635bff" }}
+                    />
+                  </div>
+                  <p className="text-foreground text-xl font-semibold">
+                    {s.value}
+                  </p>
+                  <p className="text-secondary text-xs mt-1">{s.label}</p>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
-        <div className="auth-card">
-          <h2 className="text-xl font-semibold mb-6" style={{ color: "#0a2540" }}>
-            Create your merchant account
+        <p className="text-muted text-xs">
+          Powered by Reyna Pay LLC &middot; Stripe Connect Certified
+        </p>
+      </div>
+
+      {/* Right form panel */}
+      <div
+        className="flex-1 flex items-center justify-center px-6 py-12"
+        style={{ background: "#ffffff" }}
+      >
+        <div className="w-full max-w-[400px]">
+          <h2
+            className="text-2xl font-semibold mb-1"
+            style={{ color: "#111827" }}
+          >
+            Create your account
           </h2>
+          <p className="text-sm mb-8" style={{ color: "#6b7280" }}>
+            Start accepting payments in minutes
+          </p>
 
           <button
             type="button"
@@ -127,7 +203,10 @@ export default function RegisterPage() {
 
           <form onSubmit={onSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-1.5" style={{ color: "#425466" }}>
+              <label
+                className="block text-sm font-medium mb-1.5"
+                style={{ color: "#374151" }}
+              >
                 Business name
               </label>
               <input
@@ -136,12 +215,15 @@ export default function RegisterPage() {
                 value={businessName}
                 onChange={(e) => setBusinessName(e.target.value)}
                 className="auth-input"
-                placeholder="Your business"
+                placeholder="Your salon name"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1.5" style={{ color: "#425466" }}>
+              <label
+                className="block text-sm font-medium mb-1.5"
+                style={{ color: "#374151" }}
+              >
                 Email
               </label>
               <input
@@ -155,7 +237,10 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1.5" style={{ color: "#425466" }}>
+              <label
+                className="block text-sm font-medium mb-1.5"
+                style={{ color: "#374151" }}
+              >
                 Password
               </label>
               <input
@@ -169,7 +254,10 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1.5" style={{ color: "#425466" }}>
+              <label
+                className="block text-sm font-medium mb-1.5"
+                style={{ color: "#374151" }}
+              >
                 Confirm password
               </label>
               <input
@@ -178,12 +266,18 @@ export default function RegisterPage() {
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
                 className="auth-input"
-                placeholder="••••••••"
+                placeholder="Confirm your password"
               />
             </div>
 
             {error && (
-              <div className="text-sm rounded-md px-3 py-2" style={{ color: "#ef4444", background: "rgba(239,68,68,0.08)" }}>
+              <div
+                className="text-sm rounded-md px-3 py-2"
+                style={{
+                  color: "#ef4444",
+                  background: "rgba(239,68,68,0.08)",
+                }}
+              >
                 {error}
               </div>
             )}
@@ -198,9 +292,15 @@ export default function RegisterPage() {
             </button>
           </form>
 
-          <p className="text-sm text-center mt-6" style={{ color: "#425466" }}>
+          <p
+            className="text-sm text-center mt-8"
+            style={{ color: "#6b7280" }}
+          >
             Already have an account?{" "}
-            <Link href="/login" style={{ color: "#635bff", fontWeight: 500 }}>
+            <Link
+              href="/login"
+              style={{ color: "#635bff", fontWeight: 500 }}
+            >
               Sign in
             </Link>
           </p>

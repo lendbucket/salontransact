@@ -1,7 +1,8 @@
 import { requireMerchant } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { format } from "date-fns";
-import { Webhook } from "lucide-react";
+import { Webhook as WebhookIcon, Plus, Trash2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 export default async function WebhooksPage() {
   const { merchant } = await requireMerchant();
@@ -13,49 +14,81 @@ export default async function WebhooksPage() {
 
   return (
     <div className="p-6 md:p-8 max-w-5xl mx-auto">
-      <h1 className="text-2xl font-semibold text-white mb-1">Webhooks</h1>
-      <p className="text-sm text-muted mb-8">
-        Receive event notifications at your endpoints
-      </p>
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground mb-1">
+            Webhooks
+          </h1>
+          <p className="text-sm text-secondary">
+            Receive event notifications at your endpoints
+          </p>
+        </div>
+        <button className="btn-primary flex items-center gap-2">
+          <Plus className="w-4 h-4" />
+          Add Endpoint
+        </button>
+      </div>
 
-      <div className="card p-6">
+      <div className="st-card p-6">
         {hooks.length === 0 ? (
           <div className="py-12 text-center">
-            <Webhook
-              className="w-8 h-8 mx-auto mb-3"
-              style={{ color: "#606E74" }}
-            />
-            <p className="text-sm text-muted">No webhook endpoints yet.</p>
+            <WebhookIcon className="w-8 h-8 mx-auto mb-3 text-muted" />
+            <p className="text-sm text-muted">
+              No webhook endpoints yet. Add one to receive event notifications.
+            </p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {hooks.map((h: { id: string; url: string; events: string[]; active: boolean; createdAt: Date; merchantId: string; updatedAt: Date; secret: string }) => (
-              <div
-                key={h.id}
-                className="flex items-center justify-between border rounded-lg px-4 py-3"
-              >
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-white truncate">
-                    {h.url}
-                  </p>
-                  <p className="text-xs text-muted mt-0.5">
-                    {h.events.length} events · created{" "}
-                    {format(h.createdAt, "MMM d, yyyy")}
-                  </p>
-                </div>
-                <span
-                  className="text-xs px-2 py-0.5 rounded font-medium"
-                  style={{
-                    color: h.active ? "#22c55e" : "#8b949e",
-                    background: h.active
-                      ? "rgba(34,197,94,0.1)"
-                      : "rgba(139,148,158,0.1)",
-                  }}
-                >
-                  {h.active ? "active" : "disabled"}
-                </span>
-              </div>
-            ))}
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-muted">
+                  <th className="pb-3 font-medium">URL</th>
+                  <th className="pb-3 font-medium">Events</th>
+                  <th className="pb-3 font-medium">Status</th>
+                  <th className="pb-3 font-medium">Created</th>
+                  <th className="pb-3 font-medium" />
+                </tr>
+              </thead>
+              <tbody>
+                {hooks.map(
+                  (h: {
+                    id: string;
+                    url: string;
+                    events: string[];
+                    active: boolean;
+                    createdAt: Date;
+                  }) => (
+                    <tr
+                      key={h.id}
+                      className="border-t"
+                      style={{ borderColor: "rgba(255,255,255,0.06)" }}
+                    >
+                      <td className="py-3 text-foreground font-mono text-xs max-w-[250px] truncate">
+                        {h.url}
+                      </td>
+                      <td className="py-3 text-secondary">
+                        {h.events.length} event
+                        {h.events.length !== 1 ? "s" : ""}
+                      </td>
+                      <td className="py-3">
+                        <Badge status={h.active ? "active" : "inactive"} />
+                      </td>
+                      <td className="py-3 text-muted whitespace-nowrap">
+                        {format(h.createdAt, "MMM d, yyyy")}
+                      </td>
+                      <td className="py-3 text-right">
+                        <button
+                          className="text-muted cursor-pointer"
+                          aria-label="Delete webhook"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                )}
+              </tbody>
+            </table>
           </div>
         )}
       </div>

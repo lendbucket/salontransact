@@ -5,11 +5,13 @@ import "./globals.css";
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
+  weight: ["400", "500", "600"],
 });
 
 export const metadata: Metadata = {
-  title: "SalonTransact",
-  description: "Merchant payments portal — Powered by Reyna Pay",
+  title: "SalonTransact — Payment Infrastructure for Salons",
+  description:
+    "Merchant payments portal powered by Reyna Pay LLC. Accept payments, manage payouts, and grow your salon business.",
 };
 
 export default function RootLayout({
@@ -19,7 +21,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${inter.variable} h-full antialiased`}>
-      <body className="min-h-full">{children}</body>
+      <body className="min-h-full bg-background">{children}</body>
     </html>
   );
 }

@@ -1,7 +1,8 @@
 import { requireMerchant } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { format } from "date-fns";
-import { KeyRound } from "lucide-react";
+import { KeyRound, AlertTriangle, Plus } from "lucide-react";
+import { ApiKeyTable } from "./api-key-table";
 
 export default async function ApiKeysPage() {
   const { merchant } = await requireMerchant();
@@ -13,51 +14,69 @@ export default async function ApiKeysPage() {
 
   return (
     <div className="p-6 md:p-8 max-w-5xl mx-auto">
-      <h1 className="text-2xl font-semibold text-white mb-1">API Keys</h1>
-      <p className="text-sm text-muted mb-8">
-        Use these to authenticate API requests
-      </p>
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground mb-1">
+            API Keys
+          </h1>
+          <p className="text-sm text-secondary">
+            Authenticate API requests to SalonTransact
+          </p>
+        </div>
+        <button className="btn-primary flex items-center gap-2">
+          <Plus className="w-4 h-4" />
+          Create Key
+        </button>
+      </div>
 
-      <div className="card p-6">
+      {/* Warning banner */}
+      <div
+        className="flex items-start gap-3 p-4 rounded-lg mb-6"
+        style={{
+          background: "rgba(245,158,11,0.06)",
+          border: "1px solid rgba(245,158,11,0.15)",
+        }}
+      >
+        <AlertTriangle
+          className="w-4 h-4 flex-shrink-0 mt-0.5"
+          style={{ color: "#f59e0b" }}
+        />
+        <p className="text-sm" style={{ color: "#f59e0b" }}>
+          Keep your API keys secret. Never expose them in client-side code or
+          public repositories.
+        </p>
+      </div>
+
+      <div className="st-card p-6">
         {keys.length === 0 ? (
           <div className="py-12 text-center">
-            <KeyRound
-              className="w-8 h-8 mx-auto mb-3"
-              style={{ color: "#606E74" }}
-            />
+            <KeyRound className="w-8 h-8 mx-auto mb-3 text-muted" />
             <p className="text-sm text-muted">
               No API keys yet. Create one to start integrating SalonTransact.
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-muted border-b">
-                  <th className="pb-3 font-medium">Name</th>
-                  <th className="pb-3 font-medium">Key</th>
-                  <th className="pb-3 font-medium">Last used</th>
-                  <th className="pb-3 font-medium">Created</th>
-                </tr>
-              </thead>
-              <tbody>
-                {keys.map((k: { id: string; name: string; key: string; active: boolean; createdAt: Date; lastUsed: Date | null; merchantId: string }) => (
-                  <tr key={k.id} className="border-b last:border-0">
-                    <td className="py-3 text-white">{k.name}</td>
-                    <td className="py-3 text-muted font-mono text-xs">
-                      {k.key.slice(0, 12)}…
-                    </td>
-                    <td className="py-3 text-muted">
-                      {k.lastUsed ? format(k.lastUsed, "MMM d, yyyy") : "Never"}
-                    </td>
-                    <td className="py-3 text-muted">
-                      {format(k.createdAt, "MMM d, yyyy")}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <ApiKeyTable
+            keys={keys.map(
+              (k: {
+                id: string;
+                name: string;
+                key: string;
+                active: boolean;
+                createdAt: Date;
+                lastUsed: Date | null;
+              }) => ({
+                id: k.id,
+                name: k.name,
+                key: k.key,
+                active: k.active,
+                createdAt: format(k.createdAt, "MMM d, yyyy"),
+                lastUsed: k.lastUsed
+                  ? format(k.lastUsed, "MMM d, yyyy")
+                  : "Never",
+              })
+            )}
+          />
         )}
       </div>
     </div>

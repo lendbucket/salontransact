@@ -1,6 +1,8 @@
 import { requireMerchant } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { format } from "date-fns";
+import { Badge } from "@/components/ui/badge";
+import { DollarSign, Wallet } from "lucide-react";
 
 function formatMoney(value: number) {
   return new Intl.NumberFormat("en-US", {
@@ -9,72 +11,118 @@ function formatMoney(value: number) {
   }).format(value);
 }
 
-function statusColor(status: string) {
-  if (status === "paid") return "#22c55e";
-  if (status === "pending" || status === "in_transit") return "#f59e0b";
-  if (status === "failed" || status === "canceled") return "#ef4444";
-  return "#8b949e";
-}
-
 export default async function PayoutsPage() {
   const { merchant } = await requireMerchant();
 
-  const payouts = await prisma.payout.findMany({
-    where: { merchantId: merchant.id },
-    orderBy: { createdAt: "desc" },
-    take: 200,
-  });
+  const [payouts, availableAgg] = await Promise.all([
+    prisma.payout.findMany({
+      where: { merchantId: merchant.id },
+      orderBy: { createdAt: "desc" },
+      take: 200,
+    }),
+    prisma.transaction.aggregate({
+      where: {
+        merchantId: merchant.id,
+        status: "succeeded",
+      },
+      _sum: { net: true },
+    }),
+  ]);
+
+  const paidOut = payouts
+    .filter((p: { status: string }) => p.status === "paid")
+    .reduce((sum: number, p: { amount: number }) => sum + p.amount, 0);
+  const available = (availableAgg._sum.net ?? 0) - paidOut;
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto">
-      <h1 className="text-2xl font-semibold text-white mb-1">Payouts</h1>
-      <p className="text-sm text-muted mb-8">
+      <h1 className="text-2xl font-semibold text-foreground mb-1">Payouts</h1>
+      <p className="text-sm text-secondary mb-8">
         Funds transferred to your bank account
       </p>
 
-      <div className="card p-6">
+      {/* Summary card */}
+      <div className="st-card p-6 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div
+              className="w-12 h-12 rounded-xl flex items-center justify-center"
+              style={{ background: "rgba(99,91,255,0.1)" }}
+            >
+              <DollarSign className="w-5 h-5" style={{ color: "#635bff" }} />
+            </div>
+            <div>
+              <p className="text-xs text-muted uppercase tracking-wider mb-0.5">
+                Available Balance
+              </p>
+              <p className="text-2xl font-semibold text-foreground">
+                {formatMoney(Math.max(0, available))}
+              </p>
+            </div>
+          </div>
+          <button className="btn-primary flex items-center gap-2">
+            <Wallet className="w-4 h-4" />
+            Request Payout
+          </button>
+        </div>
+      </div>
+
+      {/* Payouts table */}
+      <div className="st-card p-6">
         {payouts.length === 0 ? (
-          <p className="text-sm text-muted py-12 text-center">
-            No payouts yet. Payouts appear after Stripe processes settlements.
-          </p>
+          <div className="py-12 text-center">
+            <Wallet className="w-8 h-8 mx-auto mb-3 text-muted" />
+            <p className="text-sm text-muted">
+              No payouts yet. Payouts appear after Stripe processes settlements.
+            </p>
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-muted border-b">
-                  <th className="pb-3 font-medium">Created</th>
-                  <th className="pb-3 font-medium">Arrival</th>
-                  <th className="pb-3 font-medium">Amount</th>
+                <tr className="text-left text-muted">
+                  <th className="pb-3 font-medium">Date</th>
+                  <th className="pb-3 font-medium">Payout ID</th>
+                  <th className="pb-3 font-medium text-right">Amount</th>
                   <th className="pb-3 font-medium">Status</th>
+                  <th className="pb-3 font-medium">Arrival Date</th>
                 </tr>
               </thead>
               <tbody>
-                {payouts.map((p: { id: string; merchantId: string; stripePayoutId: string | null; amount: number; currency: string; status: string; arrivalDate: Date | null; description: string | null; createdAt: Date; updatedAt: Date }) => (
-                  <tr key={p.id} className="border-b last:border-0">
-                    <td className="py-3 text-muted whitespace-nowrap">
-                      {format(p.createdAt, "MMM d, yyyy")}
-                    </td>
-                    <td className="py-3 text-white whitespace-nowrap">
-                      {p.arrivalDate
-                        ? format(p.arrivalDate, "MMM d, yyyy")
-                        : "—"}
-                    </td>
-                    <td className="py-3 text-white">
-                      {formatMoney(p.amount)}
-                    </td>
-                    <td className="py-3">
-                      <span
-                        className="inline-block px-2 py-0.5 rounded text-xs font-medium"
-                        style={{
-                          color: statusColor(p.status),
-                          background: `${statusColor(p.status)}1a`,
-                        }}
-                      >
-                        {p.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                {payouts.map(
+                  (p: {
+                    id: string;
+                    stripePayoutId: string | null;
+                    amount: number;
+                    status: string;
+                    arrivalDate: Date | null;
+                    createdAt: Date;
+                  }) => (
+                    <tr
+                      key={p.id}
+                      className="border-t"
+                      style={{ borderColor: "rgba(255,255,255,0.06)" }}
+                    >
+                      <td className="py-3 text-muted whitespace-nowrap">
+                        {format(p.createdAt, "MMM d, yyyy")}
+                      </td>
+                      <td className="py-3 text-muted font-mono text-xs">
+                        {p.stripePayoutId ?? p.id}
+                      </td>
+                      <td className="py-3 text-foreground text-right font-medium">
+                        {formatMoney(p.amount)}
+                      </td>
+                      <td className="py-3">
+                        <Badge status={p.status} />
+                      </td>
+                      <td className="py-3 text-secondary whitespace-nowrap">
+                        {p.arrivalDate
+                          ? format(p.arrivalDate, "MMM d, yyyy")
+                          : "--"}
+                      </td>
+                    </tr>
+                  )
+                )}
               </tbody>
             </table>
           </div>

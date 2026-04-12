@@ -27,7 +27,7 @@ export default async function DashboardLayout({
 
   return (
     <Providers>
-      <div className="flex min-h-screen">
+      <div className="flex min-h-screen bg-background">
         <Sidebar businessName={merchant.businessName} plan={merchant.plan} />
         <main className="flex-1 pb-20 md:pb-0">{children}</main>
         <BottomNav />
