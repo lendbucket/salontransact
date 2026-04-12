@@ -73,6 +73,124 @@ body {
   border-color: var(--bright);
 }
 
+/* Stripe-style auth pages */
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.auth-bg {
+  background: linear-gradient(135deg, #0a2540 0%, #06080d 40%, #0a2540 70%, #0d1b2a 100%);
+  background-size: 400% 400%;
+  animation: gradientShift 15s ease infinite;
+}
+
+.auth-card {
+  background: #ffffff;
+  border-radius: 0.75rem;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2), 0 5px 15px rgba(0, 0, 0, 0.12);
+  padding: 2.5rem;
+}
+
+.auth-input {
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 0.375rem;
+  padding: 0.625rem 0.875rem;
+  color: #0a2540;
+  width: 100%;
+  font-size: 0.875rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.auth-input::placeholder {
+  color: #8898aa;
+}
+
+.auth-input:focus {
+  outline: none;
+  border-color: #635bff;
+  box-shadow: 0 0 0 3px rgba(99, 91, 255, 0.12);
+}
+
+.auth-btn-primary {
+  background: #635bff;
+  color: #ffffff;
+  border-radius: 0.375rem;
+  padding: 0.625rem 1rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: background 0.15s ease;
+  cursor: pointer;
+}
+
+.auth-btn-primary:hover {
+  background: #4f46e5;
+}
+
+.auth-btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.auth-btn-google {
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 0.375rem;
+  padding: 0.625rem 1rem;
+  font-weight: 500;
+  font-size: 0.875rem;
+  color: #0a2540;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  cursor: pointer;
+}
+
+.auth-btn-google:hover {
+  background: #f7f7f7;
+  border-color: #d0d0d0;
+}
+
+.auth-btn-google:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  margin: 1.5rem 0;
+  gap: 1rem;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: #e0e0e0;
+}
+
+.auth-divider span {
+  font-size: 0.75rem;
+  color: #8898aa;
+  white-space: nowrap;
+  text-transform: lowercase;
+}
+
+/* Scrollbar */
+
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
