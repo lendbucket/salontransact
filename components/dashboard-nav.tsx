@@ -5,40 +5,45 @@ import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import {
   LayoutDashboard,
-  CreditCard,
+  TrendingUp,
+  ArrowLeftRight,
   Wallet,
-  Users,
+  AlertCircle,
   KeyRound,
   Webhook,
+  FileText,
   Settings,
   HelpCircle,
   LogOut,
   Search,
-  MoreHorizontal,
+  Menu,
 } from "lucide-react";
 
 type NavLink = {
   href: string;
   label: string;
   icon: typeof LayoutDashboard;
-  section?: string;
+  section: string;
 };
 
 const links: NavLink[] = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, section: "Main" },
-  { href: "/transactions", label: "Transactions", icon: CreditCard, section: "Main" },
-  { href: "/payouts", label: "Payouts", icon: Wallet, section: "Main" },
-  { href: "/merchants", label: "Merchants", icon: Users, section: "Manage" },
-  { href: "/api-keys", label: "API Keys", icon: KeyRound, section: "Manage" },
-  { href: "/webhooks", label: "Webhooks", icon: Webhook, section: "Manage" },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, section: "Overview" },
+  { href: "/analytics", label: "Analytics", icon: TrendingUp, section: "Overview" },
+  { href: "/transactions", label: "Transactions", icon: ArrowLeftRight, section: "Payments" },
+  { href: "/payouts", label: "Payouts", icon: Wallet, section: "Payments" },
+  { href: "/disputes", label: "Disputes", icon: AlertCircle, section: "Payments" },
+  { href: "/api-keys", label: "API Keys", icon: KeyRound, section: "Developers" },
+  { href: "/webhooks", label: "Webhooks", icon: Webhook, section: "Developers" },
+  { href: "/logs", label: "Logs", icon: FileText, section: "Developers" },
   { href: "/settings", label: "Settings", icon: Settings, section: "Account" },
   { href: "/support", label: "Support", icon: HelpCircle, section: "Account" },
 ];
 
-const sections = ["Main", "Manage", "Account"];
+const sections = ["Overview", "Payments", "Developers", "Account"];
 
 export function Sidebar({
   businessName,
+  plan,
 }: {
   businessName: string;
   plan: string;
@@ -62,34 +67,58 @@ export function Sidebar({
       }}
     >
       {/* Logo */}
-      <div className="px-3 pt-2 pb-4">
-        <h1
-          className="text-lg font-semibold"
-          style={{ color: "#635bff" }}
+      <div className="flex items-center gap-2.5 px-3 pt-2 pb-4">
+        <div
+          className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+          style={{ background: "#635bff" }}
         >
-          SalonTransact
-        </h1>
-        <p className="text-xs mt-0.5 text-secondary truncate">
-          {businessName}
-        </p>
+          <span className="text-white font-bold text-sm">ST</span>
+        </div>
+        <div className="min-w-0">
+          <p className="text-white font-semibold text-sm">SalonTransact</p>
+        </div>
+      </div>
+
+      {/* Business name + plan */}
+      <div className="px-3 mb-3">
+        <p className="text-xs text-secondary truncate">{businessName}</p>
+        <span
+          className="inline-block mt-1 text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded font-medium"
+          style={{
+            color: "#635bff",
+            background: "rgba(99,91,255,0.1)",
+          }}
+        >
+          {plan}
+        </span>
       </div>
 
       {/* Search */}
       <div className="px-1 mb-3">
         <div
-          className="flex items-center gap-2 px-3 py-2 rounded-lg"
+          className="flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer"
           style={{ background: "#111827" }}
         >
           <Search className="w-4 h-4 text-muted" />
-          <span className="text-xs text-muted">Search...</span>
+          <span className="text-xs text-muted flex-1">Search...</span>
+          <kbd
+            className="text-[9px] px-1 py-0.5 rounded font-mono"
+            style={{
+              color: "#4b5563",
+              background: "rgba(255,255,255,0.04)",
+              border: "1px solid rgba(255,255,255,0.06)",
+            }}
+          >
+            /
+          </kbd>
         </div>
       </div>
 
       {/* Nav sections */}
       <nav className="flex flex-col gap-0.5 flex-1">
         {sections.map((section) => (
-          <div key={section} className="mb-2">
-            <p className="px-3 py-1.5 text-[10px] uppercase tracking-wider text-muted font-medium">
+          <div key={section} className="mb-1">
+            <p className="px-3 py-1.5 text-[10px] uppercase tracking-widest text-muted font-medium">
               {section}
             </p>
             {links
@@ -101,7 +130,7 @@ export function Sidebar({
                   <Link
                     key={link.href}
                     href={link.href}
-                    className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors relative"
                     style={{
                       background: active
                         ? "rgba(99,91,255,0.12)"
@@ -118,6 +147,12 @@ export function Sidebar({
                         e.currentTarget.style.background = "transparent";
                     }}
                   >
+                    {active && (
+                      <div
+                        className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-r"
+                        style={{ background: "#635bff" }}
+                      />
+                    )}
                     <Icon className="w-4 h-4" />
                     {link.label}
                   </Link>
@@ -170,10 +205,10 @@ export function BottomNav() {
   const pathname = usePathname();
   const mobileLinks = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/transactions", label: "Transactions", icon: CreditCard },
+    { href: "/transactions", label: "Transactions", icon: ArrowLeftRight },
     { href: "/payouts", label: "Payouts", icon: Wallet },
     { href: "/settings", label: "Settings", icon: Settings },
-    { href: "/api-keys", label: "More", icon: MoreHorizontal },
+    { href: "/api-keys", label: "More", icon: Menu },
   ];
 
   return (

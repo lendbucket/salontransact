@@ -7,7 +7,13 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(git push:*)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(python3 \"C:/Users/Salon/.claude/skills/ui-ux-pro-max/scripts/search.py\" \"fintech SaaS payment processing merchant portal dark premium\" --design-system -p \"SalonTransact\")",
+      "Bash(python \"C:/Users/Salon/.claude/skills/ui-ux-pro-max/scripts/search.py\" \"fintech SaaS payment processing merchant portal dark premium\" --design-system -p \"SalonTransact\")",
+      "Read(//c/Users/Salon/.claude/skills/ui-ux-pro-max/**)",
+      "Bash(python scripts/search.py \"fintech SaaS payment processing dark premium dashboard stripe\" --design-system -p \"SalonTransact\")",
+      "Bash(python scripts/search.py \"animation accessibility dark mode\" --domain ux)",
+      "Bash(python scripts/search.py \"dark dashboard fintech\" --stack nextjs)"
     ]
   }
 }

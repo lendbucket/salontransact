@@ -62,7 +62,7 @@ input,
 select,
 textarea,
 [role="button"] {
-  transition: all 150ms ease;
+  transition: all 150ms ease-out;
 }
 
 /* Card system */
@@ -131,36 +131,127 @@ textarea,
   box-shadow: 0 0 0 3px rgba(99, 91, 255, 0.12);
 }
 
-/* Auth pages */
-@keyframes gradientShift {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
+/* ── Auth pages ── */
+
+/* Floating orbs animation */
+@keyframes orbFloat1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, -40px) scale(1.05); }
+  66% { transform: translate(-20px, 20px) scale(0.95); }
+}
+@keyframes orbFloat2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(-40px, 30px) scale(0.95); }
+  66% { transform: translate(25px, -25px) scale(1.08); }
+}
+@keyframes orbFloat3 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(20px, 40px) scale(1.03); }
+  66% { transform: translate(-35px, -15px) scale(0.97); }
 }
 
-.auth-bg {
-  background: linear-gradient(
-    135deg,
-    #0a0f1a 0%,
-    #111827 40%,
-    #0d1117 70%,
-    #0a0f1a 100%
-  );
-  background-size: 400% 400%;
-  animation: gradientShift 15s ease infinite;
+.auth-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.15;
+  pointer-events: none;
 }
 
+.auth-orb-1 {
+  width: 400px;
+  height: 400px;
+  background: #635bff;
+  top: 10%;
+  left: 15%;
+  animation: orbFloat1 20s ease-in-out infinite;
+}
+
+.auth-orb-2 {
+  width: 350px;
+  height: 350px;
+  background: #7c3aed;
+  top: 50%;
+  right: 10%;
+  animation: orbFloat2 25s ease-in-out infinite;
+}
+
+.auth-orb-3 {
+  width: 300px;
+  height: 300px;
+  background: #2563eb;
+  bottom: 10%;
+  left: 30%;
+  animation: orbFloat3 22s ease-in-out infinite;
+}
+
+/* Transaction ticker animation */
+@keyframes tickerScroll {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-50%); }
+}
+
+.ticker-scroll {
+  animation: tickerScroll 12s linear infinite;
+}
+
+/* Onboarding step slide */
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.step-enter {
+  animation: slideInRight 300ms ease-out;
+}
+
+/* Celebration pulse for onboarding complete */
+@keyframes celebrationPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.3); }
+  50% { box-shadow: 0 0 0 20px rgba(34, 197, 94, 0); }
+}
+
+.celebration-pulse {
+  animation: celebrationPulse 2s ease-in-out infinite;
+}
+
+/* Celebration rings */
+@keyframes ringExpand {
+  0% { transform: scale(0.8); opacity: 0.6; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+
+.celebration-ring {
+  position: absolute;
+  border: 2px solid rgba(34, 197, 94, 0.3);
+  border-radius: 50%;
+  width: 64px;
+  height: 64px;
+  animation: ringExpand 2s ease-out infinite;
+}
+
+.celebration-ring:nth-child(2) {
+  animation-delay: 0.6s;
+}
+
+.celebration-ring:nth-child(3) {
+  animation-delay: 1.2s;
+}
+
+/* Password strength bar */
+.strength-bar {
+  height: 3px;
+  border-radius: 2px;
+  transition: width 300ms ease-out, background 300ms ease-out;
+}
+
+/* Auth form inputs */
 .auth-input {
   background: #f9fafb;
   border: 1px solid #e5e7eb;
-  border-radius: 0.375rem;
-  padding: 0.625rem 0.875rem;
+  border-radius: 0.5rem;
+  padding: 0 0.875rem;
+  height: 44px;
   color: #111827;
   width: 100%;
   font-size: 14px;
@@ -179,8 +270,9 @@ textarea,
 .auth-btn-primary {
   background: #635bff;
   color: #ffffff;
-  border-radius: 0.375rem;
-  padding: 0.625rem 1rem;
+  border-radius: 0.5rem;
+  padding: 0 1rem;
+  height: 44px;
   font-weight: 600;
   font-size: 14px;
   width: 100%;
@@ -195,16 +287,25 @@ textarea,
   background: #4f46e5;
 }
 
+.auth-btn-primary:active {
+  transform: scale(0.98);
+}
+
 .auth-btn-primary:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
+.auth-btn-primary:disabled:active {
+  transform: none;
+}
+
 .auth-btn-google {
   background: #ffffff;
-  border: 1px solid #e0e0e0;
-  border-radius: 0.375rem;
-  padding: 0.625rem 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 0 1rem;
+  height: 44px;
   font-weight: 500;
   font-size: 14px;
   color: #1f2937;
@@ -214,6 +315,7 @@ textarea,
   justify-content: center;
   gap: 0.75rem;
   cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 }
 
 .auth-btn-google:hover {
@@ -245,7 +347,6 @@ textarea,
   font-size: 12px;
   color: #9ca3af;
   white-space: nowrap;
-  text-transform: lowercase;
 }
 
 /* Scrollbar */
@@ -265,26 +366,6 @@ textarea,
 
 ::-webkit-scrollbar-thumb:hover {
   background: #4f46e5;
-}
-
-/* Status badge colors */
-.badge-succeeded,
-.badge-paid,
-.badge-active {
-  color: #22c55e;
-  background: rgba(34, 197, 94, 0.1);
-}
-
-.badge-pending,
-.badge-in_transit {
-  color: #f59e0b;
-  background: rgba(245, 158, 11, 0.1);
-}
-
-.badge-failed,
-.badge-inactive {
-  color: #ef4444;
-  background: rgba(239, 68, 68, 0.1);
 }
 
 /* Recharts tooltip */
