@@ -9,26 +9,29 @@ const prisma = new PrismaClient({ adapter })
 
 async function main() {
   const email = 'ceo@36west.org'
-  const password = 'Basketball123!'
+  const password = 'SalonTransact2026!'
 
   const existing = await prisma.user.findUnique({ where: { email } })
   if (existing) {
-    console.log('Admin user already exists')
+    const hashed = await bcrypt.hash(password, 12)
+    await prisma.user.update({
+      where: { email },
+      data: { password: hashed, role: 'admin', name: 'Robert Reyna' },
+    })
+    console.log('Admin user updated:', email)
     return
   }
 
   const hashed = await bcrypt.hash(password, 12)
-
-  const user = await prisma.user.create({
+  await prisma.user.create({
     data: {
       email,
       name: 'Robert Reyna',
       password: hashed,
       role: 'admin',
-    }
+    },
   })
-
-  console.log('Admin user created:', user.email)
+  console.log('Admin user created:', email)
 }
 
 main()

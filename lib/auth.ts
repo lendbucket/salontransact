@@ -1,65 +1,71 @@
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
-import EmailProvider from "next-auth/providers/email";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import bcrypt from "bcryptjs";
 import { prisma } from "./prisma";
-import { ADMIN_EMAIL } from "./admin";
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
-  session: {
-    strategy: "jwt",
-  },
+  session: { strategy: "jwt" },
   pages: {
     signIn: "/login",
+    error: "/login",
   },
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
-    EmailProvider({
-      server: {
-        host: 'smtp.resend.com',
-        port: 465,
-        auth: {
-          user: 'resend',
-          pass: process.env.RESEND_API_KEY,
-        },
-      },
-      from: 'noreply@salontransact.com',
-    }),
     CredentialsProvider({
-      name: "Credentials",
+      name: "credentials",
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          return null;
+        if (!credentials?.email || !credentials?.password) return null;
+
+        // Magic link flow
+        if (credentials.password.startsWith("MAGIC:")) {
+          const code = credentials.password.replace("MAGIC:", "");
+          const reset = await prisma.passwordReset.findFirst({
+            where: {
+              email: credentials.email,
+              token: code,
+              used: false,
+              expiresAt: { gt: new Date() },
+            },
+          });
+          if (!reset) return null;
+          await prisma.passwordReset.update({
+            where: { id: reset.id },
+            data: { used: true },
+          });
+          const user = await prisma.user.findUnique({
+            where: { email: credentials.email },
+          });
+          if (!user) return null;
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: user.role,
+          };
         }
 
+        // Normal password flow
         const user = await prisma.user.findUnique({
-          where: { email: credentials.email.toLowerCase() },
+          where: { email: credentials.email },
         });
-
-        if (!user || !user.password) {
-          return null;
-        }
-
+        if (!user || !user.password) return null;
         const valid = await bcrypt.compare(credentials.password, user.password);
-        if (!valid) {
-          return null;
-        }
-
+        if (!valid) return null;
         return {
           id: user.id,
           email: user.email,
           name: user.name,
-          image: user.image,
+          role: user.role,
         };
       },
     }),
@@ -67,15 +73,17 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.id = user.id;
-        token.role = user.email === ADMIN_EMAIL ? 'admin' : 'merchant';
+        token.id = (user as { id: string; role: string }).id;
+        token.role = (user as { id: string; role: string }).role;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
-        (session.user as { id?: string; role?: string }).id = token.id as string;
-        (session.user as { id?: string; role?: string }).role = token.role as string;
+        (session.user as { id?: string; role?: string }).id =
+          token.id as string;
+        (session.user as { id?: string; role?: string }).role =
+          token.role as string;
       }
       return session;
     },

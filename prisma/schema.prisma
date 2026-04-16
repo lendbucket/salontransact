@@ -150,3 +150,12 @@ model Invite {
   createdAt DateTime  @default(now())
   sentBy    String
 }
+
+model PasswordReset {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique @default(cuid())
+  used      Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
