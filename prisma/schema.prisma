@@ -139,3 +139,14 @@ model Webhook {
   updatedAt  DateTime  @updatedAt
   merchant   Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
 }
+
+model Invite {
+  id        String    @id @default(cuid())
+  email     String    @unique
+  token     String    @unique @default(cuid())
+  used      Boolean   @default(false)
+  usedAt    DateTime?
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+  sentBy    String
+}

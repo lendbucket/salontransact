@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { Loader2, Eye, EyeOff, Shield, Lock, Check } from "lucide-react";
 
 function GoogleIcon() {
@@ -141,13 +140,13 @@ export default function LoginPage() {
               >
                 Password
               </label>
-              <Link
+              <a
                 href="/forgot-password"
                 className="text-[13px] font-medium"
                 style={{ color: "#635bff" }}
               >
                 Forgot password?
-              </Link>
+              </a>
             </div>
             <div className="relative">
               <input
@@ -198,15 +197,12 @@ export default function LoginPage() {
           </button>
         </form>
 
-        {/* Footer link */}
+        {/* Footer note */}
         <p
           className="text-sm text-center mt-8"
-          style={{ color: "#6b7280" }}
+          style={{ color: "#4b5563" }}
         >
-          Don&apos;t have an account?{" "}
-          <Link href="/register" style={{ color: "#635bff", fontWeight: 500 }}>
-            Create one
-          </Link>
+          Access is by invitation only. Contact your administrator.
         </p>
 
         {/* Trust badges */}

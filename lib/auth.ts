@@ -4,6 +4,7 @@ import GoogleProvider from "next-auth/providers/google";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import bcrypt from "bcryptjs";
 import { prisma } from "./prisma";
+import { ADMIN_EMAIL } from "./admin";
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
@@ -55,12 +56,14 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
+        token.role = user.email === ADMIN_EMAIL ? 'admin' : 'merchant';
       }
       return token;
     },
     async session({ session, token }) {
-      if (session.user && token.id) {
-        (session.user as { id?: string }).id = token.id as string;
+      if (session.user) {
+        (session.user as { id?: string; role?: string }).id = token.id as string;
+        (session.user as { id?: string; role?: string }).role = token.role as string;
       }
       return session;
     },
