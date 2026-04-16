@@ -13,7 +13,8 @@
       "Read(//c/Users/Salon/.claude/skills/ui-ux-pro-max/**)",
       "Bash(python scripts/search.py \"fintech SaaS payment processing dark premium dashboard stripe\" --design-system -p \"SalonTransact\")",
       "Bash(python scripts/search.py \"animation accessibility dark mode\" --domain ux)",
-      "Bash(python scripts/search.py \"dark dashboard fintech\" --stack nextjs)"
+      "Bash(python scripts/search.py \"dark dashboard fintech\" --stack nextjs)",
+      "Bash(npx tsc:*)"
     ]
   }
 }
