@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { Loader2, Eye, EyeOff, Shield, Lock, Check } from "lucide-react";
+import { Loader2, Eye, EyeOff, Shield, Lock, Check, Mail } from "lucide-react";
 
 function GoogleIcon() {
   return (
@@ -24,6 +24,8 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [magicLoading, setMagicLoading] = useState(false);
+  const [magicSent, setMagicSent] = useState(false);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -50,6 +52,14 @@ export default function LoginPage() {
   function handleGoogleSignIn() {
     setGoogleLoading(true);
     signIn("google", { callbackUrl: "/dashboard" });
+  }
+
+  async function handleMagicLink() {
+    if (!email) return;
+    setMagicLoading(true);
+    await signIn("email", { email, callbackUrl: "/dashboard", redirect: false });
+    setMagicLoading(false);
+    setMagicSent(true);
   }
 
   return (
@@ -196,6 +206,56 @@ export default function LoginPage() {
             Sign in
           </button>
         </form>
+
+        {/* Magic link divider */}
+        <div className="auth-divider" style={{ marginTop: "1.5rem" }}>
+          <span>or sign in with magic link</span>
+        </div>
+
+        {magicSent ? (
+          <div
+            className="flex flex-col items-center gap-3 py-6 rounded-xl"
+            style={{
+              background: "#111827",
+              border: "1px solid rgba(255,255,255,0.08)",
+            }}
+          >
+            <div
+              className="w-10 h-10 rounded-full flex items-center justify-center"
+              style={{ background: "rgba(99,91,255,0.12)" }}
+            >
+              <Mail className="w-5 h-5" style={{ color: "#635bff" }} />
+            </div>
+            <p className="text-sm text-white font-medium text-center px-4">
+              Check your email — a sign in link has been sent to{" "}
+              <strong style={{ color: "#635bff" }}>{email}</strong>
+            </p>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={handleMagicLink}
+            disabled={magicLoading || !email}
+            className="w-full flex items-center justify-center gap-2 cursor-pointer"
+            style={{
+              height: 48,
+              borderRadius: "0.75rem",
+              border: "1px solid rgba(99,91,255,0.4)",
+              background: "transparent",
+              color: "#635bff",
+              fontWeight: 600,
+              fontSize: 14,
+              opacity: !email ? 0.5 : 1,
+            }}
+          >
+            {magicLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Mail className="w-4 h-4" />
+            )}
+            Send Magic Link
+          </button>
+        )}
 
         {/* Footer note */}
         <p
