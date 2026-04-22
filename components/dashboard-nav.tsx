@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import {
   LayoutDashboard,
+  CreditCard,
   TrendingUp,
   ArrowLeftRight,
   Wallet,
@@ -28,6 +29,7 @@ type NavLink = {
 
 const links: NavLink[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, section: "Overview" },
+  { href: "/checkout", label: "New Payment", icon: CreditCard, section: "Overview" },
   { href: "/analytics", label: "Analytics", icon: TrendingUp, section: "Overview" },
   { href: "/transactions", label: "Transactions", icon: ArrowLeftRight, section: "Payments" },
   { href: "/payouts", label: "Payouts", icon: Wallet, section: "Payments" },
