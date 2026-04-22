@@ -1,7 +1,5 @@
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import bcrypt from "bcryptjs";
-import { prisma } from "./prisma";
 
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
@@ -31,78 +29,84 @@ export const authOptions: NextAuthOptions = {
         const email = credentials.email.toLowerCase().trim();
 
         try {
-          // Magic link flow
-          if (credentials.password.startsWith("MAGIC:")) {
-            const code = credentials.password.replace("MAGIC:", "");
-            console.log(
-              "[AUTH] Magic link attempt for:",
-              email,
-              "code:",
-              code.substring(0, 8)
-            );
-            const reset = await prisma.passwordReset.findFirst({
-              where: {
-                email,
-                token: code,
-                used: false,
-                expiresAt: { gt: new Date() },
-              },
-            });
-            if (!reset) {
-              console.log("[AUTH] Invalid or expired magic code");
-              return null;
-            }
-            await prisma.passwordReset.update({
-              where: { id: reset.id },
-              data: { used: true },
-            });
-            const user = await prisma.user.findUnique({
+          // Fresh PrismaClient per request — bypasses PrismaPg driver adapter
+          // issues in Vercel serverless cold starts
+          const { PrismaClient } = await import("@prisma/client");
+          const db = new PrismaClient();
+
+          try {
+            const user = await db.user.findUnique({
               where: { email },
             });
+
             if (!user) {
-              console.log("[AUTH] User not found after magic verify");
+              console.log("[AUTH] User not found:", email);
               return null;
             }
-            console.log("[AUTH] Magic link success for:", user.email);
+
+            if (!user.password) {
+              console.log("[AUTH] No password set for user:", email);
+              return null;
+            }
+
+            // Magic link flow
+            if (credentials.password.startsWith("MAGIC:")) {
+              const code = credentials.password.replace("MAGIC:", "");
+              console.log(
+                "[AUTH] Magic link attempt for:",
+                email,
+                "code:",
+                code.substring(0, 8)
+              );
+              const reset = await db.passwordReset.findFirst({
+                where: {
+                  email,
+                  token: code,
+                  used: false,
+                  expiresAt: { gt: new Date() },
+                },
+              });
+              if (!reset) {
+                console.log("[AUTH] Invalid or expired magic code");
+                return null;
+              }
+              await db.passwordReset.update({
+                where: { id: reset.id },
+                data: { used: true },
+              });
+              console.log("[AUTH] Magic link success for:", user.email);
+              return {
+                id: user.id,
+                email: user.email,
+                name: user.name ?? "",
+                role: user.role,
+              };
+            }
+
+            // Normal password flow
+            const bcrypt = await import("bcryptjs");
+            const valid = await bcrypt.compare(
+              credentials.password,
+              user.password
+            );
+            console.log("[AUTH] Password valid:", valid, "for:", email);
+            if (!valid) return null;
+
+            console.log(
+              "[AUTH] Login success for:",
+              user.email,
+              "role:",
+              user.role
+            );
             return {
               id: user.id,
               email: user.email,
               name: user.name ?? "",
               role: user.role,
             };
+          } finally {
+            await db.$disconnect();
           }
-
-          // Normal password flow
-          const user = await prisma.user.findUnique({
-            where: { email },
-          });
-          if (!user) {
-            console.log("[AUTH] User not found:", email);
-            return null;
-          }
-          if (!user.password) {
-            console.log("[AUTH] No password set for user:", email);
-            return null;
-          }
-          const valid = await bcrypt.compare(
-            credentials.password,
-            user.password
-          );
-          console.log("[AUTH] Password valid:", valid, "for:", email);
-          if (!valid) return null;
-
-          console.log(
-            "[AUTH] Login success for:",
-            user.email,
-            "role:",
-            user.role
-          );
-          return {
-            id: user.id,
-            email: user.email,
-            name: user.name ?? "",
-            role: user.role,
-          };
         } catch (error) {
           console.error("[AUTH] authorize error:", error);
           return null;
