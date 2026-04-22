@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, Suspense } from "react";
-import { signIn, useSession } from "next-auth/react";
+import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Loader2,
@@ -107,7 +107,6 @@ function LoginSkeleton() {
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { data: currentSession } = useSession();
   const passwordUpdated = searchParams.get("message") === "password-updated";
   const callbackUrl = searchParams.get("callbackUrl");
 
@@ -192,12 +191,6 @@ function LoginContent() {
       setMagicLoading(false);
       setMagicError("Failed to send magic link");
     }
-  }
-
-  // If already authenticated, redirect
-  if (currentSession?.user) {
-    const role = (currentSession.user as { role?: string }).role;
-    router.push(getRedirect(role));
   }
 
   /* ---- Magic link sent state ---- */
