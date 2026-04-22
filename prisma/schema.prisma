@@ -159,3 +159,10 @@ model PasswordReset {
   expiresAt DateTime
   createdAt DateTime @default(now())
 }
+
+model PayrocToken {
+  id        String   @id @default(cuid())
+  token     String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
