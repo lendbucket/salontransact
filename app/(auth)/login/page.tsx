@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState } from "react";
 import { signIn } from "next-auth/react";
-import { useSearchParams } from "next/navigation";
 import {
   Loader2,
   Eye,
@@ -16,212 +15,107 @@ import {
   ArrowLeft,
 } from "lucide-react";
 
-/* ------------------------------------------------------------------ */
-/*  Constants                                                          */
-/* ------------------------------------------------------------------ */
-
-const BG = "#0a1628";
-
-const INPUT_BASE: React.CSSProperties = {
-  width: "100%",
-  height: 48,
-  background: "#0d1f3c",
-  border: "1px solid rgba(255,255,255,0.1)",
-  borderRadius: 8,
-  color: "#f9fafb",
-  fontSize: 15,
-  fontFamily: "Inter, sans-serif",
-  letterSpacing: "-0.31px",
-  outline: "none",
-  padding: "0 14px",
-};
-
-const INPUT_FOCUS: React.CSSProperties = {
-  border: "1px solid #635bff",
-  boxShadow: "0 0 0 3px rgba(99,91,255,0.12)",
-};
-
-/* ------------------------------------------------------------------ */
-/*  Page entry — Suspense boundary for useSearchParams                 */
-/* ------------------------------------------------------------------ */
-
 export default function LoginPage() {
-  return (
-    <Suspense fallback={<Skeleton />}>
-      <LoginForm />
-    </Suspense>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/*  Skeleton                                                           */
-/* ------------------------------------------------------------------ */
-
-function Skeleton() {
-  return (
-    <div
-      className="min-h-screen flex items-center justify-center"
-      style={{ background: BG }}
-    >
-      <div className="w-full max-w-[420px] px-6 space-y-6">
-        <div className="flex flex-col items-center gap-3">
-          <div
-            className="w-11 h-11 rounded-lg animate-pulse"
-            style={{ background: "rgba(99,91,255,0.3)" }}
-          />
-          <div
-            className="h-5 w-40 rounded animate-pulse"
-            style={{ background: "rgba(255,255,255,0.06)" }}
-          />
-        </div>
-        <div
-          className="h-px w-full"
-          style={{ background: "rgba(255,255,255,0.06)" }}
-        />
-        <div className="space-y-4">
-          <div
-            className="h-6 w-36 rounded animate-pulse"
-            style={{ background: "rgba(255,255,255,0.06)" }}
-          />
-          {[1, 2].map((i) => (
-            <div
-              key={i}
-              className="h-12 w-full rounded-lg animate-pulse"
-              style={{ background: "rgba(255,255,255,0.04)" }}
-            />
-          ))}
-          <div
-            className="h-12 w-full rounded-lg animate-pulse"
-            style={{ background: "rgba(99,91,255,0.15)" }}
-          />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/*  Login form                                                         */
-/* ------------------------------------------------------------------ */
-
-function LoginForm() {
-  const searchParams = useSearchParams();
-  const passwordUpdated = searchParams.get("message") === "password-updated";
-  const callbackUrl = searchParams.get("callbackUrl");
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [magicLoading, setMagicLoading] = useState(false);
   const [magicSent, setMagicSent] = useState(false);
-  const [magicError, setMagicError] = useState<string | null>(null);
-  const [focused, setFocused] = useState<string | null>(null);
 
-  /* ---- helpers ---- */
-
-  function inputStyle(name: string, extra?: React.CSSProperties) {
-    return {
-      ...INPUT_BASE,
-      ...(focused === name ? INPUT_FOCUS : {}),
-      ...extra,
-    };
-  }
-
-  /* ---- credentials submit ---- */
-
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleCredentials(e: React.FormEvent) {
     e.preventDefault();
-    setError(null);
+    setError("");
     setLoading(true);
-
     try {
-      const res = await signIn("credentials", {
-        email,
+      const result = await signIn("credentials", {
+        email: email.toLowerCase().trim(),
         password,
         redirect: false,
       });
-
-      if (res?.error) {
-        setError("Invalid email or password");
+      if (result?.error) {
+        setError("Invalid email or password. Please try again.");
         setLoading(false);
         return;
       }
-
-      // Fetch fresh session to get role for redirect
-      const sessionRes = await fetch("/api/auth/session");
-      const session = await sessionRes.json();
-      const role = session?.user?.role as string | undefined;
-
-      if (callbackUrl) {
-        window.location.href = callbackUrl;
-      } else if (role === "admin") {
-        window.location.href = "/admin";
-      } else {
-        window.location.href = "/dashboard";
-      }
+      // Hard navigation to trigger server-side layout role checks
+      window.location.href = "/dashboard";
     } catch {
       setError("Something went wrong. Please try again.");
       setLoading(false);
     }
   }
 
-  /* ---- magic link ---- */
-
   async function handleMagicLink() {
     if (!email) {
-      setMagicError("Enter your email first");
+      setError("Please enter your email first");
       return;
     }
-    setMagicError(null);
+    setError("");
     setMagicLoading(true);
-
     try {
       const res = await fetch("/api/auth/magic-link", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email: email.toLowerCase().trim() }),
       });
       const data = await res.json();
-      setMagicLoading(false);
-
       if (!res.ok) {
-        setMagicError(data.error || "Failed to send magic link");
+        setError(data.error || "Failed to send magic link");
+        setMagicLoading(false);
         return;
       }
-
       setMagicSent(true);
     } catch {
+      setError("Failed to send magic link. Please try again.");
+    } finally {
       setMagicLoading(false);
-      setMagicError("Failed to send magic link");
     }
   }
 
-  /* ---- magic link sent view ---- */
-
+  /* ---- Magic link sent ---- */
   if (magicSent) {
     return (
-      <Shell>
-        <div className="flex flex-col items-center text-center py-4">
+      <Page>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            textAlign: "center",
+            padding: "16px 0",
+          }}
+        >
           <div
-            className="w-14 h-14 rounded-full flex items-center justify-center mb-5"
             style={{
+              width: 56,
+              height: 56,
+              borderRadius: "50%",
               background: "rgba(99,91,255,0.1)",
               boxShadow: "0 0 40px rgba(99,91,255,0.15)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              marginBottom: 20,
             }}
           >
-            <Mail size={24} strokeWidth={1.5} style={{ color: "#635bff" }} />
+            <Mail size={24} strokeWidth={1.5} color="#635bff" />
           </div>
           <h2
-            className="text-2xl font-bold mb-2"
-            style={{ color: "#f9fafb", letterSpacing: "-0.8px" }}
+            style={{
+              color: "#f9fafb",
+              fontSize: 24,
+              fontWeight: 700,
+              letterSpacing: "-0.8px",
+              marginBottom: 8,
+            }}
           >
             Check your email
           </h2>
-          <p className="text-sm mb-6" style={{ color: "#9ca3af" }}>
+          <p style={{ color: "#9ca3af", fontSize: 14, marginBottom: 24 }}>
             We sent a sign-in link to{" "}
-            <span className="text-white font-medium">{email}</span>
+            <strong style={{ color: "#f9fafb" }}>{email}</strong>
           </p>
           <button
             type="button"
@@ -229,182 +123,239 @@ function LoginForm() {
               setMagicSent(false);
               handleMagicLink();
             }}
-            className="text-sm font-medium mb-3 cursor-pointer"
-            style={{ color: "#635bff", background: "none", border: "none" }}
+            style={{
+              color: "#635bff",
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              fontSize: 14,
+              fontWeight: 500,
+              marginBottom: 12,
+            }}
           >
             Didn&apos;t receive it? Resend
           </button>
           <button
             type="button"
             onClick={() => setMagicSent(false)}
-            className="flex items-center gap-1.5 text-sm cursor-pointer"
-            style={{ color: "#6b7280", background: "none", border: "none" }}
+            style={{
+              color: "#6b7280",
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              fontSize: 14,
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+            }}
           >
             <ArrowLeft size={14} strokeWidth={1.5} />
             Back to sign in
           </button>
         </div>
-      </Shell>
+      </Page>
     );
   }
 
-  /* ---- main form view ---- */
-
+  /* ---- Main form ---- */
   return (
-    <Shell>
-      {/* Password-updated banner */}
-      {passwordUpdated && (
-        <div
-          className="text-sm rounded-lg px-3 py-2.5 mb-5 text-center"
-          style={{
-            color: "#22c55e",
-            background: "rgba(34,197,94,0.08)",
-            border: "1px solid rgba(34,197,94,0.15)",
-          }}
-        >
-          Password updated. Sign in with your new password.
-        </div>
-      )}
-
-      {/* Error banner */}
+    <Page>
+      {/* Error */}
       {error && (
         <div
-          className="flex items-center gap-2.5 rounded-lg px-3.5 py-2.5 mb-5"
           style={{
             background: "rgba(239,68,68,0.1)",
-            border: "1px solid rgba(239,68,68,0.2)",
+            border: "1px solid rgba(239,68,68,0.25)",
+            borderRadius: 8,
+            padding: "10px 14px",
+            marginBottom: 20,
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
           }}
         >
           <AlertCircle
             size={16}
             strokeWidth={1.5}
-            style={{ color: "#ef4444", flexShrink: 0 }}
+            color="#ef4444"
+            style={{ flexShrink: 0 }}
           />
-          <span className="text-sm" style={{ color: "#ef4444" }}>
-            {error}
-          </span>
+          <span style={{ color: "#ef4444", fontSize: 14 }}>{error}</span>
         </div>
       )}
 
       {/* Heading */}
       <h2
-        className="text-[28px] font-bold mb-1"
-        style={{ color: "#f9fafb", letterSpacing: "-0.8px" }}
+        style={{
+          color: "#f9fafb",
+          fontSize: 28,
+          fontWeight: 700,
+          letterSpacing: "-0.8px",
+          marginBottom: 4,
+        }}
       >
         Welcome back
       </h2>
-      <p className="text-sm mb-6" style={{ color: "#6b7280" }}>
+      <p style={{ color: "#6b7280", fontSize: 14, marginBottom: 24 }}>
         Sign in to your account
       </p>
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleCredentials}>
         {/* Email */}
-        <div>
+        <div style={{ marginBottom: 16 }}>
           <label
-            className="block text-xs font-medium mb-1.5"
-            style={{ color: "#9ca3af" }}
+            style={{
+              color: "#9ca3af",
+              fontSize: 13,
+              fontWeight: 500,
+              display: "block",
+              marginBottom: 6,
+            }}
           >
             Email address
           </label>
-          <div className="relative">
+          <div style={{ position: "relative" }}>
             <Mail
               size={16}
               strokeWidth={1.5}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
-              style={{ color: "#4b5563" }}
+              color="#4b5563"
+              style={{
+                position: "absolute",
+                left: 14,
+                top: "50%",
+                transform: "translateY(-50%)",
+                pointerEvents: "none",
+              }}
             />
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              onFocus={() => setFocused("email")}
-              onBlur={() => setFocused(null)}
               placeholder="you@example.com"
               disabled={loading}
-              style={inputStyle("email", { paddingLeft: 40 })}
+              style={{
+                width: "100%",
+                height: 48,
+                background: "#0d1f3c",
+                border: "1px solid rgba(255,255,255,0.1)",
+                borderRadius: 8,
+                color: "#f9fafb",
+                fontSize: 15,
+                paddingLeft: 42,
+                paddingRight: 14,
+                outline: "none",
+                boxSizing: "border-box",
+              }}
             />
           </div>
         </div>
 
         {/* Password */}
-        <div>
-          <div className="flex items-center justify-between mb-1.5">
-            <label
-              className="block text-xs font-medium"
-              style={{ color: "#9ca3af" }}
-            >
-              Password
-            </label>
-            <a
-              href="/forgot-password"
-              className="text-xs font-medium"
-              style={{ color: "#635bff" }}
-            >
-              Forgot password?
-            </a>
-          </div>
-          <div className="relative">
+        <div style={{ marginBottom: 8 }}>
+          <label
+            style={{
+              color: "#9ca3af",
+              fontSize: 13,
+              fontWeight: 500,
+              display: "block",
+              marginBottom: 6,
+            }}
+          >
+            Password
+          </label>
+          <div style={{ position: "relative" }}>
             <Lock
               size={16}
               strokeWidth={1.5}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
-              style={{ color: "#4b5563" }}
+              color="#4b5563"
+              style={{
+                position: "absolute",
+                left: 14,
+                top: "50%",
+                transform: "translateY(-50%)",
+                pointerEvents: "none",
+              }}
             />
             <input
               type={showPassword ? "text" : "password"}
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              onFocus={() => setFocused("password")}
-              onBlur={() => setFocused(null)}
               placeholder="Enter your password"
               disabled={loading}
-              style={inputStyle("password", {
-                paddingLeft: 40,
-                paddingRight: 44,
-              })}
+              style={{
+                width: "100%",
+                height: 48,
+                background: "#0d1f3c",
+                border: "1px solid rgba(255,255,255,0.1)",
+                borderRadius: 8,
+                color: "#f9fafb",
+                fontSize: 15,
+                paddingLeft: 42,
+                paddingRight: 48,
+                outline: "none",
+                boxSizing: "border-box",
+              }}
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer"
               style={{
-                color: "#6b7280",
+                position: "absolute",
+                right: 14,
+                top: "50%",
+                transform: "translateY(-50%)",
                 background: "none",
                 border: "none",
-                padding: 4,
+                cursor: "pointer",
+                padding: 0,
               }}
               aria-label={showPassword ? "Hide password" : "Show password"}
             >
               {showPassword ? (
-                <EyeOff size={16} strokeWidth={1.5} />
+                <EyeOff size={16} strokeWidth={1.5} color="#4b5563" />
               ) : (
-                <Eye size={16} strokeWidth={1.5} />
+                <Eye size={16} strokeWidth={1.5} color="#4b5563" />
               )}
             </button>
           </div>
         </div>
 
-        {/* Sign in button */}
+        <div style={{ textAlign: "right", marginBottom: 20 }}>
+          <a
+            href="/forgot-password"
+            style={{
+              color: "#635bff",
+              fontSize: 13,
+              textDecoration: "none",
+              fontWeight: 500,
+            }}
+          >
+            Forgot password?
+          </a>
+        </div>
+
+        {/* Sign in */}
         <button
           type="submit"
           disabled={loading}
-          className="w-full flex items-center justify-center gap-2 font-semibold text-sm cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
           style={{
+            width: "100%",
             height: 48,
-            background: "#635bff",
-            color: "#fff",
-            borderRadius: 8,
+            background: loading ? "#4f46e5" : "#635bff",
             border: "none",
-            letterSpacing: "-0.31px",
-          }}
-          onMouseEnter={(e) => {
-            if (!loading) e.currentTarget.style.background = "#4f46e5";
-          }}
-          onMouseLeave={(e) => {
-            if (!loading) e.currentTarget.style.background = "#635bff";
+            borderRadius: 8,
+            color: "#fff",
+            fontSize: 15,
+            fontWeight: 600,
+            cursor: loading ? "not-allowed" : "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+            opacity: loading ? 0.7 : 1,
           }}
         >
           {loading && (
@@ -415,159 +366,201 @@ function LoginForm() {
       </form>
 
       {/* Divider */}
-      <div className="flex items-center gap-3 my-5">
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          margin: "20px 0",
+        }}
+      >
         <div
-          className="flex-1 h-px"
-          style={{ background: "rgba(255,255,255,0.06)" }}
+          style={{
+            flex: 1,
+            height: 1,
+            background: "rgba(255,255,255,0.06)",
+          }}
         />
-        <span className="text-xs" style={{ color: "#4b5563" }}>
-          or
-        </span>
+        <span style={{ color: "#4b5563", fontSize: 13 }}>or</span>
         <div
-          className="flex-1 h-px"
-          style={{ background: "rgba(255,255,255,0.06)" }}
+          style={{
+            flex: 1,
+            height: 1,
+            background: "rgba(255,255,255,0.06)",
+          }}
         />
       </div>
 
-      {/* Magic link button */}
+      {/* Magic link */}
       <button
         type="button"
         onClick={handleMagicLink}
         disabled={magicLoading || loading}
-        className="w-full flex items-center justify-center gap-2 font-semibold text-sm cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
         style={{
+          width: "100%",
           height: 48,
-          background: "rgba(255,255,255,0.08)",
-          color: "#f9fafb",
-          borderRadius: 8,
+          background: "rgba(255,255,255,0.04)",
           border: "1px solid rgba(255,255,255,0.1)",
-          letterSpacing: "-0.31px",
-        }}
-        onMouseEnter={(e) => {
-          if (!magicLoading)
-            e.currentTarget.style.background = "rgba(255,255,255,0.12)";
-        }}
-        onMouseLeave={(e) => {
-          if (!magicLoading)
-            e.currentTarget.style.background = "rgba(255,255,255,0.08)";
+          borderRadius: 8,
+          color: "#f9fafb",
+          fontSize: 15,
+          fontWeight: 500,
+          cursor: magicLoading ? "not-allowed" : "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 8,
+          opacity: magicLoading ? 0.7 : 1,
         }}
       >
         {magicLoading ? (
           <Loader2 size={16} strokeWidth={1.5} className="animate-spin" />
         ) : (
-          <Zap size={16} strokeWidth={1.5} style={{ color: "#635bff" }} />
+          <Zap size={16} strokeWidth={1.5} color="#635bff" />
         )}
-        Send magic link
+        {magicLoading ? "Sending..." : "Send magic link"}
       </button>
-
-      {magicError && (
-        <p className="text-xs text-center mt-2" style={{ color: "#ef4444" }}>
-          {magicError}
-        </p>
-      )}
-    </Shell>
+    </Page>
   );
 }
 
 /* ------------------------------------------------------------------ */
-/*  Shell — logo, grid bg, trust badges, footer                        */
+/*  Page shell — logo, grid bg, badges, footer                         */
 /* ------------------------------------------------------------------ */
 
-function Shell({ children }: { children: React.ReactNode }) {
+function Page({ children }: { children: React.ReactNode }) {
   return (
     <div
-      className="min-h-screen flex flex-col items-center justify-center px-4 relative"
-      style={{ background: BG }}
+      style={{
+        minHeight: "100vh",
+        background: "#0a1628",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 24,
+        position: "relative",
+        fontFamily: "Inter, system-ui, sans-serif",
+      }}
     >
-      {/* Grid pattern */}
+      {/* Grid overlay */}
       <div
-        className="absolute inset-0 pointer-events-none"
         style={{
+          position: "absolute",
+          inset: 0,
+          pointerEvents: "none",
           backgroundImage:
             "linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)",
           backgroundSize: "60px 60px",
         }}
       />
 
-      <div className="relative z-10 w-full max-w-[420px]">
+      <div
+        style={{
+          position: "relative",
+          zIndex: 1,
+          width: "100%",
+          maxWidth: 420,
+        }}
+      >
         {/* Logo */}
-        <div className="flex flex-col items-center gap-2 mb-6">
-          <div className="flex items-center gap-3">
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 8,
+            marginBottom: 24,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <div
-              className="w-11 h-11 rounded-lg flex items-center justify-center"
               style={{
+                width: 44,
+                height: 44,
+                borderRadius: 10,
                 background: "linear-gradient(135deg, #635bff, #4f46e5)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#fff",
+                fontWeight: 700,
+                fontSize: 18,
               }}
             >
-              <span className="text-white font-bold text-lg">ST</span>
+              ST
             </div>
             <span
-              className="text-white font-semibold text-[22px]"
-              style={{ letterSpacing: "-0.5px" }}
+              style={{
+                color: "#f9fafb",
+                fontSize: 22,
+                fontWeight: 600,
+                letterSpacing: "-0.5px",
+              }}
             >
               SalonTransact
             </span>
           </div>
-          <span className="text-[13px]" style={{ color: "#6b7280" }}>
+          <span style={{ color: "#6b7280", fontSize: 13 }}>
             Payment Infrastructure for Salons
           </span>
         </div>
 
         {/* Divider */}
         <div
-          className="h-px mb-8"
-          style={{ background: "rgba(255,255,255,0.06)" }}
+          style={{
+            height: 1,
+            background: "rgba(255,255,255,0.06)",
+            marginBottom: 32,
+          }}
         />
 
         {/* Content */}
         {children}
 
         {/* Trust badges */}
-        <div className="flex items-center justify-center gap-2 mt-8">
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            gap: 8,
+            marginTop: 32,
+            flexWrap: "wrap",
+          }}
+        >
           {[
-            { icon: Shield, label: "PCI DSS Level 1" },
-            { icon: Lock, label: "256-bit Encryption" },
-            { icon: CheckCircle, label: "Stripe Verified" },
-          ].map((b) => {
-            const Icon = b.icon;
-            return (
-              <div
-                key={b.label}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full"
-                style={{
-                  background: "rgba(255,255,255,0.04)",
-                  border: "1px solid rgba(255,255,255,0.08)",
-                }}
-              >
-                <Icon
-                  size={11}
-                  strokeWidth={1.5}
-                  style={{ color: "#6b7280" }}
-                />
-                <span
-                  className="text-[11px] font-medium"
-                  style={{ color: "#6b7280" }}
-                >
-                  {b.label}
-                </span>
-              </div>
-            );
-          })}
+            { Icon: Shield, label: "PCI DSS Level 1" },
+            { Icon: Lock, label: "256-bit Encryption" },
+            { Icon: CheckCircle, label: "Stripe Verified" },
+          ].map(({ Icon, label }) => (
+            <div
+              key={label}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+                background: "rgba(255,255,255,0.04)",
+                border: "1px solid rgba(255,255,255,0.08)",
+                borderRadius: 100,
+                padding: "4px 10px",
+              }}
+            >
+              <Icon size={10} strokeWidth={1.5} color="#6b7280" />
+              <span style={{ color: "#6b7280", fontSize: 11, fontWeight: 500 }}>
+                {label}
+              </span>
+            </div>
+          ))}
         </div>
 
-        <p
-          className="text-xs text-center mt-5"
-          style={{ color: "#4b5563" }}
-        >
-          Access by invitation only
-        </p>
-
-        <p
-          className="text-[11px] text-center mt-6"
-          style={{ color: "#374151" }}
-        >
-          &copy; 2026 Reyna Pay LLC. All rights reserved.
-        </p>
+        <div style={{ textAlign: "center", marginTop: 16 }}>
+          <div style={{ color: "#4b5563", fontSize: 12 }}>
+            Access by invitation only
+          </div>
+          <div style={{ color: "#374151", fontSize: 11, marginTop: 4 }}>
+            &copy; 2026 Reyna Pay LLC. All rights reserved.
+          </div>
+        </div>
       </div>
     </div>
   );

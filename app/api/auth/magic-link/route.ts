@@ -1,46 +1,66 @@
-import { prisma } from '@/lib/prisma'
+import { prisma } from "@/lib/prisma";
 
 export async function POST(request: Request) {
   try {
-    const { email } = (await request.json()) as { email: string }
-    if (!email) {
-      return Response.json({ error: 'Email is required' }, { status: 400 })
+    const { email: rawEmail } = (await request.json()) as { email: string };
+    if (!rawEmail) {
+      return Response.json({ error: "Email is required" }, { status: 400 });
     }
 
+    const email = rawEmail.toLowerCase().trim();
+    console.log("[MAGIC-LINK] Request for:", email);
+
     const user = await prisma.user.findUnique({
-      where: { email: email.toLowerCase() },
-    })
+      where: { email },
+    });
     if (!user) {
+      console.log("[MAGIC-LINK] User not found:", email);
       return Response.json(
-        { error: 'No account found with this email' },
+        { error: "No account found with this email" },
         { status: 404 }
-      )
+      );
     }
 
     // Delete existing unused tokens for this email
     await prisma.passwordReset.deleteMany({
       where: { email: user.email, used: false },
-    })
+    });
 
-    const expiresAt = new Date()
-    expiresAt.setMinutes(expiresAt.getMinutes() + 15)
+    const expiresAt = new Date();
+    expiresAt.setMinutes(expiresAt.getMinutes() + 15);
 
     const reset = await prisma.passwordReset.create({
       data: { email: user.email, expiresAt },
-    })
+    });
+    console.log("[MAGIC-LINK] Token created:", reset.token.substring(0, 8));
 
-    const magicUrl = `${process.env.NEXTAUTH_URL}/magic/${reset.token}`
+    const baseUrl = process.env.NEXTAUTH_URL || process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : "http://localhost:3000";
+    const magicUrl = `${baseUrl}/magic/${reset.token}`;
+    console.log("[MAGIC-LINK] URL:", magicUrl);
 
-    const res = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) {
+      console.error("[MAGIC-LINK] RESEND_API_KEY is not set");
+      return Response.json(
+        { error: "Email service not configured" },
+        { status: 500 }
+      );
+    }
+
+    const fromAddress = "SalonTransact <onboarding@resend.dev>";
+
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        from: 'SalonTransact <noreply@salontransact.com>',
+        from: fromAddress,
         to: user.email,
-        subject: 'Your SalonTransact sign-in link',
+        subject: "Your SalonTransact sign-in link",
         html: `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
@@ -65,25 +85,28 @@ export async function POST(request: Request) {
     </div>
     <p style="color:#6b7280;font-size:12px;text-align:center;margin-top:32px;">
       If you didn't request this, you can safely ignore this email.<br/>
-      SalonTransact by Reyna Pay LLC &middot; salontransact.com
+      SalonTransact by Reyna Pay LLC
     </p>
   </div>
 </body>
 </html>`,
       }),
-    })
+    });
+
+    const resData = await res.json();
+    console.log("[MAGIC-LINK] Resend status:", res.status, "response:", JSON.stringify(resData));
 
     if (!res.ok) {
-      console.error('Resend error:', await res.text())
+      console.error("[MAGIC-LINK] Resend error:", JSON.stringify(resData));
       return Response.json(
-        { error: 'Failed to send email. Please try again.' },
+        { error: resData?.message || "Failed to send email. Please try again." },
         { status: 500 }
-      )
+      );
     }
 
-    return Response.json({ success: true })
+    return Response.json({ success: true });
   } catch (err) {
-    console.error('Magic link error:', err)
-    return Response.json({ error: 'Something went wrong' }, { status: 500 })
+    console.error("[MAGIC-LINK] Unhandled error:", err);
+    return Response.json({ error: "Something went wrong" }, { status: 500 });
   }
 }
