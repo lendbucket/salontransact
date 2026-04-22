@@ -2,7 +2,7 @@
 
 import { useState, Suspense } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import {
   Loader2,
   Eye,
@@ -17,12 +17,12 @@ import {
 } from "lucide-react";
 
 /* ------------------------------------------------------------------ */
-/*  Inline styles                                                      */
+/*  Constants                                                          */
 /* ------------------------------------------------------------------ */
 
-const bg = "#0a1628";
+const BG = "#0a1628";
 
-const inputStyle: React.CSSProperties = {
+const INPUT_BASE: React.CSSProperties = {
   width: "100%",
   height: 48,
   background: "#0d1f3c",
@@ -36,19 +36,19 @@ const inputStyle: React.CSSProperties = {
   padding: "0 14px",
 };
 
-const inputFocus: React.CSSProperties = {
+const INPUT_FOCUS: React.CSSProperties = {
   border: "1px solid #635bff",
   boxShadow: "0 0 0 3px rgba(99,91,255,0.12)",
 };
 
 /* ------------------------------------------------------------------ */
-/*  Page                                                               */
+/*  Page entry — Suspense boundary for useSearchParams                 */
 /* ------------------------------------------------------------------ */
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<LoginSkeleton />}>
-      <LoginContent />
+    <Suspense fallback={<Skeleton />}>
+      <LoginForm />
     </Suspense>
   );
 }
@@ -57,11 +57,11 @@ export default function LoginPage() {
 /*  Skeleton                                                           */
 /* ------------------------------------------------------------------ */
 
-function LoginSkeleton() {
+function Skeleton() {
   return (
     <div
       className="min-h-screen flex items-center justify-center"
-      style={{ background: bg }}
+      style={{ background: BG }}
     >
       <div className="w-full max-w-[420px] px-6 space-y-6">
         <div className="flex flex-col items-center gap-3">
@@ -101,11 +101,10 @@ function LoginSkeleton() {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Main content                                                       */
+/*  Login form                                                         */
 /* ------------------------------------------------------------------ */
 
-function LoginContent() {
-  const router = useRouter();
+function LoginForm() {
   const searchParams = useSearchParams();
   const passwordUpdated = searchParams.get("message") === "password-updated";
   const callbackUrl = searchParams.get("callbackUrl");
@@ -118,22 +117,21 @@ function LoginContent() {
   const [magicLoading, setMagicLoading] = useState(false);
   const [magicSent, setMagicSent] = useState(false);
   const [magicError, setMagicError] = useState<string | null>(null);
-  const [focusedField, setFocusedField] = useState<string | null>(null);
+  const [focused, setFocused] = useState<string | null>(null);
 
-  function getStyle(name: string, extra?: React.CSSProperties) {
+  /* ---- helpers ---- */
+
+  function inputStyle(name: string, extra?: React.CSSProperties) {
     return {
-      ...inputStyle,
-      ...(focusedField === name ? inputFocus : {}),
+      ...INPUT_BASE,
+      ...(focused === name ? INPUT_FOCUS : {}),
       ...extra,
     };
   }
 
-  function getRedirect(role?: string) {
-    if (callbackUrl) return callbackUrl;
-    return role === "admin" ? "/admin" : "/dashboard";
-  }
+  /* ---- credentials submit ---- */
 
-  async function onSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setLoading(true);
@@ -151,18 +149,25 @@ function LoginContent() {
         return;
       }
 
-      // Fetch the session to determine the user role for redirect
+      // Fetch fresh session to get role for redirect
       const sessionRes = await fetch("/api/auth/session");
       const session = await sessionRes.json();
-      const role = (session?.user as { role?: string } | undefined)?.role;
+      const role = session?.user?.role as string | undefined;
 
-      router.push(getRedirect(role));
-      router.refresh();
+      if (callbackUrl) {
+        window.location.href = callbackUrl;
+      } else if (role === "admin") {
+        window.location.href = "/admin";
+      } else {
+        window.location.href = "/dashboard";
+      }
     } catch {
       setError("Something went wrong. Please try again.");
       setLoading(false);
     }
   }
+
+  /* ---- magic link ---- */
 
   async function handleMagicLink() {
     if (!email) {
@@ -193,7 +198,8 @@ function LoginContent() {
     }
   }
 
-  /* ---- Magic link sent state ---- */
+  /* ---- magic link sent view ---- */
+
   if (magicSent) {
     return (
       <Shell>
@@ -218,27 +224,21 @@ function LoginContent() {
             <span className="text-white font-medium">{email}</span>
           </p>
           <button
+            type="button"
             onClick={() => {
               setMagicSent(false);
               handleMagicLink();
             }}
             className="text-sm font-medium mb-3 cursor-pointer"
-            style={{
-              color: "#635bff",
-              background: "none",
-              border: "none",
-            }}
+            style={{ color: "#635bff", background: "none", border: "none" }}
           >
             Didn&apos;t receive it? Resend
           </button>
           <button
+            type="button"
             onClick={() => setMagicSent(false)}
             className="flex items-center gap-1.5 text-sm cursor-pointer"
-            style={{
-              color: "#6b7280",
-              background: "none",
-              border: "none",
-            }}
+            style={{ color: "#6b7280", background: "none", border: "none" }}
           >
             <ArrowLeft size={14} strokeWidth={1.5} />
             Back to sign in
@@ -248,10 +248,11 @@ function LoginContent() {
     );
   }
 
-  /* ---- Main form ---- */
+  /* ---- main form view ---- */
+
   return (
     <Shell>
-      {/* Password updated banner */}
+      {/* Password-updated banner */}
       {passwordUpdated && (
         <div
           className="text-sm rounded-lg px-3 py-2.5 mb-5 text-center"
@@ -297,7 +298,7 @@ function LoginContent() {
       </p>
 
       {/* Form */}
-      <form onSubmit={onSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4">
         {/* Email */}
         <div>
           <label
@@ -318,10 +319,11 @@ function LoginContent() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              onFocus={() => setFocusedField("email")}
-              onBlur={() => setFocusedField(null)}
+              onFocus={() => setFocused("email")}
+              onBlur={() => setFocused(null)}
               placeholder="you@example.com"
-              style={getStyle("email", { paddingLeft: 40 })}
+              disabled={loading}
+              style={inputStyle("email", { paddingLeft: 40 })}
             />
           </div>
         </div>
@@ -355,10 +357,11 @@ function LoginContent() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              onFocus={() => setFocusedField("password")}
-              onBlur={() => setFocusedField(null)}
+              onFocus={() => setFocused("password")}
+              onBlur={() => setFocused(null)}
               placeholder="Enter your password"
-              style={getStyle("password", {
+              disabled={loading}
+              style={inputStyle("password", {
                 paddingLeft: 40,
                 paddingRight: 44,
               })}
@@ -404,9 +407,9 @@ function LoginContent() {
             if (!loading) e.currentTarget.style.background = "#635bff";
           }}
         >
-          {loading ? (
+          {loading && (
             <Loader2 size={16} strokeWidth={1.5} className="animate-spin" />
-          ) : null}
+          )}
           {loading ? "Signing in..." : "Sign in"}
         </button>
       </form>
@@ -430,7 +433,7 @@ function LoginContent() {
       <button
         type="button"
         onClick={handleMagicLink}
-        disabled={magicLoading}
+        disabled={magicLoading || loading}
         className="w-full flex items-center justify-center gap-2 font-semibold text-sm cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
         style={{
           height: 48,
@@ -467,16 +470,16 @@ function LoginContent() {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Shell wrapper — logo, grid bg, trust badges                        */
+/*  Shell — logo, grid bg, trust badges, footer                        */
 /* ------------------------------------------------------------------ */
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div
       className="min-h-screen flex flex-col items-center justify-center px-4 relative"
-      style={{ background: bg }}
+      style={{ background: BG }}
     >
-      {/* Grid pattern overlay */}
+      {/* Grid pattern */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
@@ -516,7 +519,7 @@ function Shell({ children }: { children: React.ReactNode }) {
           style={{ background: "rgba(255,255,255,0.06)" }}
         />
 
-        {/* Form area */}
+        {/* Content */}
         {children}
 
         {/* Trust badges */}
@@ -552,7 +555,6 @@ function Shell({ children }: { children: React.ReactNode }) {
           })}
         </div>
 
-        {/* Invitation notice */}
         <p
           className="text-xs text-center mt-5"
           style={{ color: "#4b5563" }}
@@ -560,7 +562,6 @@ function Shell({ children }: { children: React.ReactNode }) {
           Access by invitation only
         </p>
 
-        {/* Copyright */}
         <p
           className="text-[11px] text-center mt-6"
           style={{ color: "#374151" }}
