@@ -1,5 +1,7 @@
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import bcrypt from "bcryptjs";
+import { prisma } from "./prisma";
 
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
@@ -19,98 +21,53 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        console.log("[AUTH] authorize called for:", credentials?.email);
-
-        if (!credentials?.email || !credentials?.password) {
-          console.log("[AUTH] Missing credentials");
-          return null;
-        }
+        if (!credentials?.email || !credentials?.password) return null;
 
         const email = credentials.email.toLowerCase().trim();
 
-        try {
-          // Fresh PrismaClient per request — bypasses PrismaPg driver adapter
-          // issues in Vercel serverless cold starts
-          const { PrismaClient } = await import("@prisma/client");
-          const db = new PrismaClient();
+        const user = await prisma.user.findUnique({
+          where: { email },
+        });
 
-          try {
-            const user = await db.user.findUnique({
-              where: { email },
-            });
+        if (!user || !user.password) return null;
 
-            if (!user) {
-              console.log("[AUTH] User not found:", email);
-              return null;
-            }
-
-            if (!user.password) {
-              console.log("[AUTH] No password set for user:", email);
-              return null;
-            }
-
-            // Magic link flow
-            if (credentials.password.startsWith("MAGIC:")) {
-              const code = credentials.password.replace("MAGIC:", "");
-              console.log(
-                "[AUTH] Magic link attempt for:",
-                email,
-                "code:",
-                code.substring(0, 8)
-              );
-              const reset = await db.passwordReset.findFirst({
-                where: {
-                  email,
-                  token: code,
-                  used: false,
-                  expiresAt: { gt: new Date() },
-                },
-              });
-              if (!reset) {
-                console.log("[AUTH] Invalid or expired magic code");
-                return null;
-              }
-              await db.passwordReset.update({
-                where: { id: reset.id },
-                data: { used: true },
-              });
-              console.log("[AUTH] Magic link success for:", user.email);
-              return {
-                id: user.id,
-                email: user.email,
-                name: user.name ?? "",
-                role: user.role,
-              };
-            }
-
-            // Normal password flow
-            const bcrypt = await import("bcryptjs");
-            const valid = await bcrypt.compare(
-              credentials.password,
-              user.password
-            );
-            console.log("[AUTH] Password valid:", valid, "for:", email);
-            if (!valid) return null;
-
-            console.log(
-              "[AUTH] Login success for:",
-              user.email,
-              "role:",
-              user.role
-            );
-            return {
-              id: user.id,
-              email: user.email,
-              name: user.name ?? "",
-              role: user.role,
-            };
-          } finally {
-            await db.$disconnect();
-          }
-        } catch (error) {
-          console.error("[AUTH] authorize error:", error);
-          return null;
+        // Magic link flow
+        if (credentials.password.startsWith("MAGIC:")) {
+          const code = credentials.password.replace("MAGIC:", "");
+          const reset = await prisma.passwordReset.findFirst({
+            where: {
+              email,
+              token: code,
+              used: false,
+              expiresAt: { gt: new Date() },
+            },
+          });
+          if (!reset) return null;
+          await prisma.passwordReset.update({
+            where: { id: reset.id },
+            data: { used: true },
+          });
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name ?? "",
+            role: user.role,
+          };
         }
+
+        // Normal password flow
+        const valid = await bcrypt.compare(
+          credentials.password,
+          user.password
+        );
+        if (!valid) return null;
+
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name ?? "",
+          role: user.role,
+        };
       },
     }),
   ],
@@ -119,7 +76,6 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         token.role = (user as unknown as { role: string }).role;
-        token.email = user.email;
       }
       return token;
     },

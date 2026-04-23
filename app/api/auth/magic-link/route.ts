@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
 export async function POST(request: Request) {
   try {
@@ -11,65 +12,55 @@ export async function POST(request: Request) {
     }
 
     const email = rawEmail.toLowerCase().trim();
-    console.log("[MAGIC-LINK] Request for:", email);
 
-    // Fresh PrismaClient — bypass PrismaPg driver adapter issues
-    const { PrismaClient } = await import("@prisma/client");
-    const db = new PrismaClient();
+    const user = await prisma.user.findUnique({
+      where: { email },
+    });
+    if (!user) {
+      return NextResponse.json(
+        { error: "No account found with this email" },
+        { status: 404 }
+      );
+    }
 
-    try {
-      const user = await db.user.findUnique({
-        where: { email },
-      });
-      if (!user) {
-        console.log("[MAGIC-LINK] User not found:", email);
-        return NextResponse.json(
-          { error: "No account found with this email" },
-          { status: 404 }
-        );
-      }
+    // Delete existing unused tokens for this email
+    await prisma.passwordReset.deleteMany({
+      where: { email: user.email, used: false },
+    });
 
-      // Delete existing unused tokens for this email
-      await db.passwordReset.deleteMany({
-        where: { email: user.email, used: false },
-      });
+    const expiresAt = new Date();
+    expiresAt.setMinutes(expiresAt.getMinutes() + 15);
 
-      const expiresAt = new Date();
-      expiresAt.setMinutes(expiresAt.getMinutes() + 15);
+    const reset = await prisma.passwordReset.create({
+      data: { email: user.email, expiresAt },
+    });
 
-      const reset = await db.passwordReset.create({
-        data: { email: user.email, expiresAt },
-      });
-      console.log("[MAGIC-LINK] Token created:", reset.token.substring(0, 8));
+    const baseUrl =
+      process.env.NEXTAUTH_URL ||
+      (process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : "http://localhost:3000");
+    const magicUrl = `${baseUrl}/magic/${reset.token}`;
 
-      const baseUrl =
-        process.env.NEXTAUTH_URL ||
-        (process.env.VERCEL_URL
-          ? `https://${process.env.VERCEL_URL}`
-          : "http://localhost:3000");
-      const magicUrl = `${baseUrl}/magic/${reset.token}`;
-      console.log("[MAGIC-LINK] URL:", magicUrl);
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json(
+        { error: "Email service not configured" },
+        { status: 500 }
+      );
+    }
 
-      const apiKey = process.env.RESEND_API_KEY;
-      if (!apiKey) {
-        console.error("[MAGIC-LINK] RESEND_API_KEY is not set");
-        return NextResponse.json(
-          { error: "Email service not configured" },
-          { status: 500 }
-        );
-      }
-
-      const res = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          from: "SalonTransact <onboarding@resend.dev>",
-          to: user.email,
-          subject: "Your SalonTransact sign-in link",
-          html: `<!DOCTYPE html>
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        from: "SalonTransact <onboarding@resend.dev>",
+        to: user.email,
+        subject: "Your SalonTransact sign-in link",
+        html: `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;padding:0;background:#0a0f1a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
@@ -98,33 +89,24 @@ export async function POST(request: Request) {
   </div>
 </body>
 </html>`,
-        }),
-      });
+      }),
+    });
 
-      const resData = await res.json();
-      console.log(
-        "[MAGIC-LINK] Resend status:",
-        res.status,
-        "response:",
-        JSON.stringify(resData)
+    const resData = await res.json();
+
+    if (!res.ok) {
+      console.error("[MAGIC-LINK] Resend error:", JSON.stringify(resData));
+      return NextResponse.json(
+        {
+          error:
+            resData?.message ||
+            "Failed to send email. Please try again.",
+        },
+        { status: 500 }
       );
-
-      if (!res.ok) {
-        console.error("[MAGIC-LINK] Resend error:", JSON.stringify(resData));
-        return NextResponse.json(
-          {
-            error:
-              resData?.message ||
-              "Failed to send email. Please try again.",
-          },
-          { status: 500 }
-        );
-      }
-
-      return NextResponse.json({ success: true });
-    } finally {
-      await db.$disconnect();
     }
+
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error("[MAGIC-LINK] Unhandled error:", error);
     return NextResponse.json(
