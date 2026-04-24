@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import {
@@ -62,31 +63,50 @@ export function Sidebar({
 
   return (
     <aside
-      className="hidden md:flex md:flex-col w-60 min-h-screen p-4 gap-1"
+      className="hidden md:flex md:flex-col min-h-screen"
       style={{
+        width: 240,
         background: "#0d1117",
         borderRight: "1px solid rgba(255,255,255,0.06)",
       }}
     >
       {/* Logo */}
-      <div className="flex items-center gap-2.5 px-3 pt-2 pb-4">
-        <div
-          className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-          style={{ background: "#635bff" }}
-        >
-          <span className="text-white font-bold text-sm">ST</span>
-        </div>
-        <div className="min-w-0">
-          <p className="text-white font-semibold text-sm">SalonTransact</p>
-        </div>
+      <div
+        style={{
+          height: 44,
+          padding: "0 16px",
+          display: "flex",
+          alignItems: "center",
+        }}
+      >
+        <Image
+          src="/salontransact-logo.svg"
+          alt="SalonTransact"
+          width={140}
+          height={28}
+          style={{ height: 28, width: "auto", objectFit: "contain" }}
+          priority
+        />
       </div>
 
       {/* Business name + plan */}
-      <div className="px-3 mb-3">
-        <p className="text-xs text-secondary truncate">{businessName}</p>
+      <div style={{ padding: "8px 16px 0" }}>
+        <p
+          className="truncate"
+          style={{ fontSize: 12, fontWeight: 400, color: "#9ca3af" }}
+        >
+          {businessName}
+        </p>
         <span
-          className="inline-block mt-1 text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded font-medium"
           style={{
+            display: "inline-block",
+            marginTop: 4,
+            fontSize: 10,
+            fontWeight: 500,
+            textTransform: "uppercase",
+            letterSpacing: "0.08em",
+            padding: "2px 6px",
+            borderRadius: 4,
             color: "#635bff",
             background: "rgba(99,91,255,0.1)",
           }}
@@ -96,16 +116,29 @@ export function Sidebar({
       </div>
 
       {/* Search */}
-      <div className="px-1 mb-3">
+      <div style={{ margin: "16px 12px 0" }}>
         <div
-          className="flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer"
-          style={{ background: "#111827" }}
+          style={{
+            height: 32,
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "0 10px",
+            borderRadius: 6,
+            background: "#111827",
+            cursor: "pointer",
+          }}
         >
-          <Search className="w-4 h-4 text-muted" />
-          <span className="text-xs text-muted flex-1">Search...</span>
+          <Search size={16} strokeWidth={1.5} color="#6b7280" />
+          <span style={{ fontSize: 13, fontWeight: 400, color: "#6b7280", flex: 1 }}>
+            Search...
+          </span>
           <kbd
-            className="text-[9px] px-1 py-0.5 rounded font-mono"
             style={{
+              fontSize: 9,
+              padding: "1px 4px",
+              borderRadius: 3,
+              fontFamily: "monospace",
               color: "#4b5563",
               background: "rgba(255,255,255,0.04)",
               border: "1px solid rgba(255,255,255,0.06)",
@@ -117,10 +150,21 @@ export function Sidebar({
       </div>
 
       {/* Nav sections */}
-      <nav className="flex flex-col gap-0.5 flex-1">
+      <nav style={{ flex: 1, display: "flex", flexDirection: "column", gap: 2, marginTop: 8 }}>
         {sections.map((section) => (
-          <div key={section} className="mb-1">
-            <p className="px-3 py-1.5 text-[10px] uppercase tracking-widest text-muted font-medium">
+          <div key={section}>
+            <p
+              style={{
+                fontSize: 11,
+                fontWeight: 600,
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                marginTop: 24,
+                marginBottom: 4,
+                paddingLeft: 16,
+                color: "#6b7280",
+              }}
+            >
               {section}
             </p>
             {links
@@ -132,17 +176,24 @@ export function Sidebar({
                   <Link
                     key={link.href}
                     href={link.href}
-                    className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors relative"
                     style={{
-                      background: active
-                        ? "rgba(99,91,255,0.12)"
-                        : "transparent",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                      height: 36,
+                      padding: "0 12px",
+                      margin: "0 8px",
+                      borderRadius: 6,
+                      fontSize: 14,
+                      fontWeight: active ? 500 : 400,
                       color: active ? "#635bff" : "#9ca3af",
+                      background: active ? "rgba(99,91,255,0.12)" : "transparent",
+                      position: "relative",
+                      textDecoration: "none",
                     }}
                     onMouseEnter={(e) => {
                       if (!active)
-                        e.currentTarget.style.background =
-                          "rgba(255,255,255,0.04)";
+                        e.currentTarget.style.background = "rgba(255,255,255,0.04)";
                     }}
                     onMouseLeave={(e) => {
                       if (!active)
@@ -151,11 +202,19 @@ export function Sidebar({
                   >
                     {active && (
                       <div
-                        className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-r"
-                        style={{ background: "#635bff" }}
+                        style={{
+                          position: "absolute",
+                          left: 0,
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          width: 2,
+                          height: 16,
+                          borderRadius: "0 2px 2px 0",
+                          background: "#635bff",
+                        }}
                       />
                     )}
-                    <Icon className="w-4 h-4" />
+                    <Icon size={16} strokeWidth={1.5} />
                     {link.label}
                   </Link>
                 );
@@ -166,36 +225,57 @@ export function Sidebar({
 
       {/* User section */}
       <div
-        className="pt-3 mt-2"
-        style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
+        style={{
+          padding: "12px 16px",
+          borderTop: "1px solid rgba(255,255,255,0.06)",
+        }}
       >
-        <div className="flex items-center gap-3 px-3 py-2">
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div
-            className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold text-white flex-shrink-0"
-            style={{ background: "#635bff" }}
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: "50%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 11,
+              fontWeight: 600,
+              color: "#fbfbfb",
+              background: "#017ea7",
+              flexShrink: 0,
+            }}
           >
             {initials}
           </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-xs text-foreground truncate">
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <p
+              className="truncate"
+              style={{ fontSize: 13, fontWeight: 500, color: "#f9fafb" }}
+            >
               {session?.user?.name ?? "User"}
             </p>
-            <p className="text-[10px] text-muted truncate">
+            <p
+              className="truncate"
+              style={{ fontSize: 11, fontWeight: 400, color: "#6b7280" }}
+            >
               {session?.user?.email}
             </p>
           </div>
           <button
             onClick={() => signOut({ callbackUrl: "/login" })}
-            className="text-muted cursor-pointer"
+            style={{
+              color: "#6b7280",
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              padding: 0,
+            }}
             aria-label="Sign out"
-            onMouseEnter={(e) =>
-              (e.currentTarget.style.color = "#f9fafb")
-            }
-            onMouseLeave={(e) =>
-              (e.currentTarget.style.color = "#6b7280")
-            }
+            onMouseEnter={(e) => (e.currentTarget.style.color = "#f9fafb")}
+            onMouseLeave={(e) => (e.currentTarget.style.color = "#6b7280")}
           >
-            <LogOut className="w-4 h-4" />
+            <LogOut size={16} strokeWidth={1.5} />
           </button>
         </div>
       </div>
@@ -228,10 +308,15 @@ export function BottomNav() {
           <Link
             key={link.href}
             href={link.href}
-            className="flex flex-col items-center justify-center py-3 px-2 flex-1 text-[10px] font-medium"
-            style={{ color: active ? "#635bff" : "#6b7280" }}
+            className="flex flex-col items-center justify-center py-3 px-2 flex-1"
+            style={{
+              color: active ? "#635bff" : "#6b7280",
+              fontSize: 10,
+              fontWeight: 500,
+              textDecoration: "none",
+            }}
           >
-            <Icon className="w-5 h-5 mb-1" />
+            <Icon size={16} strokeWidth={1.5} style={{ marginBottom: 4 }} />
             {link.label}
           </Link>
         );
