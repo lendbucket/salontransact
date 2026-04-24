@@ -15,7 +15,16 @@
       "Bash(python scripts/search.py \"animation accessibility dark mode\" --domain ux)",
       "Bash(python scripts/search.py \"dark dashboard fintech\" --stack nextjs)",
       "Bash(npx tsc:*)",
-      "Bash(npm ls:*)"
+      "Bash(npm ls:*)",
+      "Bash(gh api:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(grep -l \"engine.*client\\\\|engine.*library\" node_modules/@prisma/client/*.js)",
+      "Bash(mkdir -p \"app/\\(admin\\)/admin/invites\")",
+      "Bash(mkdir -p \"app/\\(admin\\)/admin/merchants\")",
+      "Bash(mv \"app/\\(admin\\)/invites/page.tsx\" \"app/\\(admin\\)/admin/invites/page.tsx\")",
+      "Bash(mv \"app/\\(admin\\)/merchants/page.tsx\" \"app/\\(admin\\)/admin/merchants/page.tsx\")",
+      "Bash(rmdir \"app/\\(admin\\)/invites\")",
+      "Bash(rmdir \"app/\\(admin\\)/merchants\")"
     ]
   }
 }

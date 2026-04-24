@@ -1,5 +1,4 @@
 import { requireAdmin } from '@/lib/admin'
-import { Providers } from '@/components/providers'
 import { AdminNav } from './admin-nav'
 
 export default async function AdminLayout({
@@ -10,11 +9,9 @@ export default async function AdminLayout({
   const session = await requireAdmin()
 
   return (
-    <Providers>
-      <div className="flex min-h-screen" style={{ background: '#0a0f1a' }}>
-        <AdminNav email={session.user!.email!} />
-        <main className="flex-1 pb-20 md:pb-0">{children}</main>
-      </div>
-    </Providers>
+    <div className="flex min-h-screen" style={{ background: '#0a0f1a' }}>
+      <AdminNav email={session.user!.email!} />
+      <main className="flex-1 pb-20 md:pb-0">{children}</main>
+    </div>
   )
 }
