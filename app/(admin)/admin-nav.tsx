@@ -37,7 +37,7 @@ export function AdminNav({ email }: { email: string }) {
           }}
         >
           <Image
-            src="/salontransact-logo.svg"
+            src="/salontransact-logo.png"
             alt="SalonTransact"
             width={140}
             height={28}

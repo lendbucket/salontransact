@@ -80,7 +80,7 @@ export function Sidebar({
         }}
       >
         <Image
-          src="/salontransact-logo.svg"
+          src="/salontransact-logo.png"
           alt="SalonTransact"
           width={140}
           height={28}

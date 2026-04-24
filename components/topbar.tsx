@@ -62,7 +62,7 @@ export function Topbar() {
 
         {/* Mobile logo */}
         <Image
-          src="/salontransact-logo.svg"
+          src="/salontransact-logo.png"
           alt="SalonTransact"
           width={100}
           height={20}
@@ -272,7 +272,7 @@ export function AdminTopbar() {
       {/* Left: admin badge */}
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         <Image
-          src="/salontransact-logo.svg"
+          src="/salontransact-logo.png"
           alt="SalonTransact"
           width={100}
           height={20}
