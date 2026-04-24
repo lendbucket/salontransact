@@ -130,10 +130,7 @@ export default function MerchantsPage() {
         </div>
         <button
           onClick={() => router.push('/admin/invites')}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-white cursor-pointer"
-          style={{ background: '#017ea7' }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = '#015f80')}
-          onMouseLeave={(e) => (e.currentTarget.style.background = '#017ea7')}
+          className="btn-primary btn-md"
         >
           <Mail size={16} strokeWidth={1.5} />
           Send Invite
@@ -243,24 +240,7 @@ export default function MerchantsPage() {
                         <button
                           onClick={() => handleSuspendActivate(m)}
                           disabled={actionLoading === m.id}
-                          className="px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer"
-                          style={{
-                            border: `1px solid ${m.status === 'active' ? 'rgba(245,158,11,0.3)' : 'rgba(34,197,94,0.3)'}`,
-                            color: m.status === 'active' ? '#f59e0b' : '#22c55e',
-                            background: 'transparent',
-                          }}
-                          onMouseEnter={(e) => {
-                            if (m.status === 'active') {
-                              e.currentTarget.style.borderColor = 'rgba(239,68,68,0.5)'
-                              e.currentTarget.style.color = '#ef4444'
-                            }
-                          }}
-                          onMouseLeave={(e) => {
-                            if (m.status === 'active') {
-                              e.currentTarget.style.borderColor = 'rgba(245,158,11,0.3)'
-                              e.currentTarget.style.color = '#f59e0b'
-                            }
-                          }}
+                          className={m.status === 'active' ? 'btn-warning btn-sm' : 'btn-secondary btn-sm'}
                         >
                           {actionLoading === m.id ? (
                             <Loader2 size={12} className="animate-spin" />
@@ -272,12 +252,7 @@ export default function MerchantsPage() {
                         </button>
                         <button
                           onClick={() => setDeleteTarget(m)}
-                          className="px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer"
-                          style={{
-                            border: '1px solid rgba(239,68,68,0.3)',
-                            color: '#ef4444',
-                            background: 'transparent',
-                          }}
+                          className="btn-danger btn-sm"
                         >
                           Delete
                         </button>
@@ -315,20 +290,14 @@ export default function MerchantsPage() {
             <div className="flex gap-3 justify-end">
               <button
                 onClick={() => setDeleteTarget(null)}
-                className="px-4 py-2 rounded-lg text-sm font-medium cursor-pointer"
-                style={{
-                  background: 'transparent',
-                  border: '1px solid #E8EAED',
-                  color: '#878787',
-                }}
+                className="btn-secondary btn-md"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDelete}
                 disabled={actionLoading === deleteTarget.id}
-                className="px-4 py-2 rounded-lg text-sm font-medium text-white cursor-pointer inline-flex items-center gap-2"
-                style={{ background: '#ef4444' }}
+                className="btn-danger btn-md"
               >
                 {actionLoading === deleteTarget.id && (
                   <Loader2 size={14} className="animate-spin" />

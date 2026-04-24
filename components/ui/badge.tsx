@@ -1,52 +1,66 @@
 type BadgeStatus =
   | "succeeded"
-  | "pending"
-  | "failed"
   | "paid"
-  | "in_transit"
   | "active"
-  | "inactive"
   | "approved"
-  | "declined"
-  | "suspended"
+  | "pending"
+  | "pending_review"
+  | "in_transit"
   | "processing"
-  | "pending_review";
+  | "info"
+  | "failed"
+  | "error"
+  | "inactive"
+  | "suspended"
+  | "declined"
+  | "restricted"
+  | "neutral"
+  | "incomplete"
+  | "starter"
+  | "plan";
 
-const config: Record<
+const statusMap: Record<
   BadgeStatus,
-  { bg: string; text: string; border: string }
+  { label: string; className: string }
 > = {
-  succeeded: { bg: "#F0FDF4", text: "#166534", border: "#BBF7D0" },
-  paid: { bg: "#F0FDF4", text: "#166534", border: "#BBF7D0" },
-  active: { bg: "#F0FDF4", text: "#166534", border: "#BBF7D0" },
-  approved: { bg: "#F0FDF4", text: "#166534", border: "#BBF7D0" },
-  pending: { bg: "#FFFBEB", text: "#92400E", border: "#FDE68A" },
-  pending_review: { bg: "#FFFBEB", text: "#92400E", border: "#FDE68A" },
-  processing: { bg: "#E6F4F8", text: "#015f80", border: "#BAE6FD" },
-  in_transit: { bg: "#E6F4F8", text: "#015f80", border: "#BAE6FD" },
-  failed: { bg: "#FEF2F2", text: "#991B1B", border: "#FECACA" },
-  declined: { bg: "#FEF2F2", text: "#991B1B", border: "#FECACA" },
-  suspended: { bg: "#FEF2F2", text: "#991B1B", border: "#FECACA" },
-  inactive: { bg: "#F9FAFB", text: "#374151", border: "#D1D5DB" },
+  succeeded: { label: "Succeeded", className: "badge badge-success" },
+  paid: { label: "Paid", className: "badge badge-success" },
+  active: { label: "Active", className: "badge badge-success" },
+  approved: { label: "Approved", className: "badge badge-success" },
+  pending: { label: "Pending", className: "badge badge-pending" },
+  pending_review: { label: "Under Review", className: "badge badge-pending" },
+  in_transit: { label: "In Transit", className: "badge badge-info" },
+  processing: { label: "Processing", className: "badge badge-processing" },
+  info: { label: "Info", className: "badge badge-info" },
+  failed: { label: "Failed", className: "badge badge-error" },
+  error: { label: "Error", className: "badge badge-error" },
+  inactive: { label: "Inactive", className: "badge badge-neutral" },
+  suspended: { label: "Suspended", className: "badge badge-error" },
+  declined: { label: "Declined", className: "badge badge-error" },
+  restricted: { label: "Restricted", className: "badge badge-error" },
+  neutral: { label: "Neutral", className: "badge badge-neutral" },
+  incomplete: { label: "Incomplete", className: "badge badge-neutral" },
+  starter: { label: "Starter", className: "badge badge-plan" },
+  plan: { label: "Starter", className: "badge badge-plan" },
 };
 
-export function Badge({ status }: { status: string }) {
-  const c = config[status as BadgeStatus] ?? {
-    bg: "#F9FAFB",
-    text: "#374151",
-    border: "#D1D5DB",
-  };
+export function Badge({
+  status,
+  label,
+  showDot = true,
+}: {
+  status: string;
+  label?: string;
+  showDot?: boolean;
+}) {
+  const config = statusMap[status as BadgeStatus] ?? statusMap.neutral;
+  const displayLabel = label ?? config.label;
+  const hasDot = showDot && !["starter", "plan"].includes(status);
 
   return (
-    <span
-      className="badge"
-      style={{
-        background: c.bg,
-        color: c.text,
-        borderColor: c.border,
-      }}
-    >
-      {status.replace(/_/g, " ")}
+    <span className={config.className}>
+      {hasDot && <span className="badge-dot" />}
+      {displayLabel}
     </span>
   );
 }

@@ -130,10 +130,7 @@ export default function InvitesPage() {
             setSendError(null)
             setSendSuccess(null)
           }}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-white cursor-pointer"
-          style={{ background: '#017ea7' }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = '#015f80')}
-          onMouseLeave={(e) => (e.currentTarget.style.background = '#017ea7')}
+          className="btn-primary btn-md"
         >
           <Mail size={16} strokeWidth={1.5} />
           Send Invite
@@ -179,8 +176,8 @@ export default function InvitesPage() {
               <button
                 type="submit"
                 disabled={sending}
-                className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg text-sm font-medium text-white cursor-pointer"
-                style={{ background: '#017ea7', minWidth: '160px' }}
+                className="btn-primary btn-md"
+                style={{ minWidth: '160px' }}
               >
                 {sending ? (
                   <Loader2 size={14} className="animate-spin" />
@@ -283,12 +280,7 @@ export default function InvitesPage() {
                             <button
                               onClick={() => handleResend(inv.id)}
                               disabled={actionLoading === inv.id}
-                              className="px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer"
-                              style={{
-                                border: '1px solid rgba(1,126,167,0.3)',
-                                color: '#017ea7',
-                                background: 'transparent',
-                              }}
+                              className="btn-secondary btn-sm"
                             >
                               {actionLoading === inv.id ? (
                                 <Loader2 size={12} className="animate-spin" />
@@ -299,12 +291,7 @@ export default function InvitesPage() {
                             <button
                               onClick={() => handleRevoke(inv.id)}
                               disabled={actionLoading === inv.id}
-                              className="px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer"
-                              style={{
-                                border: '1px solid rgba(239,68,68,0.3)',
-                                color: '#ef4444',
-                                background: 'transparent',
-                              }}
+                              className="btn-danger btn-sm"
                             >
                               Revoke
                             </button>
