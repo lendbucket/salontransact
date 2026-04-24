@@ -183,3 +183,15 @@ model PayrocToken {
   expiresAt DateTime
   createdAt DateTime @default(now())
 }
+
+model Affiliate {
+  id             String   @id @default(cuid())
+  name           String
+  email          String   @unique
+  referralCode   String   @unique
+  commissionRate Float    @default(10)
+  status         String   @default("active")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  referredCount  Int      @default(0)
+}

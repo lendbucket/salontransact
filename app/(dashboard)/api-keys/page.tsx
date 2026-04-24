@@ -23,8 +23,8 @@ export default async function ApiKeysPage() {
             Authenticate API requests to SalonTransact
           </p>
         </div>
-        <button className="btn-primary flex items-center gap-2">
-          <Plus className="w-4 h-4" />
+        <button className="inline-flex items-center gap-2 px-4 h-9 bg-[#017ea7] hover:bg-[#0290be] text-white text-sm font-medium rounded-lg border border-[#015f80] transition-all duration-150 whitespace-nowrap shadow-sm hover:shadow-md hover:-translate-y-px active:translate-y-0 cursor-pointer">
+          <Plus size={16} strokeWidth={1.5} />
           Create Key
         </button>
       </div>
