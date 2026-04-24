@@ -76,6 +76,23 @@ model Merchant {
   status                String        @default("active")
   createdAt             DateTime      @default(now())
   updatedAt             DateTime      @updatedAt
+  ein                   String?
+  dbaName               String?
+  ownerFirstName        String?
+  ownerLastName         String?
+  ownerDob              String?
+  ownerSsnLast4         String?
+  ownerTitle            String?
+  ownershipPercentage   Int?
+  ownerAddress          String?
+  bankAccountHolder     String?
+  bankRoutingNumber     String?
+  bankAccountNumber     String?
+  bankAccountType       String?
+  fundingSpeed          String?
+  avgTransaction        String?
+  paymentMethods        String[]
+  applicationSubmittedAt DateTime?
   user                  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions          Transaction[]
   payouts               Payout[]

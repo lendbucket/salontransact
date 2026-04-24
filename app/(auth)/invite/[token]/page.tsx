@@ -1,19 +1,16 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import { signIn } from 'next-auth/react'
 import { Loader2, Eye, EyeOff, ShieldX, Shield, Lock, Check } from 'lucide-react'
 
 export default function InviteRedeemPage() {
   const params = useParams<{ token: string }>()
-  const router = useRouter()
-
   const [status, setStatus] = useState<'loading' | 'valid' | 'error'>('loading')
   const [inviteEmail, setInviteEmail] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
 
-  const [businessName, setBusinessName] = useState('')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -57,7 +54,7 @@ export default function InviteRedeemPage() {
     const res = await fetch('/api/invite/redeem', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token: params.token, businessName, password }),
+      body: JSON.stringify({ token: params.token, businessName: 'Pending Setup', password }),
     })
     const data = await res.json()
 
@@ -74,12 +71,11 @@ export default function InviteRedeemPage() {
     })
 
     if (signInRes?.error) {
-      router.push('/login')
+      window.location.href = '/login'
       return
     }
 
-    router.push('/onboarding')
-    router.refresh()
+    window.location.href = '/onboarding'
   }
 
   // Loading state
@@ -187,24 +183,6 @@ export default function InviteRedeemPage() {
                 color: '#4b5563',
                 cursor: 'not-allowed',
               }}
-            />
-          </div>
-
-          {/* Business name */}
-          <div>
-            <label
-              className="block text-sm font-medium mb-1.5"
-              style={{ color: '#9ca3af' }}
-            >
-              Business name
-            </label>
-            <input
-              type="text"
-              required
-              value={businessName}
-              onChange={(e) => setBusinessName(e.target.value)}
-              className="auth-input"
-              placeholder="Your salon name"
             />
           </div>
 

@@ -24,7 +24,8 @@
       "Bash(mv \"app/\\(admin\\)/invites/page.tsx\" \"app/\\(admin\\)/admin/invites/page.tsx\")",
       "Bash(mv \"app/\\(admin\\)/merchants/page.tsx\" \"app/\\(admin\\)/admin/merchants/page.tsx\")",
       "Bash(rmdir \"app/\\(admin\\)/invites\")",
-      "Bash(rmdir \"app/\\(admin\\)/merchants\")"
+      "Bash(rmdir \"app/\\(admin\\)/merchants\")",
+      "Bash(python scripts/search.py \"fintech payment onboarding wizard dark\" --design-system -p \"SalonTransact\")"
     ]
   }
 }
