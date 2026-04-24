@@ -31,8 +31,8 @@ function CustomTooltip({
     <div
       className="rounded-lg px-3 py-2 text-xs"
       style={{
-        background: "#111827",
-        border: "1px solid rgba(255,255,255,0.06)",
+        background: "#FFFFFF",
+        border: "1px solid #E8EAED",
         boxShadow:
           "0 0 0 1px rgba(0,0,0,0.25), 0 4px 8px rgba(0,0,0,0.2)",
       }}
@@ -57,24 +57,24 @@ export function DashboardCharts({ chartData }: { chartData: ChartData[] }) {
           <AreaChart data={chartData}>
             <defs>
               <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#635bff" stopOpacity={0.3} />
-                <stop offset="100%" stopColor="#635bff" stopOpacity={0} />
+                <stop offset="0%" stopColor="#017ea7" stopOpacity={0.3} />
+                <stop offset="100%" stopColor="#017ea7" stopOpacity={0} />
               </linearGradient>
             </defs>
             <CartesianGrid
               strokeDasharray="3 3"
-              stroke="rgba(255,255,255,0.04)"
+              stroke="#E8EAED"
               vertical={false}
             />
             <XAxis
               dataKey="date"
-              tick={{ fontSize: 11, fill: "#6b7280" }}
+              tick={{ fontSize: 11, fill: "#878787" }}
               tickLine={false}
               axisLine={false}
               interval="preserveStartEnd"
             />
             <YAxis
-              tick={{ fontSize: 11, fill: "#6b7280" }}
+              tick={{ fontSize: 11, fill: "#878787" }}
               tickLine={false}
               axisLine={false}
               tickFormatter={formatMoney}
@@ -84,7 +84,7 @@ export function DashboardCharts({ chartData }: { chartData: ChartData[] }) {
             <Area
               type="monotone"
               dataKey="amount"
-              stroke="#635bff"
+              stroke="#017ea7"
               strokeWidth={2}
               fill="url(#areaGrad)"
             />

@@ -61,7 +61,7 @@ export default async function WebhooksPage() {
                     <tr
                       key={h.id}
                       className="border-t"
-                      style={{ borderColor: "rgba(255,255,255,0.06)" }}
+                      style={{ borderColor: "#E8EAED" }}
                     >
                       <td className="py-3 text-foreground font-mono text-xs max-w-[250px] truncate">
                         {h.url}

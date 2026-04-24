@@ -56,7 +56,7 @@ export function SettingsTabs({ businessInfoContent, paymentContent }: Props) {
       {/* Tab bar */}
       <div
         className="flex gap-1 p-1 rounded-lg mb-6"
-        style={{ background: "#111827" }}
+        style={{ background: "#F4F5F7" }}
       >
         {tabs.map((tab) => {
           const Icon = tab.icon;
@@ -67,8 +67,8 @@ export function SettingsTabs({ businessInfoContent, paymentContent }: Props) {
               onClick={() => setActive(tab.id)}
               className="flex items-center gap-2 px-4 py-2.5 rounded-md text-sm font-medium flex-1 justify-center cursor-pointer"
               style={{
-                background: isActive ? "#635bff" : "transparent",
-                color: isActive ? "#fff" : "#9ca3af",
+                background: isActive ? "#017ea7" : "transparent",
+                color: isActive ? "#fff" : "#878787",
               }}
             >
               <Icon className="w-4 h-4" />
@@ -173,7 +173,7 @@ export function SettingsTabs({ businessInfoContent, paymentContent }: Props) {
             <p className="text-sm text-secondary mb-6">
               Devices currently signed in to your account
             </p>
-            <div className="flex items-center gap-3 p-3 rounded-lg" style={{ background: "rgba(255,255,255,0.03)" }}>
+            <div className="flex items-center gap-3 p-3 rounded-lg" style={{ background: "#F9FAFB" }}>
               <Lock className="w-4 h-4 text-success" />
               <div className="flex-1 min-w-0">
                 <p className="text-sm text-foreground">Current session</p>

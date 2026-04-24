@@ -10,7 +10,7 @@ export default async function AdminLayout({
   const session = await requireAdmin();
 
   return (
-    <div className="flex min-h-screen" style={{ background: "#0a0f1a" }}>
+    <div className="flex min-h-screen" style={{ background: "#FBFBFB" }}>
       <AdminNav email={session.user!.email!} />
       <div className="flex-1 flex flex-col">
         <AdminTopbar />

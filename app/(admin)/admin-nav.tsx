@@ -23,8 +23,8 @@ export function AdminNav({ email }: { email: string }) {
         className="hidden md:flex md:flex-col min-h-screen"
         style={{
           width: 240,
-          background: "#0d1117",
-          borderRight: "1px solid rgba(255,255,255,0.06)",
+          background: "#FFFFFF",
+          borderRight: "1px solid #E8EAED",
         }}
       >
         {/* Logo */}
@@ -95,9 +95,9 @@ export function AdminNav({ email }: { email: string }) {
                   borderRadius: 6,
                   fontSize: 14,
                   fontWeight: active ? 500 : 400,
-                  color: active ? "#635bff" : "#9ca3af",
+                  color: active ? "#017ea7" : "#4A4A4A",
                   background: active
-                    ? "rgba(99,91,255,0.12)"
+                    ? "#E6F4F8"
                     : "transparent",
                   position: "relative",
                   textDecoration: "none",
@@ -106,7 +106,7 @@ export function AdminNav({ email }: { email: string }) {
                 onMouseEnter={(e) => {
                   if (!active)
                     e.currentTarget.style.background =
-                      "rgba(255,255,255,0.04)";
+                      "#F4F5F7";
                 }}
                 onMouseLeave={(e) => {
                   if (!active)
@@ -123,7 +123,7 @@ export function AdminNav({ email }: { email: string }) {
                       width: 2,
                       height: 16,
                       borderRadius: "0 2px 2px 0",
-                      background: "#635bff",
+                      background: "#017ea7",
                     }}
                   />
                 )}
@@ -138,35 +138,35 @@ export function AdminNav({ email }: { email: string }) {
         <div
           style={{
             padding: "12px 16px",
-            borderTop: "1px solid rgba(255,255,255,0.06)",
+            borderTop: "1px solid #E8EAED",
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{ minWidth: 0, flex: 1 }}>
               <p
                 className="truncate"
-                style={{ fontSize: 13, fontWeight: 500, color: "#f9fafb" }}
+                style={{ fontSize: 13, fontWeight: 500, color: "#1A1313" }}
               >
                 {email}
               </p>
-              <p style={{ fontSize: 11, fontWeight: 400, color: "#6b7280" }}>
+              <p style={{ fontSize: 11, fontWeight: 400, color: "#878787" }}>
                 Admin
               </p>
             </div>
             <button
               onClick={() => signOut({ callbackUrl: "/login" })}
               style={{
-                color: "#6b7280",
+                color: "#878787",
                 background: "none",
                 border: "none",
                 cursor: "pointer",
                 padding: 0,
               }}
               onMouseEnter={(e) =>
-                (e.currentTarget.style.color = "#f9fafb")
+                (e.currentTarget.style.color = "#1A1313")
               }
               onMouseLeave={(e) =>
-                (e.currentTarget.style.color = "#6b7280")
+                (e.currentTarget.style.color = "#878787")
               }
               aria-label="Sign out"
             >
@@ -180,8 +180,8 @@ export function AdminNav({ email }: { email: string }) {
       <nav
         className="md:hidden fixed bottom-0 left-0 right-0 flex justify-around z-50"
         style={{
-          background: "#0d1117",
-          borderTop: "1px solid rgba(255,255,255,0.06)",
+          background: "#FFFFFF",
+          borderTop: "1px solid #E8EAED",
         }}
       >
         {navItems.map((item) => {
@@ -196,7 +196,7 @@ export function AdminNav({ email }: { email: string }) {
               href={item.href}
               className="flex flex-col items-center justify-center py-3 px-2 flex-1"
               style={{
-                color: active ? "#635bff" : "#6b7280",
+                color: active ? "#017ea7" : "#878787",
                 fontSize: 10,
                 fontWeight: 500,
                 textDecoration: "none",

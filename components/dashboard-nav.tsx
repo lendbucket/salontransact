@@ -66,8 +66,8 @@ export function Sidebar({
       className="hidden md:flex md:flex-col min-h-screen"
       style={{
         width: 240,
-        background: "#0d1117",
-        borderRight: "1px solid rgba(255,255,255,0.06)",
+        background: "#FFFFFF",
+        borderRight: "1px solid #E8EAED",
       }}
     >
       {/* Logo */}
@@ -93,7 +93,7 @@ export function Sidebar({
       <div style={{ padding: "8px 16px 0" }}>
         <p
           className="truncate"
-          style={{ fontSize: 12, fontWeight: 400, color: "#9ca3af" }}
+          style={{ fontSize: 12, fontWeight: 400, color: "#878787" }}
         >
           {businessName}
         </p>
@@ -107,7 +107,7 @@ export function Sidebar({
             letterSpacing: "0.08em",
             padding: "2px 6px",
             borderRadius: 4,
-            color: "#635bff",
+            color: "#017ea7",
             background: "rgba(99,91,255,0.1)",
           }}
         >
@@ -125,12 +125,12 @@ export function Sidebar({
             gap: 8,
             padding: "0 10px",
             borderRadius: 6,
-            background: "#111827",
+            background: "#F4F5F7",
             cursor: "pointer",
           }}
         >
           <Search size={16} strokeWidth={1.5} color="#6b7280" />
-          <span style={{ fontSize: 13, fontWeight: 400, color: "#6b7280", flex: 1 }}>
+          <span style={{ fontSize: 13, fontWeight: 400, color: "#878787", flex: 1 }}>
             Search...
           </span>
           <kbd
@@ -162,7 +162,7 @@ export function Sidebar({
                 marginTop: 24,
                 marginBottom: 4,
                 paddingLeft: 16,
-                color: "#6b7280",
+                color: "#878787",
               }}
             >
               {section}
@@ -186,14 +186,14 @@ export function Sidebar({
                       borderRadius: 6,
                       fontSize: 14,
                       fontWeight: active ? 500 : 400,
-                      color: active ? "#635bff" : "#9ca3af",
-                      background: active ? "rgba(99,91,255,0.12)" : "transparent",
+                      color: active ? "#017ea7" : "#4A4A4A",
+                      background: active ? "#E6F4F8" : "transparent",
                       position: "relative",
                       textDecoration: "none",
                     }}
                     onMouseEnter={(e) => {
                       if (!active)
-                        e.currentTarget.style.background = "rgba(255,255,255,0.04)";
+                        e.currentTarget.style.background = "#F4F5F7";
                     }}
                     onMouseLeave={(e) => {
                       if (!active)
@@ -210,7 +210,7 @@ export function Sidebar({
                           width: 2,
                           height: 16,
                           borderRadius: "0 2px 2px 0",
-                          background: "#635bff",
+                          background: "#017ea7",
                         }}
                       />
                     )}
@@ -227,7 +227,7 @@ export function Sidebar({
       <div
         style={{
           padding: "12px 16px",
-          borderTop: "1px solid rgba(255,255,255,0.06)",
+          borderTop: "1px solid #E8EAED",
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -251,13 +251,13 @@ export function Sidebar({
           <div style={{ minWidth: 0, flex: 1 }}>
             <p
               className="truncate"
-              style={{ fontSize: 13, fontWeight: 500, color: "#f9fafb" }}
+              style={{ fontSize: 13, fontWeight: 500, color: "#1A1313" }}
             >
               {session?.user?.name ?? "User"}
             </p>
             <p
               className="truncate"
-              style={{ fontSize: 11, fontWeight: 400, color: "#6b7280" }}
+              style={{ fontSize: 11, fontWeight: 400, color: "#878787" }}
             >
               {session?.user?.email}
             </p>
@@ -265,7 +265,7 @@ export function Sidebar({
           <button
             onClick={() => signOut({ callbackUrl: "/login" })}
             style={{
-              color: "#6b7280",
+              color: "#878787",
               background: "none",
               border: "none",
               cursor: "pointer",
@@ -297,8 +297,8 @@ export function BottomNav() {
     <nav
       className="md:hidden fixed bottom-0 left-0 right-0 flex justify-around z-50"
       style={{
-        background: "#0d1117",
-        borderTop: "1px solid rgba(255,255,255,0.06)",
+        background: "#FFFFFF",
+        borderTop: "1px solid #E8EAED",
       }}
     >
       {mobileLinks.map((link) => {

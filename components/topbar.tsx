@@ -38,8 +38,8 @@ export function Topbar() {
     <div
       style={{
         height: 56,
-        background: "#0d1117",
-        borderBottom: "1px solid rgba(255,255,255,0.06)",
+        background: "#FFFFFF",
+        borderBottom: "1px solid #E8EAED",
         padding: "0 24px",
         display: "flex",
         alignItems: "center",
@@ -54,7 +54,7 @@ export function Topbar() {
         {/* Mobile hamburger */}
         <button
           className="md:hidden"
-          style={{ background: "none", border: "none", color: "#9ca3af", cursor: "pointer", padding: 0 }}
+          style={{ background: "none", border: "none", color: "#4A4A4A", cursor: "pointer", padding: 0 }}
           aria-label="Menu"
         >
           <Menu size={16} strokeWidth={1.5} />
@@ -77,7 +77,7 @@ export function Topbar() {
             fontSize: 16,
             fontWeight: 600,
             letterSpacing: "-0.3px",
-            color: "#f9fafb",
+            color: "#1A1313",
           }}
         >
           {pageTitle}
@@ -97,7 +97,7 @@ export function Topbar() {
             justifyContent: "center",
             background: "none",
             border: "none",
-            color: "#6b7280",
+            color: "#878787",
             cursor: "pointer",
           }}
           aria-label="Notifications"
@@ -110,7 +110,7 @@ export function Topbar() {
           style={{
             width: 1,
             height: 20,
-            background: "rgba(255,255,255,0.06)",
+            background: "#E8EAED",
           }}
         />
 
@@ -146,7 +146,7 @@ export function Topbar() {
             </div>
             <span
               className="hidden md:inline"
-              style={{ fontSize: 13, fontWeight: 500, color: "#f9fafb" }}
+              style={{ fontSize: 13, fontWeight: 500, color: "#1A1313" }}
             >
               {session?.user?.name ?? "User"}
             </span>
@@ -170,8 +170,8 @@ export function Topbar() {
                   right: 0,
                   top: 40,
                   width: 180,
-                  background: "#111827",
-                  border: "1px solid rgba(255,255,255,0.06)",
+                  background: "#FFFFFF",
+                  border: "1px solid #E8EAED",
                   borderRadius: 8,
                   boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
                   zIndex: 30,
@@ -188,7 +188,7 @@ export function Topbar() {
                     padding: "10px 14px",
                     fontSize: 13,
                     fontWeight: 400,
-                    color: "#9ca3af",
+                    color: "#4A4A4A",
                     textDecoration: "none",
                   }}
                 >
@@ -205,9 +205,9 @@ export function Topbar() {
                     padding: "10px 14px",
                     fontSize: 13,
                     fontWeight: 400,
-                    color: "#9ca3af",
+                    color: "#4A4A4A",
                     textDecoration: "none",
-                    borderTop: "1px solid rgba(255,255,255,0.04)",
+                    borderTop: "1px solid #E8EAED",
                   }}
                 >
                   <Settings size={16} strokeWidth={1.5} />
@@ -226,7 +226,7 @@ export function Topbar() {
                     width: "100%",
                     background: "none",
                     border: "none",
-                    borderTop: "1px solid rgba(255,255,255,0.04)",
+                    borderTop: "1px solid #E8EAED",
                     cursor: "pointer",
                     textAlign: "left",
                   }}
@@ -258,8 +258,8 @@ export function AdminTopbar() {
     <div
       style={{
         height: 56,
-        background: "#0d1117",
-        borderBottom: "1px solid rgba(255,255,255,0.06)",
+        background: "#FFFFFF",
+        borderBottom: "1px solid #E8EAED",
         padding: "0 24px",
         display: "flex",
         alignItems: "center",
@@ -308,14 +308,14 @@ export function AdminTopbar() {
             justifyContent: "center",
             background: "none",
             border: "none",
-            color: "#6b7280",
+            color: "#878787",
             cursor: "pointer",
           }}
           aria-label="Notifications"
         >
           <Bell size={16} strokeWidth={1.5} />
         </button>
-        <div style={{ width: 1, height: 20, background: "rgba(255,255,255,0.06)" }} />
+        <div style={{ width: 1, height: 20, background: "#E8EAED" }} />
         <div style={{ position: "relative" }}>
           <button
             onClick={() => setDropdownOpen(!dropdownOpen)}
@@ -356,8 +356,8 @@ export function AdminTopbar() {
                   right: 0,
                   top: 40,
                   width: 160,
-                  background: "#111827",
-                  border: "1px solid rgba(255,255,255,0.06)",
+                  background: "#FFFFFF",
+                  border: "1px solid #E8EAED",
                   borderRadius: 8,
                   boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
                   zIndex: 30,

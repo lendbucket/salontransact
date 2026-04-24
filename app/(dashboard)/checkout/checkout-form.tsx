@@ -59,10 +59,10 @@ declare global {
 /* ------------------------------------------------------------------ */
 
 const card = {
-  background: "#111827",
-  border: "1px solid rgba(255,255,255,0.06)",
+  background: "#FFFFFF",
+  border: "1px solid #E8EAED",
   boxShadow:
-    "inset 0 1px 0 rgba(255,255,255,0.02), 0 0 0 1px rgba(0,0,0,0.25), 0 4px 8px rgba(0,0,0,0.4)",
+    "0 0 0 1px rgba(0,0,0,0.05), 0 4px 8px rgba(0,0,0,0.08)",
   borderRadius: "12px",
   padding: "24px",
 } as const;
@@ -70,10 +70,10 @@ const card = {
 const inputBase = {
   width: "100%",
   height: "48px",
-  background: "#111827",
-  border: "1px solid rgba(255,255,255,0.08)",
+  background: "#F4F5F7",
+  border: "1px solid #E8EAED",
   borderRadius: "12px",
-  color: "#f9fafb",
+  color: "#1A1313",
   fontSize: "15px",
   fontFamily: "Inter, sans-serif",
   letterSpacing: "-0.31px",
@@ -82,8 +82,8 @@ const inputBase = {
 } as const;
 
 const inputFocusStyle = {
-  border: "1px solid #635bff",
-  boxShadow: "0 0 0 3px rgba(99,91,255,0.15)",
+  border: "1px solid #017ea7",
+  boxShadow: "0 0 0 3px rgba(1,126,167,0.1)",
 } as const;
 
 /* ------------------------------------------------------------------ */
@@ -110,15 +110,15 @@ function SectionHeader({
 }) {
   return (
     <div className="flex items-center gap-2 mb-5">
-      <Icon size={16} strokeWidth={1.5} style={{ color: "#635bff" }} />
+      <Icon size={16} strokeWidth={1.5} style={{ color: "#017ea7" }} />
       <span
         className="font-semibold text-sm"
-        style={{ color: "#f9fafb", letterSpacing: "-0.31px" }}
+        style={{ color: "#1A1313", letterSpacing: "-0.31px" }}
       >
         {title}
       </span>
       {subtitle && (
-        <span className="text-xs ml-auto" style={{ color: "#6b7280" }}>
+        <span className="text-xs ml-auto" style={{ color: "#878787" }}>
           {subtitle}
         </span>
       )}
@@ -143,7 +143,7 @@ function InputField({
     <div>
       <label
         className="block text-xs font-medium mb-1.5"
-        style={{ color: "#9ca3af", letterSpacing: "-0.31px" }}
+        style={{ color: "#878787", letterSpacing: "-0.31px" }}
       >
         {label}
       </label>
@@ -153,13 +153,13 @@ function InputField({
             size={16}
             strokeWidth={1.5}
             className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
-            style={{ color: "#6b7280" }}
+            style={{ color: "#878787" }}
           />
         )}
         {prefix && (
           <span
             className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-medium pointer-events-none"
-            style={{ color: "#6b7280" }}
+            style={{ color: "#878787" }}
           >
             {prefix}
           </span>
@@ -185,8 +185,8 @@ function FieldSkeleton() {
       className="animate-pulse rounded-xl"
       style={{
         height: "48px",
-        background: "rgba(255,255,255,0.04)",
-        border: "1px solid rgba(255,255,255,0.06)",
+        background: "#E8EAED",
+        border: "1px solid #E8EAED",
       }}
     />
   );
@@ -278,14 +278,14 @@ export function CheckoutForm({
           },
           styles: {
             input: {
-              color: "#f9fafb",
+              color: "#1A1313",
               fontSize: "15px",
               fontFamily: "Inter, sans-serif",
               letterSpacing: "-0.31px",
               backgroundColor: "transparent",
             },
             placeholder: {
-              color: "#4b5563",
+              color: "#878787",
             },
           },
         });
@@ -437,15 +437,15 @@ export function CheckoutForm({
   function hfContainerStyle(name: string) {
     return {
       height: "48px",
-      background: "#111827",
+      background: "#F4F5F7",
       border:
         focusedField === name
-          ? "1px solid #635bff"
-          : "1px solid rgba(255,255,255,0.08)",
+          ? "1px solid #017ea7"
+          : "1px solid #E8EAED",
       borderRadius: "12px",
       boxShadow:
         focusedField === name
-          ? "0 0 0 3px rgba(99,91,255,0.15)"
+          ? "0 0 0 3px rgba(1,126,167,0.1)"
           : "none",
       padding: "0 14px",
       display: "flex",
@@ -483,7 +483,7 @@ export function CheckoutForm({
           </div>
           <h2
             className="text-2xl font-bold mb-2"
-            style={{ color: "#f9fafb", letterSpacing: "-0.31px" }}
+            style={{ color: "#1A1313", letterSpacing: "-0.31px" }}
           >
             Payment Approved
           </h2>
@@ -492,12 +492,12 @@ export function CheckoutForm({
               ${displayAmount}
             </p>
             {paymentResult.last4 && (
-              <p className="text-sm" style={{ color: "#9ca3af" }}>
+              <p className="text-sm" style={{ color: "#878787" }}>
                 Card ending in {paymentResult.last4}
               </p>
             )}
             {paymentResult.approvalCode && (
-              <p className="text-xs" style={{ color: "#6b7280" }}>
+              <p className="text-xs" style={{ color: "#878787" }}>
                 Approval code: {paymentResult.approvalCode}
               </p>
             )}
@@ -508,7 +508,7 @@ export function CheckoutForm({
               className="w-full flex items-center justify-center gap-2 font-semibold text-sm cursor-pointer"
               style={{
                 height: "44px",
-                background: "#635bff",
+                background: "#017ea7",
                 color: "#fff",
                 borderRadius: "12px",
                 border: "none",
@@ -519,7 +519,7 @@ export function CheckoutForm({
             <Link
               href="/transactions"
               className="text-sm font-medium text-center"
-              style={{ color: "#6b7280" }}
+              style={{ color: "#878787" }}
             >
               View Transactions
             </Link>
@@ -544,11 +544,11 @@ export function CheckoutForm({
           />
           <h2
             className="text-2xl font-bold mb-2"
-            style={{ color: "#f9fafb", letterSpacing: "-0.31px" }}
+            style={{ color: "#1A1313", letterSpacing: "-0.31px" }}
           >
             Payment Declined
           </h2>
-          <p className="text-sm mb-6" style={{ color: "#9ca3af" }}>
+          <p className="text-sm mb-6" style={{ color: "#878787" }}>
             {paymentResult.responseMessage}
           </p>
           <button
@@ -556,7 +556,7 @@ export function CheckoutForm({
             className="w-full max-w-xs flex items-center justify-center gap-2 font-semibold text-sm cursor-pointer"
             style={{
               height: "44px",
-              background: "#635bff",
+              background: "#017ea7",
               color: "#fff",
               borderRadius: "12px",
               border: "none",
@@ -580,15 +580,15 @@ export function CheckoutForm({
       {formState === "processing" && (
         <div
           className="absolute inset-0 z-20 flex flex-col items-center justify-center rounded-xl"
-          style={{ background: "rgba(10,15,26,0.8)", backdropFilter: "blur(4px)" }}
+          style={{ background: "rgba(251,251,251,0.8)", backdropFilter: "blur(4px)" }}
         >
           <Loader2
             size={32}
             strokeWidth={1.5}
             className="animate-spin mb-3"
-            style={{ color: "#635bff" }}
+            style={{ color: "#017ea7" }}
           />
-          <p className="text-sm font-medium" style={{ color: "#f9fafb" }}>
+          <p className="text-sm font-medium" style={{ color: "#1A1313" }}>
             Processing your payment...
           </p>
         </div>
@@ -655,7 +655,7 @@ export function CheckoutForm({
             />
           </InputField>
           {description.length > 0 && (
-            <p className="text-xs text-right -mt-2" style={{ color: "#4b5563" }}>
+            <p className="text-xs text-right -mt-2" style={{ color: "#878787" }}>
               {description.length}/200
             </p>
           )}
@@ -664,11 +664,11 @@ export function CheckoutForm({
         {/* --- Customer --- */}
         <div
           className="mt-5 pt-5"
-          style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
+          style={{ borderTop: "1px solid #E8EAED" }}
         >
           <p
             className="text-xs font-medium mb-3"
-            style={{ color: "#6b7280", letterSpacing: "-0.31px" }}
+            style={{ color: "#878787", letterSpacing: "-0.31px" }}
           >
             Customer (optional)
           </p>
@@ -715,7 +715,7 @@ export function CheckoutForm({
         </div>
 
         {/* Order ID */}
-        <p className="mt-4 text-xs" style={{ color: "#4b5563" }}>
+        <p className="mt-4 text-xs" style={{ color: "#878787" }}>
           Order #{orderId}
         </p>
       </div>
@@ -741,11 +741,11 @@ export function CheckoutForm({
             />
             <p
               className="text-sm font-medium mb-1"
-              style={{ color: "#f9fafb" }}
+              style={{ color: "#1A1313" }}
             >
               Payment fields failed to load
             </p>
-            <p className="text-xs mb-4" style={{ color: "#6b7280" }}>
+            <p className="text-xs mb-4" style={{ color: "#878787" }}>
               Please refresh or try again.
             </p>
             <button
@@ -755,10 +755,10 @@ export function CheckoutForm({
               style={{
                 height: "40px",
                 padding: "0 16px",
-                background: "rgba(99,91,255,0.1)",
-                color: "#635bff",
+                background: "#E6F4F8",
+                color: "#017ea7",
                 borderRadius: "10px",
-                border: "1px solid rgba(99,91,255,0.2)",
+                border: "1px solid rgba(1,126,167,0.2)",
               }}
             >
               <RefreshCw size={14} strokeWidth={1.5} />
@@ -775,7 +775,7 @@ export function CheckoutForm({
               <FieldSkeleton />
               <FieldSkeleton />
             </div>
-            <p className="text-xs text-center" style={{ color: "#6b7280" }}>
+            <p className="text-xs text-center" style={{ color: "#878787" }}>
               Loading secure payment fields...
             </p>
           </div>
@@ -795,7 +795,7 @@ export function CheckoutForm({
           <div>
             <label
               className="block text-xs font-medium mb-1.5"
-              style={{ color: "#9ca3af", letterSpacing: "-0.31px" }}
+              style={{ color: "#878787", letterSpacing: "-0.31px" }}
             >
               Card Number
             </label>
@@ -817,7 +817,7 @@ export function CheckoutForm({
             <div>
               <label
                 className="block text-xs font-medium mb-1.5"
-                style={{ color: "#9ca3af", letterSpacing: "-0.31px" }}
+                style={{ color: "#878787", letterSpacing: "-0.31px" }}
               >
                 Expiry Date
               </label>
@@ -829,7 +829,7 @@ export function CheckoutForm({
             <div>
               <label
                 className="block text-xs font-medium mb-1.5"
-                style={{ color: "#9ca3af", letterSpacing: "-0.31px" }}
+                style={{ color: "#878787", letterSpacing: "-0.31px" }}
               >
                 CVV
               </label>
@@ -842,7 +842,7 @@ export function CheckoutForm({
         <div className="flex items-center justify-between mt-4">
           <AcceptedCardsBadges />
         </div>
-        <p className="text-xs mt-3" style={{ color: "#4b5563" }}>
+        <p className="text-xs mt-3" style={{ color: "#878787" }}>
           Your card details are encrypted and never stored on our servers.
         </p>
       </div>
@@ -853,12 +853,12 @@ export function CheckoutForm({
       <div>
         {/* Total */}
         <div className="flex items-center justify-between mb-4 px-1">
-          <span className="text-sm" style={{ color: "#9ca3af" }}>
+          <span className="text-sm" style={{ color: "#878787" }}>
             Total
           </span>
           <span
             className="text-xl font-bold"
-            style={{ color: "#f9fafb", letterSpacing: "-0.31px" }}
+            style={{ color: "#1A1313", letterSpacing: "-0.31px" }}
           >
             ${total.toFixed(2)}
           </span>
@@ -871,17 +871,17 @@ export function CheckoutForm({
           className="w-full flex items-center justify-center gap-2 font-semibold text-sm transition-all cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
           style={{
             height: "52px",
-            background: "#635bff",
+            background: "#017ea7",
             color: "#fff",
             borderRadius: "12px",
             border: "none",
             letterSpacing: "-0.31px",
           }}
           onMouseEnter={(e) => {
-            if (!disabled) e.currentTarget.style.background = "#4f46e5";
+            if (!disabled) e.currentTarget.style.background = "#015f80";
           }}
           onMouseLeave={(e) => {
-            if (!disabled) e.currentTarget.style.background = "#635bff";
+            if (!disabled) e.currentTarget.style.background = "#017ea7";
           }}
           onMouseDown={(e) => {
             if (!disabled) e.currentTarget.style.transform = "scale(0.97)";
@@ -904,7 +904,7 @@ export function CheckoutForm({
         <Link
           href="/dashboard"
           className="flex items-center justify-center gap-1.5 mt-3 text-sm font-medium"
-          style={{ color: "#6b7280" }}
+          style={{ color: "#878787" }}
         >
           <ArrowLeft size={14} strokeWidth={1.5} />
           Cancel

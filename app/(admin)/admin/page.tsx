@@ -11,18 +11,18 @@ function formatCurrency(amount: number): string {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const colors: Record<string, { bg: string; text: string }> = {
-    active: { bg: 'rgba(34,197,94,0.12)', text: '#22c55e' },
-    pending: { bg: 'rgba(245,158,11,0.12)', text: '#f59e0b' },
-    restricted: { bg: 'rgba(239,68,68,0.12)', text: '#ef4444' },
-    suspended: { bg: 'rgba(239,68,68,0.12)', text: '#ef4444' },
-    incomplete: { bg: 'rgba(107,114,128,0.12)', text: '#6b7280' },
+  const colors: Record<string, { bg: string; text: string; border: string }> = {
+    active: { bg: '#F0FDF4', text: '#166534', border: '#BBF7D0' },
+    pending: { bg: '#FFFBEB', text: '#92400E', border: '#FDE68A' },
+    restricted: { bg: '#FEF2F2', text: '#991B1B', border: '#FECACA' },
+    suspended: { bg: '#FEF2F2', text: '#991B1B', border: '#FECACA' },
+    incomplete: { bg: '#F9FAFB', text: '#374151', border: '#D1D5DB' },
   }
   const c = colors[status] ?? colors.incomplete
   return (
     <span
       className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium capitalize"
-      style={{ background: c.bg, color: c.text }}
+      style={{ background: c.bg, color: c.text, border: `1px solid ${c.border}` }}
     >
       {status}
     </span>
@@ -54,7 +54,7 @@ export default async function AdminOverviewPage() {
       label: 'Total Merchants',
       value: totalMerchants.toString(),
       icon: Store,
-      color: '#635bff',
+      color: '#017ea7',
     },
     {
       label: 'Active Merchants',
@@ -72,7 +72,7 @@ export default async function AdminOverviewPage() {
       label: 'Total Volume',
       value: formatCurrency(totalVolume),
       icon: DollarSign,
-      color: '#635bff',
+      color: '#017ea7',
     },
   ]
 
@@ -80,8 +80,8 @@ export default async function AdminOverviewPage() {
     <div className="p-6 md:p-8 max-w-7xl mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
-        <h1 className="text-2xl font-semibold text-white">Admin Overview</h1>
-        <span className="text-sm" style={{ color: '#6b7280' }}>
+        <h1 className="text-2xl font-semibold" style={{ color: '#1A1313' }}>Admin Overview</h1>
+        <span className="text-sm" style={{ color: '#878787' }}>
           {format(new Date(), 'MMMM d, yyyy')}
         </span>
       </div>
@@ -95,10 +95,10 @@ export default async function AdminOverviewPage() {
               key={stat.label}
               className="rounded-xl p-6"
               style={{
-                background: '#111827',
-                border: '1px solid rgba(255,255,255,0.06)',
+                background: '#FFFFFF',
+                border: '1px solid #E8EAED',
                 boxShadow:
-                  'inset 0 1px 0 rgba(255,255,255,0.02), inset 0 0 0 1px rgba(255,255,255,0.02), 0 0 0 1px rgba(0,0,0,0.25), 0 2px 2px rgba(0,0,0,0.1), 0 4px 4px rgba(0,0,0,0.1), 0 8px 8px rgba(0,0,0,0.1)',
+                  '0 0 0 1px rgba(0,0,0,0.05), 0 1px 1px rgba(0,0,0,0.05), 0 2px 2px rgba(0,0,0,0.05), 0 4px 4px rgba(0,0,0,0.05), 0 8px 8px rgba(0,0,0,0.05), 0 16px 16px rgba(0,0,0,0.05)',
               }}
             >
               <div className="flex items-center gap-3 mb-3">
@@ -111,12 +111,12 @@ export default async function AdminOverviewPage() {
               </div>
               <p
                 className="text-[12px] uppercase tracking-wider font-medium mb-1"
-                style={{ color: '#6b7280' }}
+                style={{ color: '#878787' }}
               >
                 {stat.label}
               </p>
-              <p className="text-[28px] font-bold text-white">{stat.value}</p>
-              <p className="text-xs mt-1" style={{ color: '#4b5563' }}>
+              <p className="text-[28px] font-bold" style={{ color: '#1A1313' }}>{stat.value}</p>
+              <p className="text-xs mt-1" style={{ color: '#878787' }}>
                 —
               </p>
             </div>
@@ -128,18 +128,18 @@ export default async function AdminOverviewPage() {
       <div
         className="rounded-xl overflow-hidden"
         style={{
-          background: '#111827',
-          border: '1px solid rgba(255,255,255,0.06)',
+          background: '#FFFFFF',
+          border: '1px solid #E8EAED',
           boxShadow:
-            'inset 0 1px 0 rgba(255,255,255,0.02), inset 0 0 0 1px rgba(255,255,255,0.02), 0 0 0 1px rgba(0,0,0,0.25), 0 2px 2px rgba(0,0,0,0.1), 0 4px 4px rgba(0,0,0,0.1), 0 8px 8px rgba(0,0,0,0.1)',
+            '0 0 0 1px rgba(0,0,0,0.05), 0 1px 1px rgba(0,0,0,0.05), 0 2px 2px rgba(0,0,0,0.05), 0 4px 4px rgba(0,0,0,0.05), 0 8px 8px rgba(0,0,0,0.05), 0 16px 16px rgba(0,0,0,0.05)',
         }}
       >
         <div className="flex items-center justify-between px-6 py-4">
-          <h2 className="text-sm font-semibold text-white">Recent Merchants</h2>
+          <h2 className="text-sm font-semibold" style={{ color: '#1A1313' }}>Recent Merchants</h2>
           <a
             href="/admin/merchants"
             className="text-xs font-medium"
-            style={{ color: '#635bff' }}
+            style={{ color: '#017ea7' }}
           >
             View all →
           </a>
@@ -149,15 +149,15 @@ export default async function AdminOverviewPage() {
           <div className="flex flex-col items-center justify-center py-16 px-6">
             <div
               className="w-12 h-12 rounded-full flex items-center justify-center mb-4"
-              style={{ background: 'rgba(99,91,255,0.1)' }}
+              style={{ background: '#E6F4F8' }}
             >
-              <Mail size={20} style={{ color: '#635bff' }} />
+              <Mail size={20} style={{ color: '#017ea7' }} />
             </div>
-            <p className="text-sm text-white font-medium mb-1">No merchants yet</p>
+            <p className="text-sm font-medium mb-1" style={{ color: '#1A1313' }}>No merchants yet</p>
             <a
               href="/admin/invites"
               className="text-xs font-medium"
-              style={{ color: '#635bff' }}
+              style={{ color: '#017ea7' }}
             >
               Send your first invite
             </a>
@@ -166,13 +166,13 @@ export default async function AdminOverviewPage() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                <tr style={{ borderTop: '1px solid #E8EAED' }}>
                   {['Business Name', 'Email', 'Status', 'Stripe Status', 'Volume', 'Joined'].map(
                     (h) => (
                       <th
                         key={h}
                         className="text-left px-6 py-3 text-[11px] uppercase tracking-wider font-medium"
-                        style={{ color: '#6b7280' }}
+                        style={{ color: '#878787' }}
                       >
                         {h}
                       </th>
@@ -184,12 +184,12 @@ export default async function AdminOverviewPage() {
                 {recentMerchants.map((m) => (
                   <tr
                     key={m.id}
-                    style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}
+                    style={{ borderTop: '1px solid #E8EAED' }}
                   >
-                    <td className="px-6 py-3 text-sm text-white font-medium">
+                    <td className="px-6 py-3 text-sm font-medium" style={{ color: '#1A1313' }}>
                       {m.businessName}
                     </td>
-                    <td className="px-6 py-3 text-sm" style={{ color: '#9ca3af' }}>
+                    <td className="px-6 py-3 text-sm" style={{ color: '#878787' }}>
                       {m.user.email}
                     </td>
                     <td className="px-6 py-3">
@@ -198,10 +198,10 @@ export default async function AdminOverviewPage() {
                     <td className="px-6 py-3">
                       <StatusBadge status={m.stripeAccountStatus} />
                     </td>
-                    <td className="px-6 py-3 text-sm text-white">
+                    <td className="px-6 py-3 text-sm" style={{ color: '#1A1313' }}>
                       {formatCurrency(m.totalVolume)}
                     </td>
-                    <td className="px-6 py-3 text-sm" style={{ color: '#6b7280' }}>
+                    <td className="px-6 py-3 text-sm" style={{ color: '#878787' }}>
                       {format(m.createdAt, 'MMM d, yyyy')}
                     </td>
                   </tr>

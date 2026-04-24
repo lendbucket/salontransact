@@ -191,7 +191,7 @@ export default async function DashboardPage() {
                       <tr
                         key={tx.id}
                         className="border-t"
-                        style={{ borderColor: "rgba(255,255,255,0.06)" }}
+                        style={{ borderColor: "#E8EAED" }}
                       >
                         <td className="py-3 text-muted whitespace-nowrap">
                           {format(tx.createdAt, "MMM d")}
@@ -244,12 +244,12 @@ export default async function DashboardPage() {
               </div>
               <div
                 className="h-2 rounded-full overflow-hidden"
-                style={{ background: "rgba(255,255,255,0.06)" }}
+                style={{ background: "#E8EAED" }}
               >
                 <div
                   className="h-full rounded-full"
                   style={{
-                    background: "#635bff",
+                    background: "#017ea7",
                     width: totalSucceeded > 0 ? "99.8%" : "0%",
                   }}
                 />
@@ -258,7 +258,7 @@ export default async function DashboardPage() {
 
             <div
               className="pt-4"
-              style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
+              style={{ borderTop: "1px solid #E8EAED" }}
             >
               <p className="text-xs text-muted uppercase tracking-wider mb-3">
                 This Week vs Last Week

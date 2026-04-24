@@ -43,7 +43,7 @@ export function ApiKeyTable({ keys }: { keys: ApiKeyRow[] }) {
             <tr
               key={k.id}
               className="border-t"
-              style={{ borderColor: "rgba(255,255,255,0.06)" }}
+              style={{ borderColor: "#E8EAED" }}
             >
               <td className="py-3 text-foreground font-medium">{k.name}</td>
               <td className="py-3 font-mono text-xs text-muted">

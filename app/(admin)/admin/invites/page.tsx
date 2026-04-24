@@ -12,16 +12,16 @@ function statusOf(inv: InviteRow): { label: string; color: string } {
 }
 
 function Badge({ label, color }: { label: string; color: string }) {
-  const colors: Record<string, { bg: string; text: string }> = {
-    green: { bg: 'rgba(34,197,94,0.12)', text: '#22c55e' },
-    yellow: { bg: 'rgba(245,158,11,0.12)', text: '#f59e0b' },
-    red: { bg: 'rgba(239,68,68,0.12)', text: '#ef4444' },
+  const colors: Record<string, { bg: string; text: string; border: string }> = {
+    green: { bg: '#F0FDF4', text: '#166534', border: '#BBF7D0' },
+    yellow: { bg: '#FFFBEB', text: '#92400E', border: '#FDE68A' },
+    red: { bg: '#FEF2F2', text: '#991B1B', border: '#FECACA' },
   }
   const c = colors[color] ?? colors.red
   return (
     <span
       className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium"
-      style={{ background: c.bg, color: c.text }}
+      style={{ background: c.bg, color: c.text, border: `1px solid ${c.border}` }}
     >
       {label}
     </span>
@@ -119,8 +119,8 @@ export default function InvitesPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-3 flex-wrap">
-          <h1 className="text-2xl font-semibold text-white">Invites</h1>
-          <span className="text-sm" style={{ color: '#6b7280' }}>
+          <h1 className="text-2xl font-semibold" style={{ color: '#1A1313' }}>Invites</h1>
+          <span className="text-sm" style={{ color: '#878787' }}>
             {pending} pending · {used} used · {expired} expired
           </span>
         </div>
@@ -131,9 +131,9 @@ export default function InvitesPage() {
             setSendSuccess(null)
           }}
           className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-white cursor-pointer"
-          style={{ background: '#635bff' }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = '#4f46e5')}
-          onMouseLeave={(e) => (e.currentTarget.style.background = '#635bff')}
+          style={{ background: '#017ea7' }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = '#015f80')}
+          onMouseLeave={(e) => (e.currentTarget.style.background = '#017ea7')}
         >
           <Mail size={16} strokeWidth={1.5} />
           Send Invite
@@ -145,19 +145,19 @@ export default function InvitesPage() {
         <div
           className="rounded-xl p-6 mb-6"
           style={{
-            background: '#111827',
-            border: '1px solid rgba(255,255,255,0.06)',
+            background: '#FFFFFF',
+            border: '1px solid #E8EAED',
           }}
         >
           {sendSuccess ? (
             <div className="flex items-center gap-3">
               <div
                 className="w-8 h-8 rounded-full flex items-center justify-center"
-                style={{ background: 'rgba(34,197,94,0.12)' }}
+                style={{ background: '#F0FDF4' }}
               >
-                <Check size={16} style={{ color: '#22c55e' }} />
+                <Check size={16} style={{ color: '#166534' }} />
               </div>
-              <p className="text-sm text-white">
+              <p className="text-sm" style={{ color: '#1A1313' }}>
                 Invite sent to <strong>{sendSuccess}</strong>
               </p>
             </div>
@@ -171,16 +171,16 @@ export default function InvitesPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 className="flex-1 px-4 py-2.5 rounded-lg text-sm"
                 style={{
-                  background: '#0a0f1a',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  color: '#f9fafb',
+                  background: '#FBFBFB',
+                  border: '1px solid #E8EAED',
+                  color: '#1A1313',
                 }}
               />
               <button
                 type="submit"
                 disabled={sending}
                 className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg text-sm font-medium text-white cursor-pointer"
-                style={{ background: '#635bff', minWidth: '160px' }}
+                style={{ background: '#017ea7', minWidth: '160px' }}
               >
                 {sending ? (
                   <Loader2 size={14} className="animate-spin" />
@@ -202,10 +202,10 @@ export default function InvitesPage() {
       <div
         className="rounded-xl overflow-hidden"
         style={{
-          background: '#111827',
-          border: '1px solid rgba(255,255,255,0.06)',
+          background: '#FFFFFF',
+          border: '1px solid #E8EAED',
           boxShadow:
-            'inset 0 1px 0 rgba(255,255,255,0.02), inset 0 0 0 1px rgba(255,255,255,0.02), 0 0 0 1px rgba(0,0,0,0.25), 0 2px 2px rgba(0,0,0,0.1), 0 4px 4px rgba(0,0,0,0.1), 0 8px 8px rgba(0,0,0,0.1)',
+            '0 0 0 1px rgba(0,0,0,0.05), 0 1px 1px rgba(0,0,0,0.05), 0 2px 2px rgba(0,0,0,0.05), 0 4px 4px rgba(0,0,0,0.05), 0 8px 8px rgba(0,0,0,0.05), 0 16px 16px rgba(0,0,0,0.05)',
         }}
       >
         <div className="overflow-x-auto">
@@ -216,7 +216,7 @@ export default function InvitesPage() {
                   <th
                     key={h}
                     className="text-left px-6 py-3 text-[11px] uppercase tracking-wider font-medium"
-                    style={{ color: '#6b7280' }}
+                    style={{ color: '#878787' }}
                   >
                     {h}
                   </th>
@@ -227,12 +227,12 @@ export default function InvitesPage() {
               {loading ? (
                 <>
                   {[0, 1, 2].map((i) => (
-                    <tr key={i} style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+                    <tr key={i} style={{ borderTop: '1px solid #E8EAED' }}>
                       {[0, 1, 2, 3, 4].map((j) => (
                         <td key={j} className="px-6 py-3">
                           <div
                             className="h-4 rounded animate-pulse"
-                            style={{ background: 'rgba(255,255,255,0.06)', width: j === 0 ? '180px' : '80px' }}
+                            style={{ background: '#E8EAED', width: j === 0 ? '180px' : '80px' }}
                           />
                         </td>
                       ))}
@@ -245,14 +245,14 @@ export default function InvitesPage() {
                     <div className="flex flex-col items-center justify-center py-16">
                       <div
                         className="w-12 h-12 rounded-full flex items-center justify-center mb-4"
-                        style={{ background: 'rgba(99,91,255,0.1)' }}
+                        style={{ background: '#E6F4F8' }}
                       >
-                        <Mail size={20} style={{ color: '#635bff' }} />
+                        <Mail size={20} style={{ color: '#017ea7' }} />
                       </div>
-                      <p className="text-sm text-white font-medium mb-1">
+                      <p className="text-sm font-medium mb-1" style={{ color: '#1A1313' }}>
                         No invites sent yet
                       </p>
-                      <p className="text-xs" style={{ color: '#6b7280' }}>
+                      <p className="text-xs" style={{ color: '#878787' }}>
                         Invite your first merchant.
                       </p>
                     </div>
@@ -265,13 +265,13 @@ export default function InvitesPage() {
                   return (
                     <tr
                       key={inv.id}
-                      style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}
+                      style={{ borderTop: '1px solid #E8EAED' }}
                     >
-                      <td className="px-6 py-3 text-sm text-white">{inv.email}</td>
-                      <td className="px-6 py-3 text-sm" style={{ color: '#6b7280' }}>
+                      <td className="px-6 py-3 text-sm" style={{ color: '#1A1313' }}>{inv.email}</td>
+                      <td className="px-6 py-3 text-sm" style={{ color: '#878787' }}>
                         {format(new Date(inv.createdAt), 'MMM d, yyyy')}
                       </td>
-                      <td className="px-6 py-3 text-sm" style={{ color: '#6b7280' }}>
+                      <td className="px-6 py-3 text-sm" style={{ color: '#878787' }}>
                         {format(new Date(inv.expiresAt), 'MMM d, yyyy')}
                       </td>
                       <td className="px-6 py-3">
@@ -285,8 +285,8 @@ export default function InvitesPage() {
                               disabled={actionLoading === inv.id}
                               className="px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer"
                               style={{
-                                border: '1px solid rgba(99,91,255,0.3)',
-                                color: '#635bff',
+                                border: '1px solid rgba(1,126,167,0.3)',
+                                color: '#017ea7',
                                 background: 'transparent',
                               }}
                             >
@@ -310,7 +310,7 @@ export default function InvitesPage() {
                             </button>
                           </div>
                         ) : (
-                          <span className="text-sm" style={{ color: '#4b5563' }}>
+                          <span className="text-sm" style={{ color: '#878787' }}>
                             —
                           </span>
                         )}

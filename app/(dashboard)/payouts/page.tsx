@@ -47,9 +47,9 @@ export default async function PayoutsPage() {
           <div className="flex items-center gap-4">
             <div
               className="w-12 h-12 rounded-xl flex items-center justify-center"
-              style={{ background: "rgba(99,91,255,0.1)" }}
+              style={{ background: "#E6F4F8" }}
             >
-              <DollarSign className="w-5 h-5" style={{ color: "#635bff" }} />
+              <DollarSign className="w-5 h-5" style={{ color: "#017ea7" }} />
             </div>
             <div>
               <p className="text-xs text-muted uppercase tracking-wider mb-0.5">
@@ -101,7 +101,7 @@ export default async function PayoutsPage() {
                     <tr
                       key={p.id}
                       className="border-t"
-                      style={{ borderColor: "rgba(255,255,255,0.06)" }}
+                      style={{ borderColor: "#E8EAED" }}
                     >
                       <td className="py-3 text-muted whitespace-nowrap">
                         {format(p.createdAt, "MMM d, yyyy")}

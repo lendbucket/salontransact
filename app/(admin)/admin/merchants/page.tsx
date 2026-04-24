@@ -10,18 +10,18 @@ function formatCurrency(amount: number): string {
 }
 
 function Badge({ label, color }: { label: string; color: string }) {
-  const colors: Record<string, { bg: string; text: string }> = {
-    green: { bg: 'rgba(34,197,94,0.12)', text: '#22c55e' },
-    yellow: { bg: 'rgba(245,158,11,0.12)', text: '#f59e0b' },
-    red: { bg: 'rgba(239,68,68,0.12)', text: '#ef4444' },
-    gray: { bg: 'rgba(107,114,128,0.12)', text: '#6b7280' },
-    purple: { bg: 'rgba(99,91,255,0.12)', text: '#635bff' },
+  const colors: Record<string, { bg: string; text: string; border: string }> = {
+    green: { bg: '#F0FDF4', text: '#166534', border: '#BBF7D0' },
+    yellow: { bg: '#FFFBEB', text: '#92400E', border: '#FDE68A' },
+    red: { bg: '#FEF2F2', text: '#991B1B', border: '#FECACA' },
+    gray: { bg: '#F9FAFB', text: '#374151', border: '#D1D5DB' },
+    purple: { bg: '#E6F4F8', text: '#017ea7', border: '#B0DDE9' },
   }
   const c = colors[color] ?? colors.gray
   return (
     <span
       className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium capitalize"
-      style={{ background: c.bg, color: c.text }}
+      style={{ background: c.bg, color: c.text, border: `1px solid ${c.border}` }}
     >
       {label}
     </span>
@@ -39,12 +39,12 @@ function SkeletonRows() {
   return (
     <>
       {[0, 1, 2].map((i) => (
-        <tr key={i} style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+        <tr key={i} style={{ borderTop: '1px solid #E8EAED' }}>
           {Array.from({ length: 7 }).map((_, j) => (
             <td key={j} className="px-6 py-3">
               <div
                 className="h-4 rounded animate-pulse"
-                style={{ background: 'rgba(255,255,255,0.06)', width: j === 0 ? '140px' : '80px' }}
+                style={{ background: '#E8EAED', width: j === 0 ? '140px' : '80px' }}
               />
             </td>
           ))}
@@ -120,10 +120,10 @@ export default function MerchantsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-semibold text-white">Merchants</h1>
+          <h1 className="text-2xl font-semibold" style={{ color: '#1A1313' }}>Merchants</h1>
           <span
             className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-            style={{ background: 'rgba(99,91,255,0.12)', color: '#635bff' }}
+            style={{ background: '#E6F4F8', color: '#017ea7' }}
           >
             {merchants.length}
           </span>
@@ -131,9 +131,9 @@ export default function MerchantsPage() {
         <button
           onClick={() => router.push('/admin/invites')}
           className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-white cursor-pointer"
-          style={{ background: '#635bff' }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = '#4f46e5')}
-          onMouseLeave={(e) => (e.currentTarget.style.background = '#635bff')}
+          style={{ background: '#017ea7' }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = '#015f80')}
+          onMouseLeave={(e) => (e.currentTarget.style.background = '#017ea7')}
         >
           <Mail size={16} strokeWidth={1.5} />
           Send Invite
@@ -145,7 +145,7 @@ export default function MerchantsPage() {
         <Search
           size={16}
           className="absolute left-3 top-1/2 -translate-y-1/2"
-          style={{ color: '#6b7280' }}
+          style={{ color: '#878787' }}
         />
         <input
           type="text"
@@ -154,9 +154,9 @@ export default function MerchantsPage() {
           onChange={(e) => setSearch(e.target.value)}
           className="w-full pl-10 pr-4 py-2.5 rounded-lg text-sm"
           style={{
-            background: '#111827',
-            border: '1px solid rgba(255,255,255,0.06)',
-            color: '#f9fafb',
+            background: '#FBFBFB',
+            border: '1px solid #E8EAED',
+            color: '#1A1313',
           }}
         />
       </div>
@@ -165,10 +165,10 @@ export default function MerchantsPage() {
       <div
         className="rounded-xl overflow-hidden"
         style={{
-          background: '#111827',
-          border: '1px solid rgba(255,255,255,0.06)',
+          background: '#FFFFFF',
+          border: '1px solid #E8EAED',
           boxShadow:
-            'inset 0 1px 0 rgba(255,255,255,0.02), inset 0 0 0 1px rgba(255,255,255,0.02), 0 0 0 1px rgba(0,0,0,0.25), 0 2px 2px rgba(0,0,0,0.1), 0 4px 4px rgba(0,0,0,0.1), 0 8px 8px rgba(0,0,0,0.1)',
+            '0 0 0 1px rgba(0,0,0,0.05), 0 1px 1px rgba(0,0,0,0.05), 0 2px 2px rgba(0,0,0,0.05), 0 4px 4px rgba(0,0,0,0.05), 0 8px 8px rgba(0,0,0,0.05), 0 16px 16px rgba(0,0,0,0.05)',
         }}
       >
         <div className="overflow-x-auto">
@@ -180,7 +180,7 @@ export default function MerchantsPage() {
                     <th
                       key={h}
                       className="text-left px-6 py-3 text-[11px] uppercase tracking-wider font-medium"
-                      style={{ color: '#6b7280' }}
+                      style={{ color: '#878787' }}
                     >
                       {h}
                     </th>
@@ -197,12 +197,12 @@ export default function MerchantsPage() {
                     <div className="flex flex-col items-center justify-center py-16">
                       <div
                         className="w-12 h-12 rounded-full flex items-center justify-center mb-4"
-                        style={{ background: 'rgba(99,91,255,0.1)' }}
+                        style={{ background: '#E6F4F8' }}
                       >
-                        <Store size={20} style={{ color: '#635bff' }} />
+                        <Store size={20} style={{ color: '#017ea7' }} />
                       </div>
-                      <p className="text-sm text-white font-medium mb-1">No merchants yet</p>
-                      <p className="text-xs" style={{ color: '#6b7280' }}>
+                      <p className="text-sm font-medium mb-1" style={{ color: '#1A1313' }}>No merchants yet</p>
+                      <p className="text-xs" style={{ color: '#878787' }}>
                         Send your first invite to get started.
                       </p>
                     </div>
@@ -212,12 +212,12 @@ export default function MerchantsPage() {
                 filtered.map((m) => (
                   <tr
                     key={m.id}
-                    style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}
+                    style={{ borderTop: '1px solid #E8EAED' }}
                   >
-                    <td className="px-6 py-3 text-sm text-white font-medium">
+                    <td className="px-6 py-3 text-sm font-medium" style={{ color: '#1A1313' }}>
                       {m.businessName}
                     </td>
-                    <td className="px-6 py-3 text-sm" style={{ color: '#9ca3af' }}>
+                    <td className="px-6 py-3 text-sm" style={{ color: '#878787' }}>
                       {m.email}
                     </td>
                     <td className="px-6 py-3">
@@ -229,7 +229,7 @@ export default function MerchantsPage() {
                     <td className="px-6 py-3">
                       <Badge label={m.plan} color="purple" />
                     </td>
-                    <td className="px-6 py-3 text-sm text-white">
+                    <td className="px-6 py-3 text-sm" style={{ color: '#1A1313' }}>
                       {formatCurrency(m.totalVolume)}
                     </td>
                     <td className="px-6 py-3">
@@ -300,14 +300,14 @@ export default function MerchantsPage() {
           <div
             className="w-full max-w-md rounded-xl p-6"
             style={{
-              background: '#111827',
-              border: '1px solid rgba(255,255,255,0.06)',
+              background: '#FFFFFF',
+              border: '1px solid #E8EAED',
             }}
           >
-            <h3 className="text-lg font-semibold text-white mb-2">Are you sure?</h3>
-            <p className="text-sm mb-1" style={{ color: '#9ca3af' }}>
+            <h3 className="text-lg font-semibold mb-2" style={{ color: '#1A1313' }}>Are you sure?</h3>
+            <p className="text-sm mb-1" style={{ color: '#878787' }}>
               You are about to permanently delete{' '}
-              <strong className="text-white">{deleteTarget.businessName}</strong>.
+              <strong style={{ color: '#1A1313' }}>{deleteTarget.businessName}</strong>.
             </p>
             <p className="text-sm mb-6" style={{ color: '#ef4444' }}>
               This action cannot be undone.
@@ -318,8 +318,8 @@ export default function MerchantsPage() {
                 className="px-4 py-2 rounded-lg text-sm font-medium cursor-pointer"
                 style={{
                   background: 'transparent',
-                  border: '1px solid rgba(255,255,255,0.06)',
-                  color: '#9ca3af',
+                  border: '1px solid #E8EAED',
+                  color: '#878787',
                 }}
               >
                 Cancel

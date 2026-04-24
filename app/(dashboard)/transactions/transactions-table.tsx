@@ -158,7 +158,7 @@ export function TransactionsTable({ transactions }: { transactions: Tx[] }) {
                   <tr
                     key={t.id}
                     className="border-t"
-                    style={{ borderColor: "rgba(255,255,255,0.06)" }}
+                    style={{ borderColor: "#E8EAED" }}
                   >
                     <td className="py-3 text-muted whitespace-nowrap">
                       {format(new Date(t.createdAt), "MMM d, HH:mm")}
@@ -191,7 +191,7 @@ export function TransactionsTable({ transactions }: { transactions: Tx[] }) {
           </div>
 
           {/* Pagination */}
-          <div className="flex items-center justify-between px-6 py-4 border-t" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
+          <div className="flex items-center justify-between px-6 py-4 border-t" style={{ borderColor: "#E8EAED" }}>
             <p className="text-xs text-muted">
               {filtered.length} transaction{filtered.length !== 1 ? "s" : ""}
             </p>
@@ -200,7 +200,7 @@ export function TransactionsTable({ transactions }: { transactions: Tx[] }) {
                 onClick={() => setPage(Math.max(0, page - 1))}
                 disabled={page === 0}
                 className="p-1.5 rounded-lg disabled:opacity-30 cursor-pointer"
-                style={{ color: "#9ca3af" }}
+                style={{ color: "#878787" }}
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
@@ -213,7 +213,7 @@ export function TransactionsTable({ transactions }: { transactions: Tx[] }) {
                 }
                 disabled={page >= totalPages - 1}
                 className="p-1.5 rounded-lg disabled:opacity-30 cursor-pointer"
-                style={{ color: "#9ca3af" }}
+                style={{ color: "#878787" }}
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
