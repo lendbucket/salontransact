@@ -108,7 +108,7 @@ export function Sidebar({
             padding: "2px 6px",
             borderRadius: 4,
             color: "#017ea7",
-            background: "rgba(99,91,255,0.1)",
+            background: "#E6F4F8",
           }}
         >
           {plan}
@@ -129,7 +129,7 @@ export function Sidebar({
             cursor: "pointer",
           }}
         >
-          <Search size={16} strokeWidth={1.5} color="#6b7280" />
+          <Search size={16} strokeWidth={1.5} color="#878787" />
           <span style={{ fontSize: 13, fontWeight: 400, color: "#878787", flex: 1 }}>
             Search...
           </span>
@@ -139,9 +139,9 @@ export function Sidebar({
               padding: "1px 4px",
               borderRadius: 3,
               fontFamily: "monospace",
-              color: "#4b5563",
-              background: "rgba(255,255,255,0.04)",
-              border: "1px solid rgba(255,255,255,0.06)",
+              color: "#878787",
+              background: "#E8EAED",
+              border: "1px solid #E8EAED",
             }}
           >
             /
@@ -188,8 +188,10 @@ export function Sidebar({
                       fontWeight: active ? 500 : 400,
                       color: active ? "#017ea7" : "#4A4A4A",
                       background: active ? "#E6F4F8" : "transparent",
-                      position: "relative",
                       textDecoration: "none",
+                      borderLeft: active
+                        ? "3px solid #017ea7"
+                        : "3px solid transparent",
                     }}
                     onMouseEnter={(e) => {
                       if (!active)
@@ -200,20 +202,6 @@ export function Sidebar({
                         e.currentTarget.style.background = "transparent";
                     }}
                   >
-                    {active && (
-                      <div
-                        style={{
-                          position: "absolute",
-                          left: 0,
-                          top: "50%",
-                          transform: "translateY(-50%)",
-                          width: 2,
-                          height: 16,
-                          borderRadius: "0 2px 2px 0",
-                          background: "#017ea7",
-                        }}
-                      />
-                    )}
                     <Icon size={16} strokeWidth={1.5} />
                     {link.label}
                   </Link>

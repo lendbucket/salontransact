@@ -1,208 +1,238 @@
-import { requireAdmin } from '@/lib/admin'
-import { prisma } from '@/lib/prisma'
-import { Store, CheckCircle, Mail, DollarSign } from 'lucide-react'
-import { format } from 'date-fns'
+import { requireAdmin } from "@/lib/admin";
+import { prisma } from "@/lib/prisma";
+import { Store, CheckCircle, Mail, DollarSign } from "lucide-react";
+import { format } from "date-fns";
 
 function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(amount)
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  }).format(amount);
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const colors: Record<string, { bg: string; text: string; border: string }> = {
-    active: { bg: '#F0FDF4', text: '#166534', border: '#BBF7D0' },
-    pending: { bg: '#FFFBEB', text: '#92400E', border: '#FDE68A' },
-    restricted: { bg: '#FEF2F2', text: '#991B1B', border: '#FECACA' },
-    suspended: { bg: '#FEF2F2', text: '#991B1B', border: '#FECACA' },
-    incomplete: { bg: '#F9FAFB', text: '#374151', border: '#D1D5DB' },
-  }
-  const c = colors[status] ?? colors.incomplete
+  const colors: Record<
+    string,
+    { bg: string; text: string; border: string }
+  > = {
+    active: { bg: "#F0FDF4", text: "#166534", border: "#BBF7D0" },
+    pending: { bg: "#FFFBEB", text: "#92400E", border: "#FDE68A" },
+    restricted: { bg: "#FEF2F2", text: "#991B1B", border: "#FECACA" },
+    suspended: { bg: "#FEF2F2", text: "#991B1B", border: "#FECACA" },
+    incomplete: { bg: "#F9FAFB", text: "#374151", border: "#D1D5DB" },
+    pending_review: { bg: "#FFFBEB", text: "#92400E", border: "#FDE68A" },
+  };
+  const c = colors[status] ?? colors.incomplete;
   return (
     <span
-      className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium capitalize"
-      style={{ background: c.bg, color: c.text, border: `1px solid ${c.border}` }}
+      className="badge"
+      style={{
+        background: c.bg,
+        color: c.text,
+        borderColor: c.border,
+      }}
     >
-      {status}
+      {status.replace(/_/g, " ")}
     </span>
-  )
+  );
 }
 
 export default async function AdminOverviewPage() {
-  await requireAdmin()
+  await requireAdmin();
 
-  const [totalMerchants, activeMerchants, pendingInvites, volumeAgg, recentMerchants] =
-    await Promise.all([
-      prisma.merchant.count(),
-      prisma.merchant.count({ where: { status: 'active' } }),
-      prisma.invite.count({
-        where: { used: false, expiresAt: { gt: new Date() } },
-      }),
-      prisma.merchant.aggregate({ _sum: { totalVolume: true } }),
-      prisma.merchant.findMany({
-        take: 10,
-        orderBy: { createdAt: 'desc' },
-        include: { user: { select: { email: true } } },
-      }),
-    ])
+  const [
+    totalMerchants,
+    activeMerchants,
+    pendingInvites,
+    volumeAgg,
+    recentMerchants,
+  ] = await Promise.all([
+    prisma.merchant.count(),
+    prisma.merchant.count({ where: { status: "active" } }),
+    prisma.invite.count({
+      where: { used: false, expiresAt: { gt: new Date() } },
+    }),
+    prisma.merchant.aggregate({ _sum: { totalVolume: true } }),
+    prisma.merchant.findMany({
+      take: 10,
+      orderBy: { createdAt: "desc" },
+      include: { user: { select: { email: true } } },
+    }),
+  ]);
 
-  const totalVolume = volumeAgg._sum.totalVolume ?? 0
+  const totalVolume = volumeAgg._sum.totalVolume ?? 0;
 
   const stats = [
     {
-      label: 'Total Merchants',
+      label: "Total Merchants",
       value: totalMerchants.toString(),
       icon: Store,
-      color: '#017ea7',
+      iconBg: "#E6F4F8",
+      iconColor: "#017ea7",
     },
     {
-      label: 'Active Merchants',
+      label: "Active Merchants",
       value: activeMerchants.toString(),
       icon: CheckCircle,
-      color: '#22c55e',
+      iconBg: "#F0FDF4",
+      iconColor: "#166534",
     },
     {
-      label: 'Pending Invites',
+      label: "Pending Invites",
       value: pendingInvites.toString(),
       icon: Mail,
-      color: '#f59e0b',
+      iconBg: "#FFFBEB",
+      iconColor: "#92400E",
     },
     {
-      label: 'Total Volume',
+      label: "Total Volume",
       value: formatCurrency(totalVolume),
       icon: DollarSign,
-      color: '#017ea7',
+      iconBg: "#E6F4F8",
+      iconColor: "#017ea7",
     },
-  ]
+  ];
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto">
+    <div className="page-container">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-2xl font-semibold" style={{ color: '#1A1313' }}>Admin Overview</h1>
-        <span className="text-sm" style={{ color: '#878787' }}>
-          {format(new Date(), 'MMMM d, yyyy')}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: 32,
+        }}
+      >
+        <h2 style={{ color: "#1A1313" }}>Admin Overview</h2>
+        <span style={{ fontSize: 13, color: "#878787" }}>
+          {format(new Date(), "MMMM d, yyyy")}
         </span>
       </div>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
         {stats.map((stat) => {
-          const Icon = stat.icon
+          const Icon = stat.icon;
           return (
-            <div
-              key={stat.label}
-              className="rounded-xl p-6"
-              style={{
-                background: '#FFFFFF',
-                border: '1px solid #E8EAED',
-                boxShadow:
-                  '0 0 0 1px rgba(0,0,0,0.05), 0 1px 1px rgba(0,0,0,0.05), 0 2px 2px rgba(0,0,0,0.05), 0 4px 4px rgba(0,0,0,0.05), 0 8px 8px rgba(0,0,0,0.05), 0 16px 16px rgba(0,0,0,0.05)',
-              }}
-            >
-              <div className="flex items-center gap-3 mb-3">
+            <div key={stat.label} className="stat-card">
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 <div
-                  className="w-10 h-10 rounded-lg flex items-center justify-center"
-                  style={{ background: `${stat.color}15` }}
+                  className="stat-card-icon"
+                  style={{ background: stat.iconBg }}
                 >
-                  <Icon size={18} style={{ color: stat.color }} />
+                  <Icon
+                    size={18}
+                    strokeWidth={1.5}
+                    style={{ color: stat.iconColor }}
+                  />
                 </div>
+                <span className="stat-card-label">{stat.label}</span>
               </div>
-              <p
-                className="text-[12px] uppercase tracking-wider font-medium mb-1"
-                style={{ color: '#878787' }}
-              >
-                {stat.label}
-              </p>
-              <p className="text-[28px] font-bold" style={{ color: '#1A1313' }}>{stat.value}</p>
-              <p className="text-xs mt-1" style={{ color: '#878787' }}>
-                —
-              </p>
+              <p className="stat-card-value">{stat.value}</p>
             </div>
-          )
+          );
         })}
       </div>
 
-      {/* Recent merchants table */}
-      <div
-        className="rounded-xl overflow-hidden"
-        style={{
-          background: '#FFFFFF',
-          border: '1px solid #E8EAED',
-          boxShadow:
-            '0 0 0 1px rgba(0,0,0,0.05), 0 1px 1px rgba(0,0,0,0.05), 0 2px 2px rgba(0,0,0,0.05), 0 4px 4px rgba(0,0,0,0.05), 0 8px 8px rgba(0,0,0,0.05), 0 16px 16px rgba(0,0,0,0.05)',
-        }}
-      >
-        <div className="flex items-center justify-between px-6 py-4">
-          <h2 className="text-sm font-semibold" style={{ color: '#1A1313' }}>Recent Merchants</h2>
+      {/* Recent merchants */}
+      <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+        <div className="section-header" style={{ padding: "16px 20px" }}>
+          <span className="section-title">Recent Merchants</span>
           <a
             href="/admin/merchants"
-            className="text-xs font-medium"
-            style={{ color: '#017ea7' }}
+            style={{
+              fontSize: 13,
+              fontWeight: 500,
+              color: "#017ea7",
+              textDecoration: "none",
+            }}
           >
-            View all →
+            View all
           </a>
         </div>
 
         {recentMerchants.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 px-6">
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "64px 24px",
+            }}
+          >
             <div
-              className="w-12 h-12 rounded-full flex items-center justify-center mb-4"
-              style={{ background: '#E6F4F8' }}
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: "50%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "#E6F4F8",
+                marginBottom: 16,
+              }}
             >
-              <Mail size={20} style={{ color: '#017ea7' }} />
+              <Mail size={20} strokeWidth={1.5} style={{ color: "#017ea7" }} />
             </div>
-            <p className="text-sm font-medium mb-1" style={{ color: '#1A1313' }}>No merchants yet</p>
+            <p
+              style={{
+                fontSize: 14,
+                fontWeight: 500,
+                color: "#1A1313",
+                marginBottom: 4,
+              }}
+            >
+              No merchants yet
+            </p>
             <a
               href="/admin/invites"
-              className="text-xs font-medium"
-              style={{ color: '#017ea7' }}
+              style={{
+                fontSize: 13,
+                fontWeight: 500,
+                color: "#017ea7",
+                textDecoration: "none",
+              }}
             >
               Send your first invite
             </a>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="data-table">
               <thead>
-                <tr style={{ borderTop: '1px solid #E8EAED' }}>
-                  {['Business Name', 'Email', 'Status', 'Stripe Status', 'Volume', 'Joined'].map(
-                    (h) => (
-                      <th
-                        key={h}
-                        className="text-left px-6 py-3 text-[11px] uppercase tracking-wider font-medium"
-                        style={{ color: '#878787' }}
-                      >
-                        {h}
-                      </th>
-                    )
-                  )}
+                <tr>
+                  {[
+                    "Business Name",
+                    "Email",
+                    "Status",
+                    "Stripe Status",
+                    "Volume",
+                    "Joined",
+                  ].map((h) => (
+                    <th key={h}>{h}</th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
                 {recentMerchants.map((m) => (
-                  <tr
-                    key={m.id}
-                    style={{ borderTop: '1px solid #E8EAED' }}
-                  >
-                    <td className="px-6 py-3 text-sm font-medium" style={{ color: '#1A1313' }}>
-                      {m.businessName}
-                    </td>
-                    <td className="px-6 py-3 text-sm" style={{ color: '#878787' }}>
-                      {m.user.email}
-                    </td>
-                    <td className="px-6 py-3">
+                  <tr key={m.id}>
+                    <td style={{ fontWeight: 500 }}>{m.businessName}</td>
+                    <td style={{ color: "#4A4A4A" }}>{m.user.email}</td>
+                    <td>
                       <StatusBadge status={m.status} />
                     </td>
-                    <td className="px-6 py-3">
+                    <td>
                       <StatusBadge status={m.stripeAccountStatus} />
                     </td>
-                    <td className="px-6 py-3 text-sm" style={{ color: '#1A1313' }}>
+                    <td
+                      style={{ fontFamily: "monospace", fontWeight: 500 }}
+                    >
                       {formatCurrency(m.totalVolume)}
                     </td>
-                    <td className="px-6 py-3 text-sm" style={{ color: '#878787' }}>
-                      {format(m.createdAt, 'MMM d, yyyy')}
+                    <td style={{ color: "#878787", fontSize: 13 }}>
+                      {format(m.createdAt, "MMM d, yyyy")}
                     </td>
                   </tr>
                 ))}
@@ -212,5 +242,5 @@ export default async function AdminOverviewPage() {
         )}
       </div>
     </div>
-  )
+  );
 }

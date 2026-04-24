@@ -99,9 +99,11 @@ export function AdminNav({ email }: { email: string }) {
                   background: active
                     ? "#E6F4F8"
                     : "transparent",
-                  position: "relative",
                   textDecoration: "none",
                   transition: "all 150ms ease",
+                  borderLeft: active
+                    ? "3px solid #017ea7"
+                    : "3px solid transparent",
                 }}
                 onMouseEnter={(e) => {
                   if (!active)
@@ -113,20 +115,6 @@ export function AdminNav({ email }: { email: string }) {
                     e.currentTarget.style.background = "transparent";
                 }}
               >
-                {active && (
-                  <div
-                    style={{
-                      position: "absolute",
-                      left: 0,
-                      top: "50%",
-                      transform: "translateY(-50%)",
-                      width: 2,
-                      height: 16,
-                      borderRadius: "0 2px 2px 0",
-                      background: "#017ea7",
-                    }}
-                  />
-                )}
                 <Icon size={16} strokeWidth={1.5} />
                 {item.label}
               </Link>

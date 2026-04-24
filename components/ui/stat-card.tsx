@@ -9,6 +9,8 @@ type StatCardProps = {
     positive: boolean;
   };
   icon: LucideIcon;
+  iconBg?: string;
+  iconColor?: string;
 };
 
 export function StatCard({
@@ -17,34 +19,34 @@ export function StatCard({
   subtitle,
   trend,
   icon: Icon,
+  iconBg = "#E6F4F8",
+  iconColor = "#017ea7",
 }: StatCardProps) {
   return (
-    <div className="st-card p-5">
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-xs uppercase tracking-wider text-secondary font-medium">
-          {title}
-        </span>
-        <div
-          className="w-8 h-8 rounded-lg flex items-center justify-center"
-          style={{ background: "rgba(99,91,255,0.1)" }}
-        >
-          <Icon className="w-4 h-4" style={{ color: "#635bff" }} />
+    <div className="stat-card">
+      <div className="flex items-center gap-3">
+        <div className="stat-card-icon" style={{ background: iconBg }}>
+          <Icon size={18} strokeWidth={1.5} style={{ color: iconColor }} />
         </div>
+        <span className="stat-card-label">{title}</span>
       </div>
-      <p className="text-2xl font-semibold text-foreground">{value}</p>
+      <p className="stat-card-value">{value}</p>
       {(trend || subtitle) && (
-        <div className="flex items-center gap-2 mt-1.5">
+        <div className="flex items-center gap-2">
           {trend && (
             <span
-              className="text-xs font-medium"
-              style={{ color: trend.positive ? "#22c55e" : "#ef4444" }}
+              style={{
+                fontSize: 12,
+                fontWeight: 500,
+                color: trend.positive ? "#166534" : "#991B1B",
+              }}
             >
               {trend.positive ? "+" : ""}
               {trend.value}
             </span>
           )}
           {subtitle && (
-            <span className="text-xs text-muted">{subtitle}</span>
+            <span style={{ fontSize: 12, color: "#878787" }}>{subtitle}</span>
           )}
         </div>
       )}

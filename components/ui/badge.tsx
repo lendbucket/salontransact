@@ -5,30 +5,48 @@ type BadgeStatus =
   | "paid"
   | "in_transit"
   | "active"
-  | "inactive";
+  | "inactive"
+  | "approved"
+  | "declined"
+  | "suspended"
+  | "processing"
+  | "pending_review";
 
-const colorMap: Record<BadgeStatus, { color: string; bg: string }> = {
-  succeeded: { color: "#22c55e", bg: "rgba(34,197,94,0.1)" },
-  paid: { color: "#22c55e", bg: "rgba(34,197,94,0.1)" },
-  active: { color: "#22c55e", bg: "rgba(34,197,94,0.1)" },
-  pending: { color: "#f59e0b", bg: "rgba(245,158,11,0.1)" },
-  in_transit: { color: "#3b82f6", bg: "rgba(59,130,246,0.1)" },
-  failed: { color: "#ef4444", bg: "rgba(239,68,68,0.1)" },
-  inactive: { color: "#ef4444", bg: "rgba(239,68,68,0.1)" },
+const config: Record<
+  BadgeStatus,
+  { bg: string; text: string; border: string }
+> = {
+  succeeded: { bg: "#F0FDF4", text: "#166534", border: "#BBF7D0" },
+  paid: { bg: "#F0FDF4", text: "#166534", border: "#BBF7D0" },
+  active: { bg: "#F0FDF4", text: "#166534", border: "#BBF7D0" },
+  approved: { bg: "#F0FDF4", text: "#166534", border: "#BBF7D0" },
+  pending: { bg: "#FFFBEB", text: "#92400E", border: "#FDE68A" },
+  pending_review: { bg: "#FFFBEB", text: "#92400E", border: "#FDE68A" },
+  processing: { bg: "#E6F4F8", text: "#015f80", border: "#BAE6FD" },
+  in_transit: { bg: "#E6F4F8", text: "#015f80", border: "#BAE6FD" },
+  failed: { bg: "#FEF2F2", text: "#991B1B", border: "#FECACA" },
+  declined: { bg: "#FEF2F2", text: "#991B1B", border: "#FECACA" },
+  suspended: { bg: "#FEF2F2", text: "#991B1B", border: "#FECACA" },
+  inactive: { bg: "#F9FAFB", text: "#374151", border: "#D1D5DB" },
 };
 
 export function Badge({ status }: { status: string }) {
-  const mapped = colorMap[status as BadgeStatus] ?? {
-    color: "#6b7280",
-    bg: "rgba(107,114,128,0.1)",
+  const c = config[status as BadgeStatus] ?? {
+    bg: "#F9FAFB",
+    text: "#374151",
+    border: "#D1D5DB",
   };
 
   return (
     <span
-      className="inline-block px-2 py-0.5 rounded text-xs font-medium"
-      style={{ color: mapped.color, background: mapped.bg }}
+      className="badge"
+      style={{
+        background: c.bg,
+        color: c.text,
+        borderColor: c.border,
+      }}
     >
-      {status.replace("_", " ")}
+      {status.replace(/_/g, " ")}
     </span>
   );
 }

@@ -131,23 +131,31 @@ export default async function DashboardPage() {
           }}
           subtitle="vs last month"
           icon={DollarSign}
+          iconBg="#E6F4F8"
+          iconColor="#017ea7"
         />
         <StatCard
           title="This Month"
           value={formatMoney(thisMonthVal)}
           subtitle={`${monthAgg._count} transactions`}
           icon={TrendingUp}
+          iconBg="#E6F4F8"
+          iconColor="#017ea7"
         />
         <StatCard
           title="Transactions"
           value={merchant.totalTransactions.toLocaleString()}
           icon={CreditCard}
+          iconBg="#F0FDF4"
+          iconColor="#166534"
         />
         <StatCard
           title="Pending Payouts"
           value={formatMoney(pendingPayoutsAgg._sum.amount ?? 0)}
           subtitle="Est. 2-3 business days"
           icon={Clock}
+          iconBg="#FFFBEB"
+          iconColor="#92400E"
         />
       </div>
 
