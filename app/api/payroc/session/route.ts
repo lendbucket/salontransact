@@ -14,6 +14,13 @@ export async function GET() {
     const result = await getHostedFieldsSessionToken("payment");
     const config = getHostedFieldsConfig();
 
+    console.log(
+      "[SESSION] Returning token:",
+      result.token ? result.token.slice(0, 20) + "..." : "MISSING",
+      "expiresAt:",
+      result.expiresAt
+    );
+
     return NextResponse.json({
       sessionToken: result.token,
       expiresAt: result.expiresAt,
@@ -22,7 +29,7 @@ export async function GET() {
       integrity: config.integrityHash,
     });
   } catch (error) {
-    console.error("[PAYROC-SESSION] Error:", error);
+    console.error("[SESSION] Error:", error);
     const message = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json({ error: message }, { status: 500 });
   }

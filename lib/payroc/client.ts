@@ -47,17 +47,32 @@ export async function getPayrocToken(): Promise<string> {
   }
 
   const data = await response.json();
-  const expiresAt = Date.now() + data.expiresIn * 1000;
+  console.log("[PAYROC-AUTH] Bearer response keys:", Object.keys(data));
 
-  tokenCache = { token: data.token, expiresAt };
+  // Payroc returns { access_token, expires_in, token_type }
+  const accessToken = data.access_token ?? data.token;
+  const expiresInSeconds = data.expires_in ?? data.expiresIn ?? 3600;
+  const expiresAt = Date.now() + expiresInSeconds * 1000;
 
-  await prisma.payrocToken.deleteMany({});
-  await prisma.payrocToken.create({
-    data: {
-      token: data.token,
-      expiresAt: new Date(expiresAt),
-    },
-  });
+  if (!accessToken) {
+    throw new Error(
+      `Payroc auth returned no token. Response: ${JSON.stringify(data).slice(0, 200)}`
+    );
+  }
+
+  tokenCache = { token: accessToken, expiresAt };
+
+  try {
+    await prisma.payrocToken.deleteMany({});
+    await prisma.payrocToken.create({
+      data: {
+        token: accessToken,
+        expiresAt: new Date(expiresAt),
+      },
+    });
+  } catch (dbError) {
+    console.error("[PAYROC-AUTH] DB cache save failed (non-fatal):", dbError);
+  }
 
   return tokenCache.token;
 }
@@ -79,7 +94,6 @@ export async function payrocRequest<T>(
     Authorization: `Bearer ${token}`,
   };
 
-  // Idempotency key for all POST requests
   if (method === "POST") {
     headers["Idempotency-Key"] = crypto.randomUUID();
   }
@@ -136,5 +150,20 @@ export async function getHostedFieldsSessionToken(
     );
   }
 
-  return response.json();
+  const data = await response.json();
+  console.log("[PAYROC-SESSION] Session response keys:", Object.keys(data));
+
+  const sessionToken = data.token;
+  const expiresAt = data.expiresAt ?? data.expires_at;
+
+  if (!sessionToken) {
+    throw new Error(
+      `Payroc session returned no token. Response: ${JSON.stringify(data).slice(0, 200)}`
+    );
+  }
+
+  return {
+    token: sessionToken,
+    expiresAt: expiresAt ?? new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+  };
 }
