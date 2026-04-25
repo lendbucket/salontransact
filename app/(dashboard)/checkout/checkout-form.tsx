@@ -572,57 +572,76 @@ export function CheckoutForm() {
           </div>
         )}
 
-        {/* Loading skeleton */}
-        {formState === "loading" && (
-          <div className="space-y-3">
-            {[1, 2].map((i) => (
-              <div key={i} className="h-11 rounded-lg bg-[#F4F5F7] animate-pulse" />
-            ))}
-            <div className="grid grid-cols-2 gap-3">
-              {[1, 2].map((i) => (
-                <div key={i} className="h-11 rounded-lg bg-[#F4F5F7] animate-pulse" />
-              ))}
+        {/* Hosted fields — always in DOM so Payroc can inject iframes */}
+        <div style={{ position: "relative" }}>
+          {/* Loading overlay */}
+          {formState === "loading" && (
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                background: "rgba(255,255,255,0.9)",
+                zIndex: 10,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: 8,
+              }}
+            >
+              <Loader2 size={20} strokeWidth={1.5} className="animate-spin text-[#017ea7] mb-2" />
+              <p className="text-[13px] text-[#878787]">Initializing secure payment fields...</p>
             </div>
-            <p className="text-[13px] text-[#878787] text-center">Initializing secure payment fields...</p>
-          </div>
-        )}
+          )}
 
-        {/* Hosted fields */}
-        <div style={{ display: formState === "ready" || formState === "processing" ? "flex" : "none", flexDirection: "column", gap: 12 }}>
-          <div>
-            <label className={LABEL}>Name on Card</label>
-            <div className="card-holder-name bg-[#F4F5F7] border border-[#E8EAED] rounded-lg h-11 flex items-center px-3 transition-all duration-150 focus-within:border-[#017ea7] focus-within:ring-[3px] focus-within:ring-[#017ea7]/10 focus-within:bg-white overflow-hidden" />
-            <div className="card-holder-name-error text-xs text-[#ef4444] mt-1" />
-          </div>
-          <div>
-            <label className={LABEL}>Card Number</label>
-            <div className="relative">
-              <div className="card-numberbg-[#F4F5F7] border border-[#E8EAED] rounded-lg h-11 flex items-center px-3 transition-all duration-150 focus-within:border-[#017ea7] focus-within:ring-[3px] focus-within:ring-[#017ea7]/10 focus-within:bg-white overflow-hidden" />
-              {cardBrand !== "unknown" && (
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                  <CardBrandIcon brand={cardBrand} size={24} />
-                </div>
-              )}
-            </div>
-            <div className="card-number-error text-xs text-[#ef4444] mt-1" />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className={LABEL}>Expiry</label>
-              <div className="card-expirybg-[#F4F5F7] border border-[#E8EAED] rounded-lg h-11 flex items-center px-3 transition-all duration-150 focus-within:border-[#017ea7] focus-within:ring-[3px] focus-within:ring-[#017ea7]/10 focus-within:bg-white overflow-hidden" />
-              <div className="card-expiry-error text-xs text-[#ef4444] mt-1" />
-            </div>
-            <div className="card-cvv-wrapper">
-              <label className={LABEL}>CVV</label>
-              <div className="card-cvvbg-[#F4F5F7] border border-[#E8EAED] rounded-lg h-11 flex items-center px-3 transition-all duration-150 focus-within:border-[#017ea7] focus-within:ring-[3px] focus-within:ring-[#017ea7]/10 focus-within:bg-white overflow-hidden" />
-              <div className="card-cvv-error text-xs text-[#ef4444] mt-1" />
-            </div>
-          </div>
-          {/* Payroc-injected submit button — this is the ONLY submit */}
+          {/* Field containers — always rendered */}
           <div
-            className="card-submit submit-button w-full rounded-[10px] overflow-hidden"
-            style={{ height: 52 }}
-          />
+            className="payroc-form-container"
+            style={{ position: "relative", zIndex: 1, isolation: "isolate", display: "flex", flexDirection: "column", gap: 12 }}
+          >
+            <div>
+              <label className={LABEL}>Name on Card</label>
+              <div className="card-holder-name" style={{ minHeight: 44 }} />
+              <div className="card-holder-name-error text-xs text-[#ef4444] mt-1" />
+            </div>
+            <div>
+              <label className={LABEL}>Card Number</label>
+              <div style={{ position: "relative" }}>
+                <div className="card-number" style={{ minHeight: 44 }} />
+                {cardBrand !== "unknown" && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ zIndex: 2 }}>
+                    <CardBrandIcon brand={cardBrand} size={24} />
+                  </div>
+                )}
+              </div>
+              <div className="card-number-error text-xs text-[#ef4444] mt-1" />
+            </div>
+            <div className="flex gap-3">
+              <div className="flex-1">
+                <label className={LABEL}>Expiry</label>
+                <div className="card-expiry" style={{ minHeight: 44 }} />
+                <div className="card-expiry-error text-xs text-[#ef4444] mt-1" />
+              </div>
+              <div className="card-cvv-wrapper flex-1">
+                <label className={LABEL}>CVV</label>
+                <div className="card-cvv" style={{ minHeight: 44 }} />
+                <div className="card-cvv-error text-xs text-[#ef4444] mt-1" />
+              </div>
+            </div>
+            {/* Payroc-injected submit button */}
+            <div
+              className="card-submit submit-button"
+              style={{
+                width: "100%",
+                height: 52,
+                minHeight: 52,
+                display: "block",
+                marginTop: 16,
+                borderRadius: 10,
+                overflow: "hidden",
+              }}
+            />
+          </div>
         </div>
 
         {errors.card && (
