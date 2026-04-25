@@ -26,7 +26,7 @@ export async function GET() {
       expiresAt: result.expiresAt,
       terminalId: process.env.PAYROC_TERMINAL_ID,
       libUrl: config.url,
-      integrity: config.integrityHash,
+      integrity: "", // Temporarily removed for debugging — integrity mismatch blocks script loading
     });
   } catch (error) {
     console.error("[SESSION] Error:", error);

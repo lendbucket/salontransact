@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Lock,
   Loader2,
@@ -60,6 +60,7 @@ export function CheckoutForm() {
   const [cardBrand, setCardBrand] = useState<CardBrand>("unknown");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [cardFormRef, setCardFormRef] = useState<any>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   /* ---- Load Payroc SDK ---- */
   const loadPayroc = useCallback(async () => {
@@ -71,7 +72,12 @@ export function CheckoutForm() {
         setFormState("loadError");
         return;
       }
-      const { sessionToken, libUrl, integrity } = await res.json();
+      const data = await res.json();
+      console.log("[CHECKOUT] Session response:", JSON.stringify(data));
+      console.log("[CHECKOUT] Session token:", data.sessionToken?.substring(0, 20));
+      console.log("[CHECKOUT] Lib URL:", data.libUrl);
+
+      const { sessionToken, libUrl, integrity } = data;
       if (!sessionToken) {
         console.error("[CHECKOUT] No session token returned");
         setFormState("loadError");
@@ -84,14 +90,22 @@ export function CheckoutForm() {
       const script = document.createElement("script");
       script.id = "payroc-hf-script";
       script.src = libUrl;
-      script.integrity = integrity;
-      script.crossOrigin = "anonymous";
+      // Only add integrity if it's a valid sha hash — invalid hashes block loading
+      if (integrity && integrity.startsWith("sha")) {
+        script.integrity = integrity;
+        script.crossOrigin = "anonymous";
+      }
+      script.async = true;
 
       script.onload = () => {
+        console.log("[CHECKOUT] Script loaded");
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        console.log("[CHECKOUT] window.Payroc:", typeof (window as any).Payroc);
         try {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const Payroc = (window as any).Payroc;
           if (!Payroc?.hostedFields) {
+            console.error("[CHECKOUT] Payroc.hostedFields not found on window");
             setFormState("loadError");
             return;
           }
@@ -146,34 +160,55 @@ export function CheckoutForm() {
 
           cardForm.initialize();
           setCardFormRef(cardForm);
+          console.log("[CHECKOUT] cardForm initialized");
 
+          // Register ALL events with logging
           cardForm.on(
             "submissionSuccess",
-            async (data: { token: string }) => {
-              await processPayment(data.token);
+            async (evtData: { token: string }) => {
+              console.log("[CHECKOUT] submissionSuccess:", evtData);
+              if (timeoutRef.current) clearTimeout(timeoutRef.current);
+              await processPayment(evtData.token);
             }
           );
 
           cardForm.on(
             "submissionError",
-            (data: { type: string; message: string }) => {
-              setErrors((p) => ({ ...p, card: data.message || "Card error" }));
+            (evtData: { type: string; message: string }) => {
+              console.log("[CHECKOUT] submissionError:", evtData);
+              if (timeoutRef.current) clearTimeout(timeoutRef.current);
+              setErrors((p) => ({ ...p, card: evtData.message || "Payment failed. Please try again." }));
               setFormState("ready");
             }
           );
 
           cardForm.on(
             "error",
-            (data: { type: string; field?: string; message: string }) => {
-              setErrors((p) => ({ ...p, card: data.message }));
+            (evtData: { type: string; field?: string; message: string }) => {
+              console.log("[CHECKOUT] error event:", evtData);
+              if (timeoutRef.current) clearTimeout(timeoutRef.current);
+              setErrors((p) => ({ ...p, card: evtData.message }));
               setFormState("ready");
             }
           );
 
           cardForm.on(
+            "validationError",
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (evtData: any) => {
+              console.log("[CHECKOUT] validationError:", evtData);
+            }
+          );
+
+          cardForm.on("ready", () => {
+            console.log("[CHECKOUT] hosted fields ready");
+          });
+
+          cardForm.on(
             "cardBrandChange",
-            (data: { brand: string }) => {
-              const b = data.brand?.toLowerCase() ?? "";
+            (evtData: { brand: string }) => {
+              console.log("[CHECKOUT] cardBrandChange:", evtData);
+              const b = evtData.brand?.toLowerCase() ?? "";
               if (b.includes("visa")) setCardBrand("visa");
               else if (b.includes("master")) setCardBrand("mastercard");
               else if (b.includes("amex") || b.includes("american")) setCardBrand("amex");
@@ -189,7 +224,10 @@ export function CheckoutForm() {
         }
       };
 
-      script.onerror = () => setFormState("loadError");
+      script.onerror = (err) => {
+        console.error("[CHECKOUT] Script failed to load:", err);
+        setFormState("loadError");
+      };
       document.head.appendChild(script);
     } catch {
       setFormState("loadError");
@@ -251,14 +289,28 @@ export function CheckoutForm() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const parsedAmount = parseFloat(amount);
-    if (!parsedAmount || parsedAmount <= 0) {
-      setErrors({ amount: "Enter a valid amount" });
+    if (!amount || parseFloat(amount) <= 0) {
+      setErrors({ amount: "Please enter a valid amount" });
       return;
     }
     setErrors({});
     setFormState("processing");
-    if (cardFormRef) cardFormRef.submit();
+
+    // 30 second timeout in case Payroc never responds
+    timeoutRef.current = setTimeout(() => {
+      setFormState("ready");
+      setErrors({ card: "Payment timed out. Please try again." });
+    }, 30000);
+
+    if (cardFormRef) {
+      console.log("[CHECKOUT] Calling cardForm.submit()");
+      cardFormRef.submit();
+    } else {
+      console.error("[CHECKOUT] cardFormRef is null — form not initialized");
+      setFormState("ready");
+      setErrors({ card: "Payment form not ready. Please refresh." });
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    }
   }
 
   function resetForm() {
@@ -373,6 +425,20 @@ export function CheckoutForm() {
         <div className="absolute inset-0 z-20 flex flex-col items-center justify-center rounded-xl bg-[#FBFBFB]/85 backdrop-blur-sm">
           <Loader2 size={28} strokeWidth={1.5} className="animate-spin text-[#017ea7] mb-3" />
           <p className="text-sm font-medium text-[#1A1313]">Processing payment...</p>
+          <p className="text-xs text-[#878787] mt-2 max-w-[280px] text-center">
+            Please ensure all card fields are filled in — Name, Card Number, Expiry, and CVV are all required.
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              if (timeoutRef.current) clearTimeout(timeoutRef.current);
+              setFormState("ready");
+              setErrors({});
+            }}
+            className="text-[13px] text-[#878787] hover:text-[#1A1313] mt-4 cursor-pointer bg-transparent border-none transition-colors"
+          >
+            Cancel
+          </button>
         </div>
       )}
 
