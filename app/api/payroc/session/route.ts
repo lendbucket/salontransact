@@ -20,15 +20,16 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const sessionCreatedAt = Date.now();
     const result = await getHostedFieldsSessionToken("payment");
     const config = getHostedFieldsConfig();
 
-    console.log(
-      "[SESSION] Returning token:",
-      result.token ? result.token.slice(0, 20) + "..." : "MISSING",
-      "expiresAt:",
-      result.expiresAt
-    );
+    console.log("[SESSION-DEBUG] Token received in", Date.now() - sessionCreatedAt, "ms");
+    console.log("[SESSION-DEBUG] Token length:", result.token?.length);
+    console.log("[SESSION-DEBUG] Token prefix:", result.token?.substring(0, 30));
+    console.log("[SESSION-DEBUG] Expires at:", result.expiresAt);
+    console.log("[SESSION-DEBUG] SDK URL:", config.url);
+    console.log("[SESSION-DEBUG] Integrity hash:", config.integrityHash?.substring(0, 20));
 
     return NextResponse.json({
       sessionToken: result.token,
@@ -36,6 +37,7 @@ export async function GET() {
       terminalId: process.env.PAYROC_TERMINAL_ID,
       libUrl: config.url,
       integrity: config.integrityHash,
+      _sessionCreatedAt: sessionCreatedAt,
       _diag: {
         sessionHost:
           process.env.PAYROC_SESSION_HOST ||
@@ -43,6 +45,7 @@ export async function GET() {
         gatewayHost:
           process.env.PAYROC_GATEWAY_HOST ||
           "https://testpayments.worldnettps.com",
+        tokenLength: result.token?.length,
       },
     });
   } catch (error) {

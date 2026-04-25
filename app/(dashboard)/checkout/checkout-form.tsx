@@ -124,11 +124,15 @@ export function CheckoutForm() {
           return;
         }
 
-        console.log("[CHECKOUT] Session token received:", data.sessionToken.substring(0, 20));
+        const sessionCreatedAt = data._sessionCreatedAt || Date.now();
+        console.log("[FIELD-DEBUG] Session token being used:", data.sessionToken?.substring(0, 20) + "...");
+        console.log("[FIELD-DEBUG] Session token length:", data.sessionToken?.length);
+        console.log("[FIELD-DEBUG] Session expiresAt:", data.expiresAt);
         console.log("[CHECKOUT] Loading SDK from:", data.libUrl);
         if (data._diag) {
           console.log("[PAYROC-DIAG] sessionHost:", data._diag.sessionHost);
           console.log("[PAYROC-DIAG] gatewayHost:", data._diag.gatewayHost);
+          console.log("[PAYROC-DIAG] tokenLength:", data._diag.tokenLength);
         }
 
         // Load script (or reuse if already loaded)
@@ -295,6 +299,28 @@ export function CheckoutForm() {
           console.log("[CHECKOUT] hosted fields ready event");
         });
 
+        // ---- Field connection and validation debugging ----
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        cardForm.on("field-connected", (evtData: any) => {
+          console.log("[FIELD-DEBUG] Field connected:", evtData?.payload?.field ?? evtData?.field, evtData);
+        });
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        cardForm.on("field-invalid", (evtData: any) => {
+          console.log("[FIELD-DEBUG] Field INVALID:", evtData?.payload?.field ?? evtData?.field, evtData?.payload?.message ?? evtData?.message, evtData);
+        });
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        cardForm.on("submit-initiated", (evtData: any) => {
+          const sessionAge = Date.now() - sessionCreatedAt;
+          console.log("[TIMING-DEBUG] submit-initiated at:", new Date().toISOString());
+          console.log("[TIMING-DEBUG] Session age in seconds:", (sessionAge / 1000).toFixed(1));
+          if (sessionAge > 10 * 60 * 1000) {
+            console.error("[TIMING-DEBUG] SESSION EXPIRED — over 10 minutes old!");
+          }
+          console.log("[TIMING-DEBUG] submit-initiated data:", evtData);
+        });
+
         // ---- Surcharge handling (RewardPay) ----
         // The SDK fires surcharge-info when terminal has surcharging enabled.
         // Payment hangs until we accept or decline the surcharge.
@@ -359,6 +385,24 @@ export function CheckoutForm() {
         cardForm.initialize();
         cardFormRef.current = cardForm;
         console.log("[CHECKOUT] Payroc.hostedFields initialized");
+
+        // SDK method introspection
+        setTimeout(() => {
+          try {
+            const ownProps = Object.getOwnPropertyNames(cardForm);
+            const protoProps = Object.getOwnPropertyNames(Object.getPrototypeOf(cardForm));
+            console.log("[SDK-DEBUG] cardForm own properties:", ownProps.join(", "));
+            console.log("[SDK-DEBUG] cardForm prototype methods:", protoProps.join(", "));
+            // Check for surcharge-related methods
+            const allProps = [...ownProps, ...protoProps];
+            const surchargeProps = allProps.filter(p =>
+              p.toLowerCase().includes("surcharge") || p.toLowerCase().includes("accept")
+            );
+            console.log("[SDK-DEBUG] Surcharge-related methods:", surchargeProps.length > 0 ? surchargeProps.join(", ") : "NONE FOUND");
+          } catch (e) {
+            console.log("[SDK-DEBUG] Could not introspect cardForm:", e);
+          }
+        }, 1000);
 
         if (mounted) setStatus("ready");
       } catch (err) {
