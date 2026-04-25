@@ -58,9 +58,6 @@ export function CheckoutForm() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [paymentResult, setPaymentResult] = useState<PaymentResult | null>(null);
   const [cardBrand, setCardBrand] = useState<CardBrand>("unknown");
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [cardFormRef, setCardFormRef] = useState<any>(null);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const parsedAmountRef = useRef(0);
 
   /* ---- Load Payroc SDK ---- */
@@ -167,25 +164,26 @@ export function CheckoutForm() {
               css: {
                 button: {
                   "background-color": "#017ea7",
+                  "background": "linear-gradient(180deg, #0290be 0%, #017ea7 100%)",
                   "color": "#ffffff",
                   "border": "1px solid #015f80",
                   "border-radius": "10px",
                   "width": "100%",
                   "height": "52px",
-                  "min-height": "52px",
                   "font-family": "Inter, sans-serif",
                   "font-size": "16px",
                   "font-weight": "500",
-                  "letter-spacing": "-0.31px",
+                  "letter-spacing": "-0.1px",
                   "text-align": "center",
                   "cursor": "pointer",
                   "padding": "0",
                   "margin": "0",
-                  "box-shadow": "0 1px 2px rgba(0,0,0,0.15)",
-                  "transition": "all 150ms",
+                  "box-shadow": "0 1px 2px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.12)",
+                  "transition": "all 150ms ease",
                 },
                 "button:hover": {
-                  "background-color": "#0290be",
+                  "background": "linear-gradient(180deg, #03a0d1 0%, #0290be 100%)",
+                  "box-shadow": "0 2px 4px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.15)",
                   "cursor": "pointer",
                 },
                 body: { margin: "0" },
@@ -195,7 +193,6 @@ export function CheckoutForm() {
           });
 
           cardForm.initialize();
-          setCardFormRef(cardForm);
           console.log("[CHECKOUT] cardForm initialized");
 
           // Register ALL events with logging
@@ -203,7 +200,7 @@ export function CheckoutForm() {
             "submissionSuccess",
             async (evtData: { token: string }) => {
               console.log("[CHECKOUT] submissionSuccess:", evtData);
-              if (timeoutRef.current) clearTimeout(timeoutRef.current);
+
               await processPayment(evtData.token);
             }
           );
@@ -212,7 +209,7 @@ export function CheckoutForm() {
             "submissionError",
             (evtData: { type: string; message: string }) => {
               console.log("[CHECKOUT] submissionError:", evtData);
-              if (timeoutRef.current) clearTimeout(timeoutRef.current);
+
               setErrors((p) => ({ ...p, card: evtData.message || "Payment failed. Please try again." }));
               setFormState("ready");
             }
@@ -222,7 +219,7 @@ export function CheckoutForm() {
             "error",
             (evtData: { type: string; field?: string; message: string }) => {
               console.log("[CHECKOUT] error event:", evtData);
-              if (timeoutRef.current) clearTimeout(timeoutRef.current);
+
               setErrors((p) => ({ ...p, card: evtData.message }));
               setFormState("ready");
             }
@@ -455,7 +452,7 @@ export function CheckoutForm() {
           <button
             type="button"
             onClick={() => {
-              if (timeoutRef.current) clearTimeout(timeoutRef.current);
+
               setFormState("ready");
               setErrors({});
             }}
@@ -622,7 +619,10 @@ export function CheckoutForm() {
             </div>
           </div>
           {/* Payroc-injected submit button — this is the ONLY submit */}
-          <div className="payroc-submit-button w-full mt-0 rounded-[10px] overflow-hidden" />
+          <div
+            className="payroc-submit-button w-full rounded-[10px] overflow-hidden"
+            style={{ height: 52 }}
+          />
         </div>
 
         {errors.card && (
