@@ -1,11 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
-  CreditCard,
   Lock,
   Loader2,
-  AlertCircle,
   CheckCircle,
   XCircle,
   DollarSign,
@@ -13,85 +11,16 @@ import {
   Mail,
   FileText,
   RefreshCw,
-  ArrowLeft,
+  AlertCircle,
 } from "lucide-react";
 import Link from "next/link";
-import { CardBrandIcon, AcceptedCardsBadges } from "./card-brand-icons";
-import type { CardBrand } from "./card-brand-icons";
+import { AcceptedCardsBadges } from "./card-brand-icons";
 
 /* ------------------------------------------------------------------ */
-/*  Types for Payroc Hosted Fields global                              */
-/* ------------------------------------------------------------------ */
-
-interface PayrocFieldEvents {
-  on(event: string, callback: (data: Record<string, unknown>) => void): void;
-}
-
-interface PayrocHostedFieldsInstance {
-  tokenize(): Promise<{ token: string }>;
-  getState(): Record<
-    string,
-    { isValid: boolean; isEmpty: boolean; isFocused: boolean }
-  >;
-  on(event: string, callback: (data: Record<string, unknown>) => void): void;
-  fields: Record<string, PayrocFieldEvents>;
-}
-
-interface PayrocHostedFieldsStatic {
-  create(config: {
-    processingTerminalId: string;
-    fields: Record<
-      string,
-      { container: string; placeholder?: string }
-    >;
-    styles?: Record<string, Record<string, string>>;
-  }): PayrocHostedFieldsInstance;
-}
-
-declare global {
-  interface Window {
-    PayrocHostedFields?: PayrocHostedFieldsStatic;
-  }
-}
-
-/* ------------------------------------------------------------------ */
-/*  Styles                                                             */
-/* ------------------------------------------------------------------ */
-
-const card = {
-  background: "#FFFFFF",
-  border: "1px solid #E8EAED",
-  boxShadow:
-    "0 0 0 1px rgba(0,0,0,0.05), 0 4px 8px rgba(0,0,0,0.08)",
-  borderRadius: "12px",
-  padding: "24px",
-} as const;
-
-const inputBase = {
-  width: "100%",
-  height: "48px",
-  background: "#F4F5F7",
-  border: "1px solid #E8EAED",
-  borderRadius: "12px",
-  color: "#1A1313",
-  fontSize: "15px",
-  fontFamily: "Inter, sans-serif",
-  letterSpacing: "-0.31px",
-  outline: "none",
-  padding: "0 14px",
-} as const;
-
-const inputFocusStyle = {
-  border: "1px solid #017ea7",
-  boxShadow: "0 0 0 3px rgba(1,126,167,0.1)",
-} as const;
-
-/* ------------------------------------------------------------------ */
-/*  Sub-components                                                     */
+/*  Types                                                              */
 /* ------------------------------------------------------------------ */
 
 type FormState =
-  | "idle"
   | "loading"
   | "ready"
   | "loadError"
@@ -99,115 +28,47 @@ type FormState =
   | "success"
   | "declined";
 
-function SectionHeader({
-  icon: Icon,
-  title,
-  subtitle,
-}: {
-  icon: typeof CreditCard;
-  title: string;
-  subtitle?: string;
-}) {
-  return (
-    <div className="flex items-center gap-2 mb-5">
-      <Icon size={16} strokeWidth={1.5} style={{ color: "#017ea7" }} />
-      <span
-        className="font-semibold text-sm"
-        style={{ color: "#1A1313", letterSpacing: "-0.31px" }}
-      >
-        {title}
-      </span>
-      {subtitle && (
-        <span className="text-xs ml-auto" style={{ color: "#878787" }}>
-          {subtitle}
-        </span>
-      )}
-    </div>
-  );
-}
-
-function InputField({
-  label,
-  icon: Icon,
-  prefix,
-  error,
-  children,
-}: {
-  label: string;
-  icon?: typeof DollarSign;
-  prefix?: string;
+interface PaymentResult {
+  paymentId?: string;
+  amount?: number;
+  last4?: string;
+  approvalCode?: string;
   error?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <label
-        className="block text-xs font-medium mb-1.5"
-        style={{ color: "#878787", letterSpacing: "-0.31px" }}
-      >
-        {label}
-      </label>
-      <div className="relative">
-        {Icon && !prefix && (
-          <Icon
-            size={16}
-            strokeWidth={1.5}
-            className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
-            style={{ color: "#878787" }}
-          />
-        )}
-        {prefix && (
-          <span
-            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-medium pointer-events-none"
-            style={{ color: "#878787" }}
-          >
-            {prefix}
-          </span>
-        )}
-        {children}
-      </div>
-      {error && (
-        <p className="text-xs mt-1" style={{ color: "#ef4444" }}>
-          {error}
-        </p>
-      )}
-    </div>
-  );
 }
 
 /* ------------------------------------------------------------------ */
-/*  Skeletons                                                          */
+/*  Styles                                                             */
 /* ------------------------------------------------------------------ */
 
-function FieldSkeleton() {
-  return (
-    <div
-      className="animate-pulse rounded-xl"
-      style={{
-        height: "48px",
-        background: "#E8EAED",
-        border: "1px solid #E8EAED",
-      }}
-    />
-  );
-}
+const cardStyle: React.CSSProperties = {
+  background: "#FFFFFF",
+  border: "1px solid #E8EAED",
+  boxShadow:
+    "0 0 0 1px rgba(0,0,0,0.05), 0 4px 8px rgba(0,0,0,0.08)",
+  borderRadius: 12,
+  padding: 24,
+};
+
+const inputStyle: React.CSSProperties = {
+  width: "100%",
+  height: 48,
+  background: "#F4F5F7",
+  border: "1px solid #E8EAED",
+  borderRadius: 8,
+  color: "#1A1313",
+  fontSize: 15,
+  padding: "0 14px",
+  outline: "none",
+  boxSizing: "border-box",
+};
 
 /* ------------------------------------------------------------------ */
-/*  Main form                                                          */
+/*  Component                                                          */
 /* ------------------------------------------------------------------ */
 
-export function CheckoutForm({
-  hostedFieldsUrl,
-  hostedFieldsIntegrity,
-  terminalId,
-}: {
-  hostedFieldsUrl: string;
-  hostedFieldsIntegrity: string;
-  terminalId: string;
-}) {
+export function CheckoutForm() {
   const [formState, setFormState] = useState<FormState>("loading");
   const [amount, setAmount] = useState("");
-  const [tip, setTip] = useState("");
   const [description, setDescription] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -215,311 +76,284 @@ export function CheckoutForm({
   const [orderId] = useState(
     () => crypto.randomUUID().replace(/-/g, "").slice(0, 8).toUpperCase()
   );
-  const [cardBrand, setCardBrand] = useState<CardBrand>("unknown");
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [paymentResult, setPaymentResult] = useState<{
-    paymentId?: string;
-    amount?: number;
-    last4?: string;
-    approvalCode?: string;
-    responseMessage?: string;
-  } | null>(null);
-
-  const hostedFieldsRef = useRef<PayrocHostedFieldsInstance | null>(null);
-  const [focusedField, setFocusedField] = useState<string | null>(null);
-
-  /* ---- focus tracker for our own inputs ---- */
-  const [focusedInput, setFocusedInput] = useState<string | null>(null);
-
-  const getInputStyle = useCallback(
-    (name: string, hasPrefix?: boolean) => ({
-      ...inputBase,
-      paddingLeft: hasPrefix ? "28px" : "14px",
-      ...(focusedInput === name ? inputFocusStyle : {}),
-    }),
-    [focusedInput]
+  const [paymentResult, setPaymentResult] = useState<PaymentResult | null>(
+    null
   );
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [cardFormRef, setCardFormRef] = useState<any>(null);
 
-  /* ---- load Payroc script ---- */
-  const loadHostedFields = useCallback(() => {
+  /* ---- Load Payroc SDK ---- */
+  const loadPayroc = useCallback(async () => {
     setFormState("loading");
 
-    const existing = document.getElementById("payroc-hf-script");
-    if (existing) existing.remove();
-
-    const script = document.createElement("script");
-    script.id = "payroc-hf-script";
-    script.src = hostedFieldsUrl;
-    script.integrity = hostedFieldsIntegrity;
-    script.crossOrigin = "anonymous";
-
-    script.onload = () => {
-      if (!window.PayrocHostedFields) {
+    try {
+      // 1. Get session token from our API
+      const res = await fetch("/api/payroc/session");
+      if (!res.ok) {
+        const data = await res.json();
+        console.error("[CHECKOUT] Session error:", data.error);
         setFormState("loadError");
         return;
       }
 
-      try {
-        const instance = window.PayrocHostedFields.create({
-          processingTerminalId: terminalId,
-          fields: {
-            cardNumber: {
-              container: "#payroc-card-number",
-              placeholder: "1234 5678 9012 3456",
-            },
-            expiryDate: {
-              container: "#payroc-expiry",
-              placeholder: "MM / YY",
-            },
-            cvv: {
-              container: "#payroc-cvv",
-              placeholder: "CVV",
-            },
-          },
-          styles: {
-            input: {
-              color: "#1A1313",
-              fontSize: "15px",
-              fontFamily: "Inter, sans-serif",
-              letterSpacing: "-0.31px",
-              backgroundColor: "transparent",
-            },
-            placeholder: {
-              color: "#878787",
-            },
-          },
-        });
+      const { sessionToken, libUrl, integrity } = await res.json();
 
-        hostedFieldsRef.current = instance;
+      // 2. Remove old script if any
+      const existing = document.getElementById("payroc-hf-script");
+      if (existing) existing.remove();
 
-        instance.on("cardBrandChanged", (data) => {
-          const brand = (data.brand as string)?.toLowerCase() ?? "";
-          if (brand.includes("visa")) setCardBrand("visa");
-          else if (brand.includes("master")) setCardBrand("mastercard");
-          else if (brand.includes("amex") || brand.includes("american"))
-            setCardBrand("amex");
-          else if (brand.includes("discover")) setCardBrand("discover");
-          else setCardBrand("unknown");
-        });
+      // 3. Load Payroc hosted fields script
+      const script = document.createElement("script");
+      script.id = "payroc-hf-script";
+      script.src = libUrl;
+      script.integrity = integrity;
+      script.crossOrigin = "anonymous";
 
-        instance.on("focus", (data) => {
-          setFocusedField(data.field as string);
-        });
+      script.onload = () => {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const Payroc = (window as any).Payroc;
+          if (!Payroc?.hostedFields) {
+            console.error("[CHECKOUT] Payroc.hostedFields not found");
+            setFormState("loadError");
+            return;
+          }
 
-        instance.on("blur", () => {
-          setFocusedField(null);
-        });
+          const cardForm = new Payroc.hostedFields({
+            sessionToken,
+            mode: "payment",
+            fields: {
+              card: {
+                cardholderName: {
+                  target: ".payroc-cardholder-name",
+                  errorTarget: ".payroc-cardholder-name-error",
+                  placeholder: "Cardholder Name",
+                },
+                cardNumber: {
+                  target: ".payroc-card-number",
+                  errorTarget: ".payroc-card-number-error",
+                  placeholder: "1234 5678 1234 1211",
+                },
+                cvv: {
+                  wrapperTarget: ".payroc-cvv-wrapper",
+                  target: ".payroc-card-cvv",
+                  errorTarget: ".payroc-card-cvv-error",
+                  placeholder: "CVV",
+                },
+                expiryDate: {
+                  target: ".payroc-card-expiry",
+                  errorTarget: ".payroc-card-expiry-error",
+                  placeholder: "MM/YY",
+                },
+                submit: {
+                  target: ".payroc-submit-button",
+                  value: "Pay",
+                },
+              },
+            },
+          });
 
-        setFormState("ready");
-      } catch {
+          cardForm.initialize();
+          setCardFormRef(cardForm);
+
+          cardForm.on(
+            "submissionSuccess",
+            async (data: { token: string }) => {
+              await processPayment(data.token);
+            }
+          );
+
+          cardForm.on(
+            "error",
+            (data: { type: string; field?: string; message: string }) => {
+              console.error("[CHECKOUT] Card error:", data);
+              setErrors((prev) => ({
+                ...prev,
+                card: data.message || "Card validation failed",
+              }));
+              setFormState("ready");
+            }
+          );
+
+          setFormState("ready");
+        } catch (err) {
+          console.error("[CHECKOUT] Init error:", err);
+          setFormState("loadError");
+        }
+      };
+
+      script.onerror = () => {
+        console.error("[CHECKOUT] Script load failed");
         setFormState("loadError");
-      }
-    };
+      };
 
-    script.onerror = () => {
+      document.head.appendChild(script);
+    } catch (err) {
+      console.error("[CHECKOUT] Load error:", err);
       setFormState("loadError");
-    };
-
-    document.body.appendChild(script);
-  }, [hostedFieldsUrl, hostedFieldsIntegrity, terminalId]);
+    }
+  // processPayment is stable — defined once via function declaration below
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
-    loadHostedFields();
+    loadPayroc();
     return () => {
       const s = document.getElementById("payroc-hf-script");
       if (s) s.remove();
     };
-  }, [loadHostedFields]);
+  }, [loadPayroc]);
 
-  /* ---- computed total ---- */
-  const parsedAmount = parseFloat(amount) || 0;
-  const parsedTip = parseFloat(tip) || 0;
-  const total = parsedAmount + parsedTip;
-
-  /* ---- validation ---- */
-  function validate(): boolean {
-    const next: Record<string, string> = {};
-    if (!amount || parsedAmount <= 0) {
-      next.amount = "Please enter an amount greater than $0";
+  /* ---- Process payment after token received ---- */
+  async function processPayment(token: string) {
+    const parsedAmount = parseFloat(amount);
+    if (!parsedAmount || parsedAmount <= 0) {
+      setErrors({ amount: "Please enter a valid amount" });
+      setFormState("ready");
+      return;
     }
-    setErrors(next);
-    return Object.keys(next).length === 0;
-  }
-
-  /* ---- submit ---- */
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!validate() || !hostedFieldsRef.current) return;
 
     setFormState("processing");
-    setErrors({});
 
     try {
-      const tokenResult = await hostedFieldsRef.current.tokenize();
-
-      const response = await fetch("/api/payroc/checkout", {
+      const res = await fetch("/api/payroc/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          order: {
-            orderId,
-            orderDate: new Date().toISOString().split("T")[0],
-            description: description || undefined,
-          },
-          customer: {
-            firstName: firstName || undefined,
-            lastName: lastName || undefined,
-            email: email || undefined,
-          },
-          payment: {
-            type: "sale" as const,
-            currency: "USD" as const,
-            country: "USA" as const,
-            amount: Math.round(parsedAmount * 100),
-            tip: parsedTip > 0 ? Math.round(parsedTip * 100) : undefined,
-            cardAccount: {
-              token: tokenResult.token,
-            },
-          },
+          token,
+          amount: parsedAmount,
+          description: description || undefined,
+          customerFirstName: firstName || undefined,
+          customerLastName: lastName || undefined,
+          customerEmail: email || undefined,
+          orderId,
         }),
       });
 
-      const data = await response.json();
+      const data = await res.json();
 
-      if (!response.ok) {
-        setPaymentResult({ responseMessage: data.error ?? "Payment failed" });
-        setFormState("declined");
-        return;
-      }
-
-      if (data.status === "approved") {
+      if (data.success) {
         setPaymentResult({
           paymentId: data.paymentId,
           amount: data.amount,
-          last4: data.cardAccount?.last4,
+          last4: data.last4,
           approvalCode: data.approvalCode,
         });
         setFormState("success");
       } else {
-        setPaymentResult({
-          responseMessage: data.responseMessage ?? "Payment declined",
-        });
+        setPaymentResult({ error: data.error || "Payment declined" });
         setFormState("declined");
       }
     } catch {
-      setPaymentResult({ responseMessage: "Network error. Please try again." });
+      setPaymentResult({ error: "Network error. Please try again." });
       setFormState("declined");
     }
   }
 
-  /* ---- reset ---- */
+  /* ---- Submit ---- */
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const parsedAmount = parseFloat(amount);
+    if (!parsedAmount || parsedAmount <= 0) {
+      setErrors({ amount: "Please enter a valid amount" });
+      return;
+    }
+    setErrors({});
+    setFormState("processing");
+
+    // Trigger Payroc's hosted fields submit
+    if (cardFormRef) {
+      cardFormRef.submit();
+    }
+  }
+
+  /* ---- Reset ---- */
   function resetForm() {
     setAmount("");
-    setTip("");
     setDescription("");
     setFirstName("");
     setLastName("");
     setEmail("");
-    setCardBrand("unknown");
     setErrors({});
     setPaymentResult(null);
     setFormState("loading");
-    setTimeout(() => loadHostedFields(), 50);
+    setTimeout(() => loadPayroc(), 50);
   }
 
-  function retryCard() {
-    setPaymentResult(null);
-    setFormState("loading");
-    setTimeout(() => loadHostedFields(), 50);
-  }
-
-  /* ---- hosted field container style ---- */
-  function hfContainerStyle(name: string) {
-    return {
-      height: "48px",
-      background: "#F4F5F7",
-      border:
-        focusedField === name
-          ? "1px solid #017ea7"
-          : "1px solid #E8EAED",
-      borderRadius: "12px",
-      boxShadow:
-        focusedField === name
-          ? "0 0 0 3px rgba(1,126,167,0.1)"
-          : "none",
-      padding: "0 14px",
-      display: "flex",
-      alignItems: "center",
-      transition: "border 0.15s, box-shadow 0.15s",
-    };
-  }
+  const parsedAmount = parseFloat(amount) || 0;
 
   /* ================================================================ */
-  /*  SUCCESS STATE                                                    */
+  /*  SUCCESS                                                          */
   /* ================================================================ */
   if (formState === "success" && paymentResult) {
     const displayAmount =
       paymentResult.amount != null
         ? (paymentResult.amount / 100).toFixed(2)
-        : total.toFixed(2);
+        : parsedAmount.toFixed(2);
 
     return (
-      <div style={card}>
-        <div className="flex flex-col items-center text-center py-6">
-          <div className="relative mb-5">
-            <div
-              className="absolute inset-0 rounded-full animate-ping"
-              style={{
-                background: "rgba(34,197,94,0.15)",
-                animationDuration: "1.5s",
-              }}
-            />
-            <CheckCircle
-              size={48}
-              strokeWidth={1.5}
-              style={{ color: "#22c55e" }}
-              className="relative"
-            />
-          </div>
-          <h2
-            className="text-2xl font-bold mb-2"
-            style={{ color: "#1A1313", letterSpacing: "-0.31px" }}
+      <div style={cardStyle}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            textAlign: "center",
+            padding: "24px 0",
+          }}
+        >
+          <CheckCircle
+            size={48}
+            strokeWidth={1.5}
+            style={{ color: "#22c55e", marginBottom: 16 }}
+          />
+          <h2 style={{ marginBottom: 8 }}>Payment Approved</h2>
+          <p
+            style={{
+              fontSize: 20,
+              fontWeight: 600,
+              color: "#166534",
+              marginBottom: 4,
+            }}
           >
-            Payment Approved
-          </h2>
-          <div className="space-y-1 mb-6">
-            <p className="text-lg font-semibold" style={{ color: "#22c55e" }}>
-              ${displayAmount}
+            ${displayAmount}
+          </p>
+          {paymentResult.last4 && (
+            <p style={{ fontSize: 14, color: "#878787" }}>
+              Card ending in {paymentResult.last4}
             </p>
-            {paymentResult.last4 && (
-              <p className="text-sm" style={{ color: "#878787" }}>
-                Card ending in {paymentResult.last4}
-              </p>
-            )}
-            {paymentResult.approvalCode && (
-              <p className="text-xs" style={{ color: "#878787" }}>
-                Approval code: {paymentResult.approvalCode}
-              </p>
-            )}
-          </div>
-          <div className="flex flex-col gap-3 w-full max-w-xs">
+          )}
+          {paymentResult.approvalCode && (
+            <p style={{ fontSize: 12, color: "#878787", marginTop: 4 }}>
+              Approval: {paymentResult.approvalCode}
+            </p>
+          )}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 12,
+              width: "100%",
+              maxWidth: 280,
+              marginTop: 24,
+            }}
+          >
             <button
               onClick={resetForm}
-              className="w-full flex items-center justify-center gap-2 font-semibold text-sm cursor-pointer"
-              style={{
-                height: "44px",
-                background: "#017ea7",
-                color: "#fff",
-                borderRadius: "12px",
-                border: "none",
-              }}
+              className="inline-flex items-center justify-center gap-2 px-4 h-10 bg-[#017ea7] hover:bg-[#0290be] text-white text-sm font-medium rounded-lg border border-[#015f80] transition-all duration-150 cursor-pointer"
             >
               New Payment
             </button>
             <Link
               href="/transactions"
-              className="text-sm font-medium text-center"
-              style={{ color: "#878787" }}
+              style={{
+                fontSize: 14,
+                fontWeight: 500,
+                color: "#878787",
+                textAlign: "center",
+                textDecoration: "none",
+              }}
             >
               View Transactions
             </Link>
@@ -530,37 +364,32 @@ export function CheckoutForm({
   }
 
   /* ================================================================ */
-  /*  DECLINED STATE                                                   */
+  /*  DECLINED                                                         */
   /* ================================================================ */
   if (formState === "declined" && paymentResult) {
     return (
-      <div style={card}>
-        <div className="flex flex-col items-center text-center py-6">
+      <div style={cardStyle}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            textAlign: "center",
+            padding: "24px 0",
+          }}
+        >
           <XCircle
             size={48}
             strokeWidth={1.5}
-            style={{ color: "#ef4444" }}
-            className="mb-4"
+            style={{ color: "#ef4444", marginBottom: 16 }}
           />
-          <h2
-            className="text-2xl font-bold mb-2"
-            style={{ color: "#1A1313", letterSpacing: "-0.31px" }}
-          >
-            Payment Declined
-          </h2>
-          <p className="text-sm mb-6" style={{ color: "#878787" }}>
-            {paymentResult.responseMessage}
+          <h2 style={{ marginBottom: 8 }}>Payment Declined</h2>
+          <p style={{ fontSize: 14, color: "#878787", marginBottom: 24 }}>
+            {paymentResult.error}
           </p>
           <button
-            onClick={retryCard}
-            className="w-full max-w-xs flex items-center justify-center gap-2 font-semibold text-sm cursor-pointer"
-            style={{
-              height: "44px",
-              background: "#017ea7",
-              color: "#fff",
-              borderRadius: "12px",
-              border: "none",
-            }}
+            onClick={resetForm}
+            className="inline-flex items-center justify-center gap-2 px-4 h-10 bg-[#017ea7] hover:bg-[#0290be] text-white text-sm font-medium rounded-lg border border-[#015f80] transition-all duration-150 cursor-pointer"
           >
             Try Again
           </button>
@@ -576,190 +405,296 @@ export function CheckoutForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5 relative">
-      {/* --- Processing overlay --- */}
+      {/* Processing overlay */}
       {formState === "processing" && (
         <div
-          className="absolute inset-0 z-20 flex flex-col items-center justify-center rounded-xl"
-          style={{ background: "rgba(251,251,251,0.8)", backdropFilter: "blur(4px)" }}
+          style={{
+            position: "absolute",
+            inset: 0,
+            zIndex: 20,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            borderRadius: 12,
+            background: "rgba(251,251,251,0.85)",
+            backdropFilter: "blur(4px)",
+          }}
         >
           <Loader2
             size={32}
             strokeWidth={1.5}
-            className="animate-spin mb-3"
-            style={{ color: "#017ea7" }}
+            className="animate-spin"
+            style={{ color: "#017ea7", marginBottom: 12 }}
           />
-          <p className="text-sm font-medium" style={{ color: "#1A1313" }}>
+          <p style={{ fontSize: 14, fontWeight: 500, color: "#1A1313" }}>
             Processing your payment...
           </p>
         </div>
       )}
 
-      {/* ============================================================ */}
-      {/* PAYMENT DETAILS                                               */}
-      {/* ============================================================ */}
-      <div style={card}>
-        <SectionHeader icon={CreditCard} title="Payment Details" />
+      {/* ORDER DETAILS */}
+      <div style={cardStyle}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            marginBottom: 20,
+          }}
+        >
+          <DollarSign size={16} strokeWidth={1.5} color="#017ea7" />
+          <span
+            style={{ fontSize: 15, fontWeight: 600, color: "#1A1313" }}
+          >
+            Payment Details
+          </span>
+        </div>
 
-        <div className="space-y-4">
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {/* Amount */}
-          <InputField label="Amount" prefix="$" error={errors.amount}>
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              value={amount}
-              onChange={(e) => {
-                setAmount(e.target.value);
-                if (errors.amount) setErrors((p) => ({ ...p, amount: "" }));
-              }}
-              onFocus={() => setFocusedInput("amount")}
-              onBlur={() => setFocusedInput(null)}
-              placeholder="0.00"
-              disabled={disabled}
+          <div>
+            <label
               style={{
-                ...getInputStyle("amount", true),
-                fontSize: "18px",
-                fontWeight: 600,
+                display: "block",
+                fontSize: 13,
+                fontWeight: 500,
+                color: "#878787",
+                marginBottom: 6,
               }}
-            />
-          </InputField>
-
-          {/* Tip */}
-          <InputField label="Tip (optional)" prefix="$">
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              value={tip}
-              onChange={(e) => setTip(e.target.value)}
-              onFocus={() => setFocusedInput("tip")}
-              onBlur={() => setFocusedInput(null)}
-              placeholder="0.00"
-              disabled={disabled}
-              style={getInputStyle("tip", true)}
-            />
-          </InputField>
+            >
+              Amount *
+            </label>
+            <div style={{ position: "relative" }}>
+              <span
+                style={{
+                  position: "absolute",
+                  left: 14,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  color: "#878787",
+                  fontSize: 15,
+                  fontWeight: 500,
+                }}
+              >
+                $
+              </span>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={amount}
+                onChange={(e) => {
+                  setAmount(e.target.value);
+                  setErrors((p) => ({ ...p, amount: "" }));
+                }}
+                placeholder="0.00"
+                disabled={disabled}
+                style={{
+                  ...inputStyle,
+                  paddingLeft: 28,
+                  fontSize: 18,
+                  fontWeight: 600,
+                }}
+              />
+            </div>
+            {errors.amount && (
+              <p style={{ fontSize: 12, color: "#ef4444", marginTop: 4 }}>
+                {errors.amount}
+              </p>
+            )}
+          </div>
 
           {/* Description */}
-          <InputField label="Description (optional)" icon={FileText}>
-            <input
-              type="text"
-              maxLength={200}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              onFocus={() => setFocusedInput("desc")}
-              onBlur={() => setFocusedInput(null)}
-              placeholder="No-show fee, Deposit, etc."
-              disabled={disabled}
-              style={{ ...getInputStyle("desc"), paddingLeft: "36px" }}
-            />
-          </InputField>
-          {description.length > 0 && (
-            <p className="text-xs text-right -mt-2" style={{ color: "#878787" }}>
-              {description.length}/200
-            </p>
-          )}
-        </div>
+          <div>
+            <label
+              style={{
+                display: "block",
+                fontSize: 13,
+                fontWeight: 500,
+                color: "#878787",
+                marginBottom: 6,
+              }}
+            >
+              Description
+            </label>
+            <div style={{ position: "relative" }}>
+              <FileText
+                size={16}
+                strokeWidth={1.5}
+                style={{
+                  position: "absolute",
+                  left: 14,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  color: "#878787",
+                  pointerEvents: "none",
+                }}
+              />
+              <input
+                type="text"
+                maxLength={200}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="No-show fee, Deposit, etc."
+                disabled={disabled}
+                style={{ ...inputStyle, paddingLeft: 40 }}
+              />
+            </div>
+          </div>
 
-        {/* --- Customer --- */}
-        <div
-          className="mt-5 pt-5"
-          style={{ borderTop: "1px solid #E8EAED" }}
-        >
-          <p
-            className="text-xs font-medium mb-3"
-            style={{ color: "#878787", letterSpacing: "-0.31px" }}
+          {/* Customer */}
+          <div
+            style={{
+              borderTop: "1px solid #E8EAED",
+              paddingTop: 16,
+            }}
           >
-            Customer (optional)
-          </p>
-          <div className="grid grid-cols-2 gap-3">
-            <InputField label="First Name" icon={User}>
-              <input
-                type="text"
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                onFocus={() => setFocusedInput("fn")}
-                onBlur={() => setFocusedInput(null)}
-                placeholder="Jane"
-                disabled={disabled}
-                style={{ ...getInputStyle("fn"), paddingLeft: "36px" }}
-              />
-            </InputField>
-            <InputField label="Last Name" icon={User}>
-              <input
-                type="text"
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                onFocus={() => setFocusedInput("ln")}
-                onBlur={() => setFocusedInput(null)}
-                placeholder="Doe"
-                disabled={disabled}
-                style={{ ...getInputStyle("ln"), paddingLeft: "36px" }}
-              />
-            </InputField>
+            <p
+              style={{
+                fontSize: 12,
+                fontWeight: 500,
+                color: "#878787",
+                marginBottom: 12,
+              }}
+            >
+              Customer (optional)
+            </p>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 12,
+              }}
+            >
+              <div>
+                <div style={{ position: "relative" }}>
+                  <User
+                    size={16}
+                    strokeWidth={1.5}
+                    style={{
+                      position: "absolute",
+                      left: 14,
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      color: "#878787",
+                      pointerEvents: "none",
+                    }}
+                  />
+                  <input
+                    type="text"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    placeholder="First Name"
+                    disabled={disabled}
+                    style={{ ...inputStyle, paddingLeft: 40, height: 40 }}
+                  />
+                </div>
+              </div>
+              <div>
+                <input
+                  type="text"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  placeholder="Last Name"
+                  disabled={disabled}
+                  style={{ ...inputStyle, height: 40 }}
+                />
+              </div>
+            </div>
+            <div style={{ marginTop: 12 }}>
+              <div style={{ position: "relative" }}>
+                <Mail
+                  size={16}
+                  strokeWidth={1.5}
+                  style={{
+                    position: "absolute",
+                    left: 14,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    color: "#878787",
+                    pointerEvents: "none",
+                  }}
+                />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Email"
+                  disabled={disabled}
+                  style={{ ...inputStyle, paddingLeft: 40, height: 40 }}
+                />
+              </div>
+            </div>
           </div>
-          <div className="mt-3">
-            <InputField label="Email" icon={Mail}>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                onFocus={() => setFocusedInput("email")}
-                onBlur={() => setFocusedInput(null)}
-                placeholder="jane@example.com"
-                disabled={disabled}
-                style={{ ...getInputStyle("email"), paddingLeft: "36px" }}
-              />
-            </InputField>
-          </div>
-        </div>
 
-        {/* Order ID */}
-        <p className="mt-4 text-xs" style={{ color: "#878787" }}>
-          Order #{orderId}
-        </p>
+          <p style={{ fontSize: 12, color: "#ABABAB" }}>
+            Order #{orderId}
+          </p>
+        </div>
       </div>
 
-      {/* ============================================================ */}
-      {/* CARD INFORMATION                                              */}
-      {/* ============================================================ */}
-      <div style={card}>
-        <SectionHeader
-          icon={Lock}
-          title="Card Information"
-          subtitle="Secured by Payroc"
-        />
+      {/* CARD INFORMATION */}
+      <div style={cardStyle}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            marginBottom: 20,
+          }}
+        >
+          <Lock size={16} strokeWidth={1.5} color="#017ea7" />
+          <span
+            style={{ fontSize: 15, fontWeight: 600, color: "#1A1313" }}
+          >
+            Card Information
+          </span>
+          <span
+            style={{ fontSize: 12, color: "#878787", marginLeft: "auto" }}
+          >
+            Secured by Payroc
+          </span>
+        </div>
 
-        {/* Load error state */}
+        {/* Load error */}
         {formState === "loadError" && (
-          <div className="flex flex-col items-center py-8">
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              padding: "32px 0",
+            }}
+          >
             <AlertCircle
               size={32}
               strokeWidth={1.5}
-              style={{ color: "#ef4444" }}
-              className="mb-3"
+              style={{ color: "#ef4444", marginBottom: 12 }}
             />
             <p
-              className="text-sm font-medium mb-1"
-              style={{ color: "#1A1313" }}
+              style={{
+                fontSize: 14,
+                fontWeight: 500,
+                color: "#1A1313",
+                marginBottom: 4,
+              }}
             >
               Payment fields failed to load
             </p>
-            <p className="text-xs mb-4" style={{ color: "#878787" }}>
+            <p
+              style={{
+                fontSize: 13,
+                color: "#878787",
+                marginBottom: 16,
+              }}
+            >
               Please refresh or try again.
             </p>
             <button
               type="button"
-              onClick={loadHostedFields}
-              className="flex items-center gap-2 text-sm font-medium cursor-pointer"
-              style={{
-                height: "40px",
-                padding: "0 16px",
-                background: "#E6F4F8",
-                color: "#017ea7",
-                borderRadius: "10px",
-                border: "1px solid rgba(1,126,167,0.2)",
-              }}
+              onClick={loadPayroc}
+              className="inline-flex items-center gap-2 px-3 h-8 bg-white hover:bg-[#F4F5F7] text-[#1A1313] text-sm font-medium rounded-lg border border-[#D1D5DB] transition-all duration-150 cursor-pointer"
             >
               <RefreshCw size={14} strokeWidth={1.5} />
               Retry
@@ -769,130 +704,243 @@ export function CheckoutForm({
 
         {/* Loading skeleton */}
         {formState === "loading" && (
-          <div className="space-y-3">
-            <FieldSkeleton />
-            <div className="grid grid-cols-2 gap-3">
-              <FieldSkeleton />
-              <FieldSkeleton />
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {[1, 2].map((i) => (
+              <div
+                key={i}
+                className="animate-pulse"
+                style={{
+                  height: 48,
+                  borderRadius: 8,
+                  background: "#E8EAED",
+                }}
+              />
+            ))}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 12,
+              }}
+            >
+              {[1, 2].map((i) => (
+                <div
+                  key={i}
+                  className="animate-pulse"
+                  style={{
+                    height: 48,
+                    borderRadius: 8,
+                    background: "#E8EAED",
+                  }}
+                />
+              ))}
             </div>
-            <p className="text-xs text-center" style={{ color: "#878787" }}>
+            <p
+              style={{
+                fontSize: 13,
+                color: "#878787",
+                textAlign: "center",
+              }}
+            >
               Loading secure payment fields...
             </p>
           </div>
         )}
 
-        {/* Hosted fields */}
+        {/* Payroc hosted field containers */}
         <div
-          className="space-y-3"
           style={{
             display:
               formState === "ready" || formState === "processing"
-                ? "block"
+                ? "flex"
                 : "none",
+            flexDirection: "column",
+            gap: 12,
           }}
         >
-          {/* Card number */}
+          {/* Cardholder Name */}
           <div>
             <label
-              className="block text-xs font-medium mb-1.5"
-              style={{ color: "#878787", letterSpacing: "-0.31px" }}
+              style={{
+                display: "block",
+                fontSize: 13,
+                fontWeight: 500,
+                color: "#878787",
+                marginBottom: 6,
+              }}
+            >
+              Cardholder Name
+            </label>
+            <div
+              className="payroc-cardholder-name"
+              style={{
+                height: 48,
+                background: "#F4F5F7",
+                border: "1px solid #E8EAED",
+                borderRadius: 8,
+                overflow: "hidden",
+              }}
+            />
+            <div
+              className="payroc-cardholder-name-error"
+              style={{ fontSize: 12, color: "#ef4444", marginTop: 4 }}
+            />
+          </div>
+
+          {/* Card Number */}
+          <div>
+            <label
+              style={{
+                display: "block",
+                fontSize: 13,
+                fontWeight: 500,
+                color: "#878787",
+                marginBottom: 6,
+              }}
             >
               Card Number
             </label>
-            <div className="relative">
-              <div
-                id="payroc-card-number"
-                style={hfContainerStyle("cardNumber")}
-              />
-              {cardBrand !== "unknown" && (
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                  <CardBrandIcon brand={cardBrand} size={24} />
-                </div>
-              )}
-            </div>
+            <div
+              className="payroc-card-number"
+              style={{
+                height: 48,
+                background: "#F4F5F7",
+                border: "1px solid #E8EAED",
+                borderRadius: 8,
+                overflow: "hidden",
+              }}
+            />
+            <div
+              className="payroc-card-number-error"
+              style={{ fontSize: 12, color: "#ef4444", marginTop: 4 }}
+            />
           </div>
 
-          {/* Expiry + CVV */}
-          <div className="grid grid-cols-2 gap-3">
+          {/* Expiry + CVV side by side */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: 12,
+            }}
+          >
             <div>
               <label
-                className="block text-xs font-medium mb-1.5"
-                style={{ color: "#878787", letterSpacing: "-0.31px" }}
+                style={{
+                  display: "block",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  color: "#878787",
+                  marginBottom: 6,
+                }}
               >
                 Expiry Date
               </label>
               <div
-                id="payroc-expiry"
-                style={hfContainerStyle("expiryDate")}
+                className="payroc-card-expiry"
+                style={{
+                  height: 48,
+                  background: "#F4F5F7",
+                  border: "1px solid #E8EAED",
+                  borderRadius: 8,
+                  overflow: "hidden",
+                }}
+              />
+              <div
+                className="payroc-card-expiry-error"
+                style={{ fontSize: 12, color: "#ef4444", marginTop: 4 }}
               />
             </div>
-            <div>
+            <div className="payroc-cvv-wrapper">
               <label
-                className="block text-xs font-medium mb-1.5"
-                style={{ color: "#878787", letterSpacing: "-0.31px" }}
+                style={{
+                  display: "block",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  color: "#878787",
+                  marginBottom: 6,
+                }}
               >
                 CVV
               </label>
-              <div id="payroc-cvv" style={hfContainerStyle("cvv")} />
+              <div
+                className="payroc-card-cvv"
+                style={{
+                  height: 48,
+                  background: "#F4F5F7",
+                  border: "1px solid #E8EAED",
+                  borderRadius: 8,
+                  overflow: "hidden",
+                }}
+              />
+              <div
+                className="payroc-card-cvv-error"
+                style={{ fontSize: 12, color: "#ef4444", marginTop: 4 }}
+              />
             </div>
           </div>
+
+          {/* Hidden Payroc submit button */}
+          <div className="payroc-submit-button" style={{ display: "none" }} />
         </div>
 
-        {/* Accepted cards row */}
-        <div className="flex items-center justify-between mt-4">
+        {/* Card error */}
+        {errors.card && (
+          <p
+            style={{
+              fontSize: 13,
+              color: "#ef4444",
+              marginTop: 8,
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            <AlertCircle size={14} strokeWidth={1.5} />
+            {errors.card}
+          </p>
+        )}
+
+        {/* Accepted cards */}
+        <div style={{ marginTop: 16 }}>
           <AcceptedCardsBadges />
         </div>
-        <p className="text-xs mt-3" style={{ color: "#878787" }}>
+        <p style={{ fontSize: 12, color: "#ABABAB", marginTop: 12 }}>
           Your card details are encrypted and never stored on our servers.
         </p>
       </div>
 
-      {/* ============================================================ */}
-      {/* ACTION                                                        */}
-      {/* ============================================================ */}
+      {/* ACTION */}
       <div>
-        {/* Total */}
-        <div className="flex items-center justify-between mb-4 px-1">
-          <span className="text-sm" style={{ color: "#878787" }}>
-            Total
-          </span>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 16,
+            padding: "0 4px",
+          }}
+        >
+          <span style={{ fontSize: 14, color: "#878787" }}>Total</span>
           <span
-            className="text-xl font-bold"
-            style={{ color: "#1A1313", letterSpacing: "-0.31px" }}
+            style={{ fontSize: 20, fontWeight: 600, color: "#1A1313" }}
           >
-            ${total.toFixed(2)}
+            ${parsedAmount.toFixed(2)}
           </span>
         </div>
 
-        {/* Submit */}
         <button
           type="submit"
           disabled={disabled || formState !== "ready"}
-          className="w-full flex items-center justify-center gap-2 font-semibold text-sm transition-all cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
-          style={{
-            height: "52px",
-            background: "#017ea7",
-            color: "#fff",
-            borderRadius: "12px",
-            border: "none",
-            letterSpacing: "-0.31px",
-          }}
-          onMouseEnter={(e) => {
-            if (!disabled) e.currentTarget.style.background = "#015f80";
-          }}
-          onMouseLeave={(e) => {
-            if (!disabled) e.currentTarget.style.background = "#017ea7";
-          }}
-          onMouseDown={(e) => {
-            if (!disabled) e.currentTarget.style.transform = "scale(0.97)";
-          }}
-          onMouseUp={(e) => {
-            if (!disabled) e.currentTarget.style.transform = "scale(1)";
-          }}
+          className="w-full inline-flex items-center justify-center gap-2 h-12 bg-[#017ea7] hover:bg-[#0290be] text-white text-[15px] font-medium rounded-lg border border-[#015f80] transition-all duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {formState === "processing" ? (
             <>
-              <Loader2 size={16} strokeWidth={1.5} className="animate-spin" />
+              <Loader2
+                size={16}
+                strokeWidth={1.5}
+                className="animate-spin"
+              />
               Processing...
             </>
           ) : (
@@ -900,13 +948,19 @@ export function CheckoutForm({
           )}
         </button>
 
-        {/* Cancel */}
         <Link
           href="/dashboard"
-          className="flex items-center justify-center gap-1.5 mt-3 text-sm font-medium"
-          style={{ color: "#878787" }}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            marginTop: 12,
+            fontSize: 14,
+            fontWeight: 500,
+            color: "#878787",
+            textDecoration: "none",
+          }}
         >
-          <ArrowLeft size={14} strokeWidth={1.5} />
           Cancel
         </Link>
       </div>
