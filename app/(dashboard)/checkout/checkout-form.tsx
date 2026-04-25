@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import {
   Lock,
   Loader2,
-  CheckCircle,
+  CheckCircle2,
   XCircle,
   DollarSign,
   User,
@@ -12,13 +12,12 @@ import {
   FileText,
   RefreshCw,
   AlertCircle,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import Link from "next/link";
-import { AcceptedCardsBadges } from "./card-brand-icons";
-
-/* ------------------------------------------------------------------ */
-/*  Types                                                              */
-/* ------------------------------------------------------------------ */
+import { AcceptedCardsBadges, CardBrandIcon } from "./card-brand-icons";
+import type { CardBrand } from "./card-brand-icons";
 
 type FormState =
   | "loading"
@@ -33,38 +32,17 @@ interface PaymentResult {
   amount?: number;
   last4?: string;
   approvalCode?: string;
+  cardBrand?: string;
   error?: string;
 }
 
-/* ------------------------------------------------------------------ */
-/*  Styles                                                             */
-/* ------------------------------------------------------------------ */
+const INPUT =
+  "w-full h-10 bg-[#F4F5F7] border border-[#E8EAED] rounded-lg text-[#1A1313] text-sm px-3 outline-none transition-all duration-150 focus:border-[#017ea7] focus:ring-[3px] focus:ring-[#017ea7]/10 focus:bg-white placeholder:text-[#ABABAB]";
 
-const cardStyle: React.CSSProperties = {
-  background: "#FFFFFF",
-  border: "1px solid #E8EAED",
-  boxShadow:
-    "0 0 0 1px rgba(0,0,0,0.05), 0 4px 8px rgba(0,0,0,0.08)",
-  borderRadius: 12,
-  padding: 24,
-};
+const LABEL = "block text-[13px] font-medium text-[#4A4A4A] mb-1";
 
-const inputStyle: React.CSSProperties = {
-  width: "100%",
-  height: 48,
-  background: "#F4F5F7",
-  border: "1px solid #E8EAED",
-  borderRadius: 8,
-  color: "#1A1313",
-  fontSize: 15,
-  padding: "0 14px",
-  outline: "none",
-  boxSizing: "border-box",
-};
-
-/* ------------------------------------------------------------------ */
-/*  Component                                                          */
-/* ------------------------------------------------------------------ */
+const CARD =
+  "bg-white border border-[#E8EAED] rounded-xl p-6 shadow-[0_0_0_1px_rgba(0,0,0,0.05),0_1px_1px_rgba(0,0,0,0.05),0_2px_2px_rgba(0,0,0,0.05),0_4px_4px_rgba(0,0,0,0.05),0_8px_8px_rgba(0,0,0,0.05),0_16px_16px_rgba(0,0,0,0.05)]";
 
 export function CheckoutForm() {
   const [formState, setFormState] = useState<FormState>("loading");
@@ -73,37 +51,36 @@ export function CheckoutForm() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
+  const [showCustomer, setShowCustomer] = useState(false);
   const [orderId] = useState(
     () => crypto.randomUUID().replace(/-/g, "").slice(0, 8).toUpperCase()
   );
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [paymentResult, setPaymentResult] = useState<PaymentResult | null>(
-    null
-  );
+  const [paymentResult, setPaymentResult] = useState<PaymentResult | null>(null);
+  const [cardBrand, setCardBrand] = useState<CardBrand>("unknown");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [cardFormRef, setCardFormRef] = useState<any>(null);
 
   /* ---- Load Payroc SDK ---- */
   const loadPayroc = useCallback(async () => {
     setFormState("loading");
-
     try {
-      // 1. Get session token from our API
       const res = await fetch("/api/payroc/session");
       if (!res.ok) {
-        const data = await res.json();
-        console.error("[CHECKOUT] Session error:", data.error);
+        console.error("[CHECKOUT] Session error:", await res.text());
+        setFormState("loadError");
+        return;
+      }
+      const { sessionToken, libUrl, integrity } = await res.json();
+      if (!sessionToken) {
+        console.error("[CHECKOUT] No session token returned");
         setFormState("loadError");
         return;
       }
 
-      const { sessionToken, libUrl, integrity } = await res.json();
-
-      // 2. Remove old script if any
       const existing = document.getElementById("payroc-hf-script");
       if (existing) existing.remove();
 
-      // 3. Load Payroc hosted fields script
       const script = document.createElement("script");
       script.id = "payroc-hf-script";
       script.src = libUrl;
@@ -115,7 +92,6 @@ export function CheckoutForm() {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const Payroc = (window as any).Payroc;
           if (!Payroc?.hostedFields) {
-            console.error("[CHECKOUT] Payroc.hostedFields not found");
             setFormState("loadError");
             return;
           }
@@ -148,9 +124,23 @@ export function CheckoutForm() {
                 },
                 submit: {
                   target: ".payroc-submit-button",
-                  value: "Pay",
+                  value: "Pay Now",
                 },
               },
+            },
+            styles: {
+              input: {
+                color: "#1A1313",
+                fontSize: "15px",
+                fontFamily: "Inter, -apple-system, sans-serif",
+                letterSpacing: "-0.31px",
+                backgroundColor: "transparent",
+                border: "none",
+                outline: "none",
+                width: "100%",
+                height: "100%",
+              },
+              placeholder: { color: "#ABABAB" },
             },
           });
 
@@ -165,14 +155,30 @@ export function CheckoutForm() {
           );
 
           cardForm.on(
+            "submissionError",
+            (data: { type: string; message: string }) => {
+              setErrors((p) => ({ ...p, card: data.message || "Card error" }));
+              setFormState("ready");
+            }
+          );
+
+          cardForm.on(
             "error",
             (data: { type: string; field?: string; message: string }) => {
-              console.error("[CHECKOUT] Card error:", data);
-              setErrors((prev) => ({
-                ...prev,
-                card: data.message || "Card validation failed",
-              }));
+              setErrors((p) => ({ ...p, card: data.message }));
               setFormState("ready");
+            }
+          );
+
+          cardForm.on(
+            "cardBrandChange",
+            (data: { brand: string }) => {
+              const b = data.brand?.toLowerCase() ?? "";
+              if (b.includes("visa")) setCardBrand("visa");
+              else if (b.includes("master")) setCardBrand("mastercard");
+              else if (b.includes("amex") || b.includes("american")) setCardBrand("amex");
+              else if (b.includes("discover")) setCardBrand("discover");
+              else setCardBrand("unknown");
             }
           );
 
@@ -183,17 +189,11 @@ export function CheckoutForm() {
         }
       };
 
-      script.onerror = () => {
-        console.error("[CHECKOUT] Script load failed");
-        setFormState("loadError");
-      };
-
+      script.onerror = () => setFormState("loadError");
       document.head.appendChild(script);
-    } catch (err) {
-      console.error("[CHECKOUT] Load error:", err);
+    } catch {
       setFormState("loadError");
     }
-  // processPayment is stable — defined once via function declaration below
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -205,17 +205,14 @@ export function CheckoutForm() {
     };
   }, [loadPayroc]);
 
-  /* ---- Process payment after token received ---- */
   async function processPayment(token: string) {
     const parsedAmount = parseFloat(amount);
     if (!parsedAmount || parsedAmount <= 0) {
-      setErrors({ amount: "Please enter a valid amount" });
+      setErrors({ amount: "Enter a valid amount" });
       setFormState("ready");
       return;
     }
-
     setFormState("processing");
-
     try {
       const res = await fetch("/api/payroc/checkout", {
         method: "POST",
@@ -230,19 +227,20 @@ export function CheckoutForm() {
           orderId,
         }),
       });
-
       const data = await res.json();
-
       if (data.success) {
         setPaymentResult({
           paymentId: data.paymentId,
           amount: data.amount,
           last4: data.last4,
           approvalCode: data.approvalCode,
+          cardBrand: data.cardBrand,
         });
         setFormState("success");
       } else {
-        setPaymentResult({ error: data.error || "Payment declined" });
+        setPaymentResult({
+          error: data.declineReason || data.error || "Payment declined",
+        });
         setFormState("declined");
       }
     } catch {
@@ -251,24 +249,18 @@ export function CheckoutForm() {
     }
   }
 
-  /* ---- Submit ---- */
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const parsedAmount = parseFloat(amount);
     if (!parsedAmount || parsedAmount <= 0) {
-      setErrors({ amount: "Please enter a valid amount" });
+      setErrors({ amount: "Enter a valid amount" });
       return;
     }
     setErrors({});
     setFormState("processing");
-
-    // Trigger Payroc's hosted fields submit
-    if (cardFormRef) {
-      cardFormRef.submit();
-    }
+    if (cardFormRef) cardFormRef.submit();
   }
 
-  /* ---- Reset ---- */
   function resetForm() {
     setAmount("");
     setDescription("");
@@ -277,6 +269,7 @@ export function CheckoutForm() {
     setEmail("");
     setErrors({});
     setPaymentResult(null);
+    setCardBrand("unknown");
     setFormState("loading");
     setTimeout(() => loadPayroc(), 50);
   }
@@ -293,67 +286,47 @@ export function CheckoutForm() {
         : parsedAmount.toFixed(2);
 
     return (
-      <div style={cardStyle}>
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            textAlign: "center",
-            padding: "24px 0",
-          }}
-        >
-          <CheckCircle
-            size={48}
-            strokeWidth={1.5}
-            style={{ color: "#22c55e", marginBottom: 16 }}
-          />
-          <h2 style={{ marginBottom: 8 }}>Payment Approved</h2>
-          <p
-            style={{
-              fontSize: 20,
-              fontWeight: 600,
-              color: "#166534",
-              marginBottom: 4,
-            }}
-          >
+      <div className={CARD}>
+        <div className="flex flex-col items-center text-center py-6">
+          {/* Animated checkmark */}
+          <div className="relative mb-6">
+            <div
+              className="absolute inset-0 rounded-full animate-ping"
+              style={{ background: "rgba(34,197,94,0.2)", animationDuration: "1.5s" }}
+            />
+            <div
+              className="relative w-12 h-12 rounded-full flex items-center justify-center"
+              style={{ background: "#22c55e" }}
+            >
+              <CheckCircle2 size={24} strokeWidth={1.5} color="#fff" />
+            </div>
+          </div>
+          <h2 className="text-2xl font-semibold text-[#1A1313] mb-2">
+            Payment Approved
+          </h2>
+          <p className="text-[32px] font-semibold text-[#15803D] mb-1">
             ${displayAmount}
           </p>
           {paymentResult.last4 && (
-            <p style={{ fontSize: 14, color: "#878787" }}>
-              Card ending in {paymentResult.last4}
+            <p className="text-sm text-[#878787]">
+              {paymentResult.cardBrand ? `${paymentResult.cardBrand} ending in` : "Card ending in"} ····{paymentResult.last4}
             </p>
           )}
           {paymentResult.approvalCode && (
-            <p style={{ fontSize: 12, color: "#878787", marginTop: 4 }}>
-              Approval: {paymentResult.approvalCode}
+            <p className="text-xs text-[#878787] font-mono mt-1">
+              Approval Code: {paymentResult.approvalCode}
             </p>
           )}
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 12,
-              width: "100%",
-              maxWidth: 280,
-              marginTop: 24,
-            }}
-          >
+          <div className="flex flex-col gap-3 w-full max-w-[280px] mt-6">
             <button
               onClick={resetForm}
-              className="inline-flex items-center justify-center gap-2 px-4 h-10 bg-[#017ea7] hover:bg-[#0290be] text-white text-sm font-medium rounded-lg border border-[#015f80] transition-all duration-150 cursor-pointer"
+              className="w-full inline-flex items-center justify-center gap-2 h-10 bg-[#017ea7] hover:bg-[#0290be] text-white text-sm font-medium rounded-lg border border-[#015f80] transition-all duration-150 cursor-pointer"
             >
               New Payment
             </button>
             <Link
               href="/transactions"
-              style={{
-                fontSize: 14,
-                fontWeight: 500,
-                color: "#878787",
-                textAlign: "center",
-                textDecoration: "none",
-              }}
+              className="text-[13px] font-medium text-[#878787] text-center hover:text-[#1A1313] transition-colors"
             >
               View Transactions
             </Link>
@@ -368,28 +341,18 @@ export function CheckoutForm() {
   /* ================================================================ */
   if (formState === "declined" && paymentResult) {
     return (
-      <div style={cardStyle}>
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            textAlign: "center",
-            padding: "24px 0",
-          }}
-        >
-          <XCircle
-            size={48}
-            strokeWidth={1.5}
-            style={{ color: "#ef4444", marginBottom: 16 }}
-          />
-          <h2 style={{ marginBottom: 8 }}>Payment Declined</h2>
-          <p style={{ fontSize: 14, color: "#878787", marginBottom: 24 }}>
+      <div className={CARD}>
+        <div className="flex flex-col items-center text-center py-6">
+          <XCircle size={48} strokeWidth={1.5} className="text-[#ef4444] mb-4" />
+          <h2 className="text-xl font-semibold text-[#1A1313] mb-2">
+            Payment Declined
+          </h2>
+          <p className="text-sm text-[#4A4A4A] mb-6">
             {paymentResult.error}
           </p>
           <button
             onClick={resetForm}
-            className="inline-flex items-center justify-center gap-2 px-4 h-10 bg-[#017ea7] hover:bg-[#0290be] text-white text-sm font-medium rounded-lg border border-[#015f80] transition-all duration-150 cursor-pointer"
+            className="w-full max-w-[280px] inline-flex items-center justify-center gap-2 h-10 bg-[#017ea7] hover:bg-[#0290be] text-white text-sm font-medium rounded-lg border border-[#015f80] transition-all duration-150 cursor-pointer"
           >
             Try Again
           </button>
@@ -407,290 +370,110 @@ export function CheckoutForm() {
     <form onSubmit={handleSubmit} className="space-y-5 relative">
       {/* Processing overlay */}
       {formState === "processing" && (
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            zIndex: 20,
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            borderRadius: 12,
-            background: "rgba(251,251,251,0.85)",
-            backdropFilter: "blur(4px)",
-          }}
-        >
-          <Loader2
-            size={32}
-            strokeWidth={1.5}
-            className="animate-spin"
-            style={{ color: "#017ea7", marginBottom: 12 }}
-          />
-          <p style={{ fontSize: 14, fontWeight: 500, color: "#1A1313" }}>
-            Processing your payment...
-          </p>
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center rounded-xl bg-[#FBFBFB]/85 backdrop-blur-sm">
+          <Loader2 size={28} strokeWidth={1.5} className="animate-spin text-[#017ea7] mb-3" />
+          <p className="text-sm font-medium text-[#1A1313]">Processing payment...</p>
         </div>
       )}
 
-      {/* ORDER DETAILS */}
-      <div style={cardStyle}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            marginBottom: 20,
-          }}
-        >
-          <DollarSign size={16} strokeWidth={1.5} color="#017ea7" />
-          <span
-            style={{ fontSize: 15, fontWeight: 600, color: "#1A1313" }}
-          >
-            Payment Details
-          </span>
+      {/* PAYMENT DETAILS */}
+      <div className={CARD}>
+        <div className="flex items-center gap-2 mb-5">
+          <DollarSign size={16} strokeWidth={1.5} className="text-[#017ea7]" />
+          <span className="text-base font-semibold text-[#1A1313]">Payment Details</span>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <div className="space-y-4">
           {/* Amount */}
           <div>
-            <label
-              style={{
-                display: "block",
-                fontSize: 13,
-                fontWeight: 500,
-                color: "#878787",
-                marginBottom: 6,
-              }}
-            >
-              Amount *
-            </label>
-            <div style={{ position: "relative" }}>
-              <span
-                style={{
-                  position: "absolute",
-                  left: 14,
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  color: "#878787",
-                  fontSize: 15,
-                  fontWeight: 500,
-                }}
-              >
-                $
-              </span>
+            <label className={LABEL}>Amount</label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#878787] text-base font-medium">$</span>
               <input
                 type="number"
                 step="0.01"
                 min="0"
                 value={amount}
-                onChange={(e) => {
-                  setAmount(e.target.value);
-                  setErrors((p) => ({ ...p, amount: "" }));
-                }}
+                onChange={(e) => { setAmount(e.target.value); setErrors((p) => ({ ...p, amount: "" })); }}
                 placeholder="0.00"
                 disabled={disabled}
-                style={{
-                  ...inputStyle,
-                  paddingLeft: 28,
-                  fontSize: 18,
-                  fontWeight: 600,
-                }}
+                className="w-full h-12 bg-[#F4F5F7] border border-[#E8EAED] rounded-lg text-[#1A1313] text-xl font-semibold pl-9 pr-3 outline-none transition-all duration-150 focus:border-[#017ea7] focus:ring-[3px] focus:ring-[#017ea7]/10 focus:bg-white placeholder:text-[#ABABAB] placeholder:font-normal"
               />
             </div>
-            {errors.amount && (
-              <p style={{ fontSize: 12, color: "#ef4444", marginTop: 4 }}>
-                {errors.amount}
-              </p>
-            )}
+            {errors.amount && <p className="text-xs text-[#ef4444] mt-1">{errors.amount}</p>}
           </div>
 
           {/* Description */}
           <div>
-            <label
-              style={{
-                display: "block",
-                fontSize: 13,
-                fontWeight: 500,
-                color: "#878787",
-                marginBottom: 6,
-              }}
-            >
-              Description
-            </label>
-            <div style={{ position: "relative" }}>
-              <FileText
-                size={16}
-                strokeWidth={1.5}
-                style={{
-                  position: "absolute",
-                  left: 14,
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  color: "#878787",
-                  pointerEvents: "none",
-                }}
-              />
+            <label className={LABEL}>Description</label>
+            <div className="relative">
+              <FileText size={16} strokeWidth={1.5} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#878787] pointer-events-none" />
               <input
                 type="text"
                 maxLength={200}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="No-show fee, Deposit, etc."
+                placeholder="No-show fee, Deposit, Hair service..."
                 disabled={disabled}
-                style={{ ...inputStyle, paddingLeft: 40 }}
+                className={`${INPUT} pl-9`}
               />
             </div>
           </div>
 
-          {/* Customer */}
-          <div
-            style={{
-              borderTop: "1px solid #E8EAED",
-              paddingTop: 16,
-            }}
+          {/* Customer toggle */}
+          <button
+            type="button"
+            onClick={() => setShowCustomer(!showCustomer)}
+            className="flex items-center gap-1 text-[13px] font-medium text-[#017ea7] cursor-pointer bg-transparent border-none p-0"
           >
-            <p
-              style={{
-                fontSize: 12,
-                fontWeight: 500,
-                color: "#878787",
-                marginBottom: 12,
-              }}
-            >
-              Customer (optional)
-            </p>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: 12,
-              }}
-            >
-              <div>
-                <div style={{ position: "relative" }}>
-                  <User
-                    size={16}
-                    strokeWidth={1.5}
-                    style={{
-                      position: "absolute",
-                      left: 14,
-                      top: "50%",
-                      transform: "translateY(-50%)",
-                      color: "#878787",
-                      pointerEvents: "none",
-                    }}
-                  />
-                  <input
-                    type="text"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    placeholder="First Name"
-                    disabled={disabled}
-                    style={{ ...inputStyle, paddingLeft: 40, height: 40 }}
-                  />
+            {showCustomer ? <ChevronUp size={14} strokeWidth={1.5} /> : <ChevronDown size={14} strokeWidth={1.5} />}
+            {showCustomer ? "Hide customer info" : "Add customer info"}
+          </button>
+
+          {showCustomer && (
+            <div className="space-y-3 pt-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className={LABEL}>First Name</label>
+                  <div className="relative">
+                    <User size={16} strokeWidth={1.5} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#878787] pointer-events-none" />
+                    <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Jane" disabled={disabled} className={`${INPUT} pl-9`} />
+                  </div>
+                </div>
+                <div>
+                  <label className={LABEL}>Last Name</label>
+                  <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Doe" disabled={disabled} className={INPUT} />
                 </div>
               </div>
               <div>
-                <input
-                  type="text"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  placeholder="Last Name"
-                  disabled={disabled}
-                  style={{ ...inputStyle, height: 40 }}
-                />
+                <label className={LABEL}>Email</label>
+                <div className="relative">
+                  <Mail size={16} strokeWidth={1.5} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#878787] pointer-events-none" />
+                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="jane@example.com" disabled={disabled} className={`${INPUT} pl-9`} />
+                </div>
               </div>
             </div>
-            <div style={{ marginTop: 12 }}>
-              <div style={{ position: "relative" }}>
-                <Mail
-                  size={16}
-                  strokeWidth={1.5}
-                  style={{
-                    position: "absolute",
-                    left: 14,
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    color: "#878787",
-                    pointerEvents: "none",
-                  }}
-                />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Email"
-                  disabled={disabled}
-                  style={{ ...inputStyle, paddingLeft: 40, height: 40 }}
-                />
-              </div>
-            </div>
-          </div>
+          )}
 
-          <p style={{ fontSize: 12, color: "#ABABAB" }}>
-            Order #{orderId}
-          </p>
+          <p className="text-[11px] text-[#878787]">Order #{orderId}</p>
         </div>
       </div>
 
       {/* CARD INFORMATION */}
-      <div style={cardStyle}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            marginBottom: 20,
-          }}
-        >
-          <Lock size={16} strokeWidth={1.5} color="#017ea7" />
-          <span
-            style={{ fontSize: 15, fontWeight: 600, color: "#1A1313" }}
-          >
-            Card Information
-          </span>
-          <span
-            style={{ fontSize: 12, color: "#878787", marginLeft: "auto" }}
-          >
-            Secured by Payroc
-          </span>
+      <div className={CARD}>
+        <div className="flex items-center gap-2 mb-4">
+          <Lock size={16} strokeWidth={1.5} className="text-[#017ea7]" />
+          <span className="text-base font-semibold text-[#1A1313]">Card Information</span>
+          <span className="text-xs text-[#878787] ml-auto">Secured by Payroc</span>
         </div>
+        <div className="h-px bg-[#F4F5F7] mb-5" />
 
         {/* Load error */}
         {formState === "loadError" && (
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              padding: "32px 0",
-            }}
-          >
-            <AlertCircle
-              size={32}
-              strokeWidth={1.5}
-              style={{ color: "#ef4444", marginBottom: 12 }}
-            />
-            <p
-              style={{
-                fontSize: 14,
-                fontWeight: 500,
-                color: "#1A1313",
-                marginBottom: 4,
-              }}
-            >
-              Payment fields failed to load
-            </p>
-            <p
-              style={{
-                fontSize: 13,
-                color: "#878787",
-                marginBottom: 16,
-              }}
-            >
-              Please refresh or try again.
-            </p>
+          <div className="flex flex-col items-center py-8">
+            <AlertCircle size={28} strokeWidth={1.5} className="text-[#ef4444] mb-3" />
+            <p className="text-sm font-medium text-[#1A1313] mb-1">Payment fields failed to load</p>
+            <p className="text-[13px] text-[#878787] mb-4">Please try again</p>
             <button
               type="button"
               onClick={loadPayroc}
@@ -704,227 +487,75 @@ export function CheckoutForm() {
 
         {/* Loading skeleton */}
         {formState === "loading" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div className="space-y-3">
             {[1, 2].map((i) => (
-              <div
-                key={i}
-                className="animate-pulse"
-                style={{
-                  height: 48,
-                  borderRadius: 8,
-                  background: "#E8EAED",
-                }}
-              />
+              <div key={i} className="h-11 rounded-lg bg-[#F4F5F7] animate-pulse" />
             ))}
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: 12,
-              }}
-            >
+            <div className="grid grid-cols-2 gap-3">
               {[1, 2].map((i) => (
-                <div
-                  key={i}
-                  className="animate-pulse"
-                  style={{
-                    height: 48,
-                    borderRadius: 8,
-                    background: "#E8EAED",
-                  }}
-                />
+                <div key={i} className="h-11 rounded-lg bg-[#F4F5F7] animate-pulse" />
               ))}
             </div>
-            <p
-              style={{
-                fontSize: 13,
-                color: "#878787",
-                textAlign: "center",
-              }}
-            >
-              Loading secure payment fields...
-            </p>
+            <p className="text-[13px] text-[#878787] text-center">Initializing secure payment fields...</p>
           </div>
         )}
 
-        {/* Payroc hosted field containers */}
-        <div
-          style={{
-            display:
-              formState === "ready" || formState === "processing"
-                ? "flex"
-                : "none",
-            flexDirection: "column",
-            gap: 12,
-          }}
-        >
-          {/* Cardholder Name */}
+        {/* Hosted fields */}
+        <div style={{ display: formState === "ready" || formState === "processing" ? "flex" : "none", flexDirection: "column", gap: 12 }}>
           <div>
-            <label
-              style={{
-                display: "block",
-                fontSize: 13,
-                fontWeight: 500,
-                color: "#878787",
-                marginBottom: 6,
-              }}
-            >
-              Cardholder Name
-            </label>
-            <div
-              className="payroc-cardholder-name"
-              style={{
-                height: 48,
-                background: "#F4F5F7",
-                border: "1px solid #E8EAED",
-                borderRadius: 8,
-                overflow: "hidden",
-              }}
-            />
-            <div
-              className="payroc-cardholder-name-error"
-              style={{ fontSize: 12, color: "#ef4444", marginTop: 4 }}
-            />
+            <label className={LABEL}>Name on Card</label>
+            <div className="payroc-cardholder-name bg-[#F4F5F7] border border-[#E8EAED] rounded-lg h-11 flex items-center px-3 transition-all duration-150 focus-within:border-[#017ea7] focus-within:ring-[3px] focus-within:ring-[#017ea7]/10 focus-within:bg-white overflow-hidden" />
+            <div className="payroc-cardholder-name-error text-xs text-[#ef4444] mt-1" />
           </div>
-
-          {/* Card Number */}
           <div>
-            <label
-              style={{
-                display: "block",
-                fontSize: 13,
-                fontWeight: 500,
-                color: "#878787",
-                marginBottom: 6,
-              }}
-            >
-              Card Number
-            </label>
-            <div
-              className="payroc-card-number"
-              style={{
-                height: 48,
-                background: "#F4F5F7",
-                border: "1px solid #E8EAED",
-                borderRadius: 8,
-                overflow: "hidden",
-              }}
-            />
-            <div
-              className="payroc-card-number-error"
-              style={{ fontSize: 12, color: "#ef4444", marginTop: 4 }}
-            />
+            <label className={LABEL}>Card Number</label>
+            <div className="relative">
+              <div className="payroc-card-number bg-[#F4F5F7] border border-[#E8EAED] rounded-lg h-11 flex items-center px-3 transition-all duration-150 focus-within:border-[#017ea7] focus-within:ring-[3px] focus-within:ring-[#017ea7]/10 focus-within:bg-white overflow-hidden" />
+              {cardBrand !== "unknown" && (
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                  <CardBrandIcon brand={cardBrand} size={24} />
+                </div>
+              )}
+            </div>
+            <div className="payroc-card-number-error text-xs text-[#ef4444] mt-1" />
           </div>
-
-          {/* Expiry + CVV side by side */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: 12,
-            }}
-          >
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label
-                style={{
-                  display: "block",
-                  fontSize: 13,
-                  fontWeight: 500,
-                  color: "#878787",
-                  marginBottom: 6,
-                }}
-              >
-                Expiry Date
-              </label>
-              <div
-                className="payroc-card-expiry"
-                style={{
-                  height: 48,
-                  background: "#F4F5F7",
-                  border: "1px solid #E8EAED",
-                  borderRadius: 8,
-                  overflow: "hidden",
-                }}
-              />
-              <div
-                className="payroc-card-expiry-error"
-                style={{ fontSize: 12, color: "#ef4444", marginTop: 4 }}
-              />
+              <label className={LABEL}>Expiry</label>
+              <div className="payroc-card-expiry bg-[#F4F5F7] border border-[#E8EAED] rounded-lg h-11 flex items-center px-3 transition-all duration-150 focus-within:border-[#017ea7] focus-within:ring-[3px] focus-within:ring-[#017ea7]/10 focus-within:bg-white overflow-hidden" />
+              <div className="payroc-card-expiry-error text-xs text-[#ef4444] mt-1" />
             </div>
             <div className="payroc-cvv-wrapper">
-              <label
-                style={{
-                  display: "block",
-                  fontSize: 13,
-                  fontWeight: 500,
-                  color: "#878787",
-                  marginBottom: 6,
-                }}
-              >
-                CVV
-              </label>
-              <div
-                className="payroc-card-cvv"
-                style={{
-                  height: 48,
-                  background: "#F4F5F7",
-                  border: "1px solid #E8EAED",
-                  borderRadius: 8,
-                  overflow: "hidden",
-                }}
-              />
-              <div
-                className="payroc-card-cvv-error"
-                style={{ fontSize: 12, color: "#ef4444", marginTop: 4 }}
-              />
+              <label className={LABEL}>CVV</label>
+              <div className="payroc-card-cvv bg-[#F4F5F7] border border-[#E8EAED] rounded-lg h-11 flex items-center px-3 transition-all duration-150 focus-within:border-[#017ea7] focus-within:ring-[3px] focus-within:ring-[#017ea7]/10 focus-within:bg-white overflow-hidden" />
+              <div className="payroc-card-cvv-error text-xs text-[#ef4444] mt-1" />
             </div>
           </div>
-
-          {/* Hidden Payroc submit button */}
+          {/* Hidden Payroc submit */}
           <div className="payroc-submit-button" style={{ display: "none" }} />
         </div>
 
-        {/* Card error */}
         {errors.card && (
-          <p
-            style={{
-              fontSize: 13,
-              color: "#ef4444",
-              marginTop: 8,
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-            }}
-          >
+          <p className="text-[13px] text-[#ef4444] mt-2 flex items-center gap-1.5">
             <AlertCircle size={14} strokeWidth={1.5} />
             {errors.card}
           </p>
         )}
 
-        {/* Accepted cards */}
-        <div style={{ marginTop: 16 }}>
+        <div className="flex items-center justify-between mt-4">
           <AcceptedCardsBadges />
         </div>
-        <p style={{ fontSize: 12, color: "#ABABAB", marginTop: 12 }}>
-          Your card details are encrypted and never stored on our servers.
+        <p className="flex items-center gap-1.5 text-[11px] text-[#878787] mt-3">
+          <Lock size={10} strokeWidth={1.5} />
+          256-bit encrypted · Secured by Payroc
         </p>
       </div>
 
-      {/* ACTION */}
+      {/* TOTAL + CHARGE */}
       <div>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: 16,
-            padding: "0 4px",
-          }}
-        >
-          <span style={{ fontSize: 14, color: "#878787" }}>Total</span>
-          <span
-            style={{ fontSize: 20, fontWeight: 600, color: "#1A1313" }}
-          >
+        <div className="flex items-center justify-between mb-4 px-1">
+          <span className="text-sm font-medium text-[#878787]">Total</span>
+          <span className="text-2xl font-semibold text-[#1A1313] tracking-tight">
             ${parsedAmount.toFixed(2)}
           </span>
         </div>
@@ -932,34 +563,25 @@ export function CheckoutForm() {
         <button
           type="submit"
           disabled={disabled || formState !== "ready"}
-          className="w-full inline-flex items-center justify-center gap-2 h-12 bg-[#017ea7] hover:bg-[#0290be] text-white text-[15px] font-medium rounded-lg border border-[#015f80] transition-all duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full inline-flex items-center justify-center gap-2 h-[52px] text-white text-base font-medium rounded-[10px] border border-[#015f80] transition-all duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:-translate-y-px active:translate-y-0"
+          style={{
+            background: "linear-gradient(180deg, #0290be 0%, #017ea7 100%)",
+            boxShadow: "0 1px 2px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.12)",
+          }}
         >
           {formState === "processing" ? (
             <>
-              <Loader2
-                size={16}
-                strokeWidth={1.5}
-                className="animate-spin"
-              />
-              Processing...
+              <Loader2 size={16} strokeWidth={1.5} className="animate-spin" />
+              Processing payment...
             </>
           ) : (
-            "Charge Card"
+            `Charge $${parsedAmount.toFixed(2)}`
           )}
         </button>
 
         <Link
           href="/dashboard"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            marginTop: 12,
-            fontSize: 14,
-            fontWeight: 500,
-            color: "#878787",
-            textDecoration: "none",
-          }}
+          className="flex items-center justify-center mt-3 text-[13px] font-medium text-[#878787] hover:text-[#1A1313] transition-colors"
         >
           Cancel
         </Link>
