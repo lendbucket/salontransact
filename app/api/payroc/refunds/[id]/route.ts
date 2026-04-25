@@ -1,0 +1,57 @@
+import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { getRefund, adjustRefund, reverseRefund } from "@/lib/payroc/refunds";
+
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { id } = await params;
+    const refund = await getRefund(id);
+    return NextResponse.json(refund);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
+export async function POST(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { id } = await params;
+    const body = await request.json();
+    const action = body.action as string;
+
+    if (action === "adjust") {
+      const result = await adjustRefund(id, body.amount);
+      return NextResponse.json(result);
+    }
+
+    if (action === "reverse") {
+      const result = await reverseRefund(id);
+      return NextResponse.json(result);
+    }
+
+    return NextResponse.json(
+      { error: 'Invalid action. Use "adjust" or "reverse"' },
+      { status: 400 }
+    );
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}

@@ -123,7 +123,7 @@ export async function getHostedFieldsSessionToken(
         "Idempotency-Key": crypto.randomUUID(),
       },
       body: JSON.stringify({
-        libVersion: "1.7.0.261457",
+        libVersion: "1.6.0.172429",
         scenario,
       }),
     }

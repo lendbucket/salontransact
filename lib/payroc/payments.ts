@@ -57,3 +57,24 @@ export async function reversePayment(
     {}
   )
 }
+
+export async function adjustPayment(
+  paymentId: string,
+  amount: number
+): Promise<PayrocPaymentResponse> {
+  return payrocRequest<PayrocPaymentResponse>(
+    'POST',
+    `/payments/${paymentId}/adjust`,
+    { amount }
+  )
+}
+
+export async function capturePayment(
+  paymentId: string
+): Promise<PayrocPaymentResponse> {
+  return payrocRequest<PayrocPaymentResponse>(
+    'POST',
+    `/payments/${paymentId}/capture`,
+    {}
+  )
+}

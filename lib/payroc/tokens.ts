@@ -42,3 +42,17 @@ export async function deleteSecureToken(tokenId: string): Promise<void> {
     `/processing-terminals/${TERMINAL_ID}/secure-tokens/${tokenId}`
   )
 }
+
+export async function createSingleUseToken(request: {
+  cardNumber: string
+  expiryMonth: string
+  expiryYear: string
+  cvv: string
+  cardholderName?: string
+}): Promise<{ token: string; expiresAt: string }> {
+  return payrocRequest(
+    'POST',
+    `/processing-terminals/${TERMINAL_ID}/single-use-tokens`,
+    request
+  )
+}

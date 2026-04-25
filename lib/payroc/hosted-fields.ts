@@ -1,13 +1,13 @@
 export const HOSTED_FIELDS_CONFIG = {
   uat: {
-    url: "https://cdn.uat.payroc.com/js/hosted-fields/hosted-fields-1.7.0.261457.js",
+    url: "https://cdn.uat.payroc.com/js/hosted-fields/hosted-fields-1.6.0.172429.js",
     integrityHash:
-      "sha384-m1A0nfFYa8sAfpDN0d60o4ztd/aCPC2xDVaOT31Urrmn4xypfHqgHQMayZeIK1PM",
+      "sha384-1DFjPXzSRRPT56FXz1ptVP4pwzXPxeNQynxQpU7+5v++p+EbWGprq5TZl8qizGKs",
   },
   production: {
-    url: "https://cdn.payroc.com/js/hosted-fields/hosted-fields-1.7.0.261457.js",
+    url: "https://cdn.payroc.com/js/hosted-fields/hosted-fields-1.6.0.172441.js",
     integrityHash:
-      "sha384-m1A0nfFYa8sAfpDN0d60o4ztd/aCPC2xDVaOT31Urrmn4xypfHqgHQMayZeIK1PM",
+      "sha384-e1tK2exEUnMhHQYhH2erv/sY3w8jzY/XnnBevNbv20VtjuJpcwb0u9h8qblYjrBl",
   },
 };
 
