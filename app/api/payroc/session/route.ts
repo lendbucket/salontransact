@@ -5,6 +5,15 @@ import { getHostedFieldsSessionToken } from "@/lib/payroc/client";
 import { getHostedFieldsConfig } from "@/lib/payroc/hosted-fields";
 
 export async function GET() {
+  console.log("=========== ENV CHECK ===========");
+  console.log("PAYROC_ENV:", process.env.PAYROC_ENV);
+  console.log("PAYROC_API_URL:", process.env.PAYROC_API_URL);
+  console.log("PAYROC_AUTH_URL:", process.env.PAYROC_AUTH_URL);
+  console.log("PAYROC_TERMINAL_ID:", process.env.PAYROC_TERMINAL_ID);
+  console.log("PAYROC_API_KEY set:", !!process.env.PAYROC_API_KEY);
+  console.log("PAYROC_SESSION_HOST:", process.env.PAYROC_SESSION_HOST || "(not set)");
+  console.log("==================================");
+
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user) {

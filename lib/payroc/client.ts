@@ -10,6 +10,7 @@ let tokenCache: TokenCache | null = null;
 
 export async function getPayrocToken(): Promise<string> {
   if (tokenCache && Date.now() < tokenCache.expiresAt - 60000) {
+    console.log("[PAYROC-AUTH] Using cached bearer token");
     return tokenCache.token;
   }
 
@@ -18,6 +19,7 @@ export async function getPayrocToken(): Promise<string> {
   });
 
   if (dbToken && dbToken.expiresAt.getTime() > Date.now() + 60000) {
+    console.log("[PAYROC-AUTH] Using DB-cached bearer token");
     tokenCache = {
       token: dbToken.token,
       expiresAt: dbToken.expiresAt.getTime(),
@@ -28,6 +30,12 @@ export async function getPayrocToken(): Promise<string> {
   const apiKey = process.env.PAYROC_API_KEY;
   const authUrl = process.env.PAYROC_AUTH_URL;
 
+  console.log("=========== PAYROC BEARER REQUEST ===========");
+  console.log("Auth URL:", authUrl);
+  console.log("API Key set:", !!apiKey);
+  console.log("API Key prefix:", apiKey?.substring(0, 10));
+  console.log("=============================================");
+
   if (!apiKey || !authUrl) {
     throw new Error("Payroc credentials not configured");
   }
@@ -35,29 +43,30 @@ export async function getPayrocToken(): Promise<string> {
   const response = await fetch(authUrl, {
     method: "POST",
     headers: {
-      "Content-Type": "application/json",
       "x-api-key": apiKey,
+      "Content-Type": "application/json",
     },
-    body: JSON.stringify({}),
   });
 
+  const responseText = await response.text();
+
+  console.log("=========== PAYROC BEARER RESPONSE ===========");
+  console.log("Status:", response.status);
+  console.log("Body:", responseText.substring(0, 500));
+  console.log("==============================================");
+
   if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Payroc auth failed: ${response.status} ${error}`);
+    throw new Error(`Bearer token failed: ${response.status} - ${responseText}`);
   }
 
-  const data = await response.json();
-  console.log("[PAYROC-AUTH] Bearer response keys:", Object.keys(data));
-
-  // Payroc returns { access_token, expires_in, token_type }
+  const data = JSON.parse(responseText);
   const accessToken = data.access_token ?? data.token;
   const expiresInSeconds = data.expires_in ?? data.expiresIn ?? 3600;
   const expiresAt = Date.now() + expiresInSeconds * 1000;
 
   if (!accessToken) {
-    throw new Error(
-      `Payroc auth returned no token. Response: ${JSON.stringify(data).slice(0, 200)}`
-    );
+    console.error("No token in response. Keys:", Object.keys(data));
+    throw new Error("Token not found in response");
   }
 
   tokenCache = { token: accessToken, expiresAt };
@@ -65,10 +74,7 @@ export async function getPayrocToken(): Promise<string> {
   try {
     await prisma.payrocToken.deleteMany({});
     await prisma.payrocToken.create({
-      data: {
-        token: accessToken,
-        expiresAt: new Date(expiresAt),
-      },
+      data: { token: accessToken, expiresAt: new Date(expiresAt) },
     });
   } catch (dbError) {
     console.error("[PAYROC-AUTH] DB cache save failed (non-fatal):", dbError);
@@ -117,66 +123,112 @@ export async function payrocRequest<T>(
 }
 
 export async function getHostedFieldsSessionToken(
-  scenario: "payment" | "tokenization"
+  scenario: "payment" | "tokenization" = "payment"
 ): Promise<{ token: string; expiresAt: string }> {
   const bearerToken = await getPayrocToken();
-  const sessionHost =
-    process.env.PAYROC_SESSION_HOST || process.env.PAYROC_API_URL;
   const terminalId = process.env.PAYROC_TERMINAL_ID;
+  const apiUrl =
+    process.env.PAYROC_SESSION_HOST || process.env.PAYROC_API_URL;
 
-  if (!sessionHost || !terminalId) {
-    throw new Error("Payroc session host or Terminal ID not configured");
-  }
-
-  // Extract libVersion from CDN URL so it always matches the loaded SDK
   const { getHostedFieldsConfig } = await import("./hosted-fields");
   const config = getHostedFieldsConfig();
   const urlMatch = config.url.match(/hosted-fields-([\d.]+)\.js/);
   const libVersion = urlMatch ? urlMatch[1] : "1.7.0.261457";
 
-  console.log("[SESSION] libVersion:", libVersion);
-  console.log(
-    "[PAYROC-DIAG] Minting session token from:",
-    `${sessionHost}/processing-terminals/${terminalId}/hosted-fields-sessions`
-  );
+  const idempotencyKey = crypto.randomUUID();
+  const requestUrl = `${apiUrl}/processing-terminals/${terminalId}/hosted-fields-sessions`;
 
-  const response = await fetch(
-    `${sessionHost}/processing-terminals/${terminalId}/hosted-fields-sessions`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${bearerToken}`,
-        "Idempotency-Key": crypto.randomUUID(),
-      },
-      body: JSON.stringify({
-        libVersion,
-        scenario,
-      }),
-    }
+  const requestHeaders: Record<string, string> = {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${bearerToken}`,
+    "Idempotency-Key": idempotencyKey,
+    Accept: "application/json",
+  };
+
+  const requestBody = {
+    libVersion,
+    scenario,
+  };
+
+  console.log("=========== PAYROC SESSION REQUEST ===========");
+  console.log("URL:", requestUrl);
+  console.log("Method: POST");
+  console.log("Terminal ID:", terminalId);
+  console.log("API URL env:", apiUrl);
+  console.log(
+    "Bearer token (first 30 chars):",
+    bearerToken?.substring(0, 30)
   );
+  console.log(
+    "Headers:",
+    JSON.stringify(
+      {
+        ...requestHeaders,
+        Authorization: `Bearer ${bearerToken?.substring(0, 20)}...`,
+      },
+      null,
+      2
+    )
+  );
+  console.log("Body:", JSON.stringify(requestBody, null, 2));
+  console.log("================================================");
+
+  const response = await fetch(requestUrl, {
+    method: "POST",
+    headers: requestHeaders,
+    body: JSON.stringify(requestBody),
+  });
+
+  const responseText = await response.text();
+
+  console.log("=========== PAYROC SESSION RESPONSE ===========");
+  console.log("Status:", response.status);
+  console.log("Status Text:", response.statusText);
+  console.log("Response Headers:");
+  response.headers.forEach((value, key) => {
+    console.log(`  ${key}: ${value}`);
+  });
+  console.log("Response Body (raw):", responseText);
+  console.log("================================================");
 
   if (!response.ok) {
-    const error = await response.text();
+    let errorDetail = responseText;
+    try {
+      const errorJson = JSON.parse(responseText);
+      errorDetail = JSON.stringify(errorJson, null, 2);
+      console.log("=========== ERROR DETAILS ===========");
+      console.log("Type:", errorJson.type);
+      console.log("Title:", errorJson.title);
+      console.log("Status:", errorJson.status);
+      console.log("Detail:", errorJson.detail);
+      if (errorJson.errors) {
+        console.log(
+          "Errors array:",
+          JSON.stringify(errorJson.errors, null, 2)
+        );
+      }
+      console.log("=====================================");
+    } catch {
+      console.log("Could not parse error response as JSON");
+    }
     throw new Error(
-      `Payroc hosted fields session failed: ${response.status} ${error}`
+      `Payroc session creation failed: ${response.status} - ${errorDetail}`
     );
   }
 
-  const data = await response.json();
-  console.log("[PAYROC-SESSION] Session response keys:", Object.keys(data));
+  const data = JSON.parse(responseText);
 
-  const sessionToken = data.token;
-  const expiresAt = data.expiresAt ?? data.expires_at;
-
-  if (!sessionToken) {
-    throw new Error(
-      `Payroc session returned no token. Response: ${JSON.stringify(data).slice(0, 200)}`
-    );
-  }
+  console.log("=========== SESSION TOKEN PARSED ===========");
+  console.log("processingTerminalId:", data.processingTerminalId);
+  console.log("token (first 30 chars):", data.token?.substring(0, 30));
+  console.log("expiresAt:", data.expiresAt);
+  console.log("All response keys:", Object.keys(data).join(", "));
+  console.log("=============================================");
 
   return {
-    token: sessionToken,
-    expiresAt: expiresAt ?? new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+    token: data.token,
+    expiresAt:
+      data.expiresAt ||
+      new Date(Date.now() + 10 * 60 * 1000).toISOString(),
   };
 }
