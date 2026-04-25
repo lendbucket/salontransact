@@ -133,7 +133,7 @@ export async function getHostedFieldsSessionToken(
   const { getHostedFieldsConfig } = await import("./hosted-fields");
   const config = getHostedFieldsConfig();
   const urlMatch = config.url.match(/hosted-fields-([\d.]+)\.js/);
-  const libVersion = urlMatch ? urlMatch[1] : "1.7.0.261457";
+  const libVersion = urlMatch ? urlMatch[1] : "1.6.0.172429";
 
   const idempotencyKey = crypto.randomUUID();
   const requestUrl = `${apiUrl}/processing-terminals/${terminalId}/hosted-fields-sessions`;

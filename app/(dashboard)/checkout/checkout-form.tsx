@@ -227,7 +227,7 @@ export function CheckoutForm() {
               },
               submit: {
                 target: ".submit-button",
-                value: "Pay Now",
+                value: "Submit",
               },
             },
           },
@@ -709,7 +709,8 @@ export function CheckoutForm() {
                 <div className="card-cvv-error error-message text-xs text-[#ef4444] mt-1" />
               </div>
             </div>
-            <div className="card-submit submit-button" style={{ width: "100%", height: 52, minHeight: 52, display: "block", position: "relative", zIndex: 1, marginTop: 16, borderRadius: 10, overflow: "hidden" }} />
+            {/* SDK submit button — hidden, triggered programmatically */}
+            <div className="submit-button" style={{ display: "none" }} />
           </div>
         </div>
 
@@ -739,7 +740,7 @@ export function CheckoutForm() {
             </p>
           </div>
         )}
-        <div className="flex items-center justify-between mb-2 px-1">
+        <div className="flex items-center justify-between mb-4 px-1">
           <span className="text-sm font-medium text-[#878787]">Total</span>
           <span className="text-2xl font-semibold text-[#1A1313] tracking-tight">
             ${surchargeInfo && surchargeInfo.total > 0
@@ -747,6 +748,41 @@ export function CheckoutForm() {
               : parsedAmount.toFixed(2)}
           </span>
         </div>
+
+        <button
+          type="button"
+          disabled={status === "processing" || status === "loading" || status === "loadError"}
+          onClick={() => {
+            const amt = parseFloat(amountRef.current) || 0;
+            if (amt <= 0) {
+              setError("Please enter an amount");
+              return;
+            }
+            if (!cardFormRef.current) {
+              setError("Payment form not ready. Please refresh.");
+              return;
+            }
+            setError("");
+            setStatus("processing");
+            console.log("[CHECKOUT] Custom button clicked — calling cardForm.submit()");
+            cardFormRef.current.submit();
+          }}
+          className="w-full inline-flex items-center justify-center gap-2 h-[52px] text-white text-base font-medium rounded-[10px] border border-[#015f80] transition-all duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:-translate-y-px active:translate-y-0"
+          style={{
+            background: "linear-gradient(180deg, #0290be 0%, #017ea7 100%)",
+            boxShadow: "0 1px 2px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.12)",
+          }}
+        >
+          {status === "processing" ? (
+            <>
+              <Loader2 size={16} strokeWidth={1.5} className="animate-spin" />
+              Processing...
+            </>
+          ) : (
+            `Charge $${parsedAmount.toFixed(2)}`
+          )}
+        </button>
+
         <Link href="/dashboard" className="flex items-center justify-center mt-3 text-[13px] font-medium text-[#878787] hover:text-[#1A1313] transition-colors">
           Cancel
         </Link>
