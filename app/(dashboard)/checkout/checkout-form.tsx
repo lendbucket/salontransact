@@ -61,6 +61,7 @@ export function CheckoutForm() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [cardFormRef, setCardFormRef] = useState<any>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const parsedAmountRef = useRef(0);
 
   /* ---- Load Payroc SDK ---- */
   const loadPayroc = useCallback(async () => {
@@ -114,6 +115,10 @@ export function CheckoutForm() {
             return;
           }
 
+          const chargeLabel = parsedAmountRef.current > 0
+            ? `Charge $${parsedAmountRef.current.toFixed(2)}`
+            : "Charge Card";
+
           const cardForm = new Payroc.hostedFields({
             sessionToken,
             mode: "payment",
@@ -142,7 +147,7 @@ export function CheckoutForm() {
                 },
                 submit: {
                   target: ".payroc-submit-button",
-                  value: "Pay Now",
+                  value: chargeLabel,
                 },
               },
             },
@@ -159,6 +164,33 @@ export function CheckoutForm() {
                 height: "100%",
               },
               placeholder: { color: "#ABABAB" },
+              css: {
+                button: {
+                  "background-color": "#017ea7",
+                  "color": "#ffffff",
+                  "border": "1px solid #015f80",
+                  "border-radius": "10px",
+                  "width": "100%",
+                  "height": "52px",
+                  "min-height": "52px",
+                  "font-family": "Inter, sans-serif",
+                  "font-size": "16px",
+                  "font-weight": "500",
+                  "letter-spacing": "-0.31px",
+                  "text-align": "center",
+                  "cursor": "pointer",
+                  "padding": "0",
+                  "margin": "0",
+                  "box-shadow": "0 1px 2px rgba(0,0,0,0.15)",
+                  "transition": "all 150ms",
+                },
+                "button:hover": {
+                  "background-color": "#0290be",
+                  "cursor": "pointer",
+                },
+                body: { margin: "0" },
+                form: { display: "block" },
+              },
             },
           });
 
@@ -304,32 +336,6 @@ export function CheckoutForm() {
     }
   }
 
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!amount || parseFloat(amount) <= 0) {
-      setErrors({ amount: "Please enter a valid amount" });
-      return;
-    }
-    setErrors({});
-    setFormState("processing");
-
-    // 30 second timeout in case Payroc never responds
-    timeoutRef.current = setTimeout(() => {
-      setFormState("ready");
-      setErrors({ card: "Payment timed out. Please try again." });
-    }, 30000);
-
-    if (cardFormRef) {
-      console.log("[CHECKOUT] Calling cardForm.submit()");
-      cardFormRef.submit();
-    } else {
-      console.error("[CHECKOUT] cardFormRef is null — form not initialized");
-      setFormState("ready");
-      setErrors({ card: "Payment form not ready. Please refresh." });
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    }
-  }
-
   function resetForm() {
     setAmount("");
     setDescription("");
@@ -344,6 +350,7 @@ export function CheckoutForm() {
   }
 
   const parsedAmount = parseFloat(amount) || 0;
+  parsedAmountRef.current = parsedAmount;
 
   /* ================================================================ */
   /*  SUCCESS                                                          */
@@ -436,7 +443,7 @@ export function CheckoutForm() {
   const disabled = formState === "processing";
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5 relative">
+    <div className="space-y-5 relative">
       {/* Processing overlay */}
       {formState === "processing" && (
         <div className="absolute inset-0 z-20 flex flex-col items-center justify-center rounded-xl bg-[#FBFBFB]/85 backdrop-blur-sm">
@@ -614,8 +621,8 @@ export function CheckoutForm() {
               <div className="payroc-card-cvv-error text-xs text-[#ef4444] mt-1" />
             </div>
           </div>
-          {/* Hidden Payroc submit */}
-          <div className="payroc-submit-button" style={{ display: "none" }} />
+          {/* Payroc-injected submit button — this is the ONLY submit */}
+          <div className="payroc-submit-button w-full mt-0 rounded-[10px] overflow-hidden" />
         </div>
 
         {errors.card && (
@@ -634,33 +641,14 @@ export function CheckoutForm() {
         </p>
       </div>
 
-      {/* TOTAL + CHARGE */}
+      {/* TOTAL + CANCEL */}
       <div>
-        <div className="flex items-center justify-between mb-4 px-1">
+        <div className="flex items-center justify-between mb-2 px-1">
           <span className="text-sm font-medium text-[#878787]">Total</span>
           <span className="text-2xl font-semibold text-[#1A1313] tracking-tight">
             ${parsedAmount.toFixed(2)}
           </span>
         </div>
-
-        <button
-          type="submit"
-          disabled={disabled || formState !== "ready"}
-          className="w-full inline-flex items-center justify-center gap-2 h-[52px] text-white text-base font-medium rounded-[10px] border border-[#015f80] transition-all duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:-translate-y-px active:translate-y-0"
-          style={{
-            background: "linear-gradient(180deg, #0290be 0%, #017ea7 100%)",
-            boxShadow: "0 1px 2px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.12)",
-          }}
-        >
-          {formState === "processing" ? (
-            <>
-              <Loader2 size={16} strokeWidth={1.5} className="animate-spin" />
-              Processing payment...
-            </>
-          ) : (
-            `Charge $${parsedAmount.toFixed(2)}`
-          )}
-        </button>
 
         <Link
           href="/dashboard"
@@ -669,6 +657,6 @@ export function CheckoutForm() {
           Cancel
         </Link>
       </div>
-    </form>
+    </div>
   );
 }
