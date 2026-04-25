@@ -2,9 +2,12 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { payrocRequest } from "@/lib/payroc/client";
+import { getPayrocToken } from "@/lib/payroc/client";
+import crypto from "crypto";
 
 export async function POST(request: Request) {
+  console.log("\n=== PAYMENT REQUEST DEBUG START ===");
+
   try {
     const session = await getServerSession(authOptions);
     const userId = (session?.user as { id?: string } | undefined)?.id;
@@ -25,6 +28,8 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
+    console.log("[PAYMENT-DEBUG] Raw request body:", JSON.stringify(body, null, 2));
+
     const {
       token,
       amount,
@@ -34,6 +39,9 @@ export async function POST(request: Request) {
       customerEmail,
       orderId,
     } = body;
+
+    console.log("[PAYMENT-DEBUG] Token:", token?.substring(0, 30) + "...");
+    console.log("[PAYMENT-DEBUG] Amount:", amount, "type:", typeof amount);
 
     if (!token) {
       return NextResponse.json(
@@ -49,9 +57,9 @@ export async function POST(request: Request) {
       );
     }
 
-    const parsedAmount = typeof amount === "string" ? parseFloat(amount) : amount;
+    const parsedAmount =
+      typeof amount === "string" ? parseFloat(amount) : amount;
     const amountInCents = Math.round(parsedAmount * 100);
-    console.log("[CHECKOUT] Amount received:", amount, "type:", typeof amount, "parsed:", parsedAmount, "cents:", amountInCents);
     const terminalId = process.env.PAYROC_TERMINAL_ID;
     const finalOrderId =
       orderId || crypto.randomUUID().slice(0, 8).toUpperCase();
@@ -81,14 +89,72 @@ export async function POST(request: Request) {
           : undefined,
     };
 
-    console.log("[CHECKOUT] Payment payload:", JSON.stringify(paymentPayload));
+    // Validate all required fields before sending
+    const checks: Record<string, unknown> = {
+      "channel": paymentPayload.channel,
+      "processingTerminalId": paymentPayload.processingTerminalId,
+      "order.orderId": paymentPayload.order.orderId,
+      "order.amount": paymentPayload.order.amount,
+      "order.currency": paymentPayload.order.currency,
+      "paymentMethod.type": paymentPayload.paymentMethod.type,
+      "paymentMethod.token": paymentPayload.paymentMethod.token,
+    };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const response = await payrocRequest<any>("POST", "/payments", paymentPayload);
+    console.log("[PAYMENT-DEBUG] Required fields check:");
+    for (const [field, value] of Object.entries(checks)) {
+      const ok = value !== undefined && value !== null && value !== "";
+      console.log(`  ${ok ? "OK" : "MISSING"}: ${field} = ${value}`);
+    }
 
-    console.log("[CHECKOUT] Payroc response:", JSON.stringify(response));
+    console.log("[PAYMENT-DEBUG] Full Payroc payload:", JSON.stringify(paymentPayload, null, 2));
 
-    // Check for approval — Payroc uses transactionResult.responseCode or top-level responseCode
+    // Get bearer token and send directly so we can capture raw response
+    const bearerToken = await getPayrocToken();
+    const apiUrl = process.env.PAYROC_API_URL;
+
+    const payrRes = await fetch(`${apiUrl}/payments`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${bearerToken}`,
+        "Idempotency-Key": crypto.randomUUID(),
+        Accept: "application/json",
+      },
+      body: JSON.stringify(paymentPayload),
+    });
+
+    const responseText = await payrRes.text();
+
+    console.log("[PAYMENT-DEBUG] Payroc HTTP status:", payrRes.status);
+    console.log("[PAYMENT-DEBUG] Payroc response headers:");
+    payrRes.headers.forEach((v, k) => console.log(`  ${k}: ${v}`));
+    console.log("[PAYMENT-DEBUG] Payroc response body (raw):", responseText);
+
+    if (!payrRes.ok) {
+      let errorDetail = responseText;
+      try {
+        const errorJson = JSON.parse(responseText);
+        errorDetail = JSON.stringify(errorJson, null, 2);
+        console.log("[PAYMENT-DEBUG] Error type:", errorJson.type);
+        console.log("[PAYMENT-DEBUG] Error title:", errorJson.title);
+        console.log("[PAYMENT-DEBUG] Error detail:", errorJson.detail);
+        if (errorJson.errors) {
+          console.log("[PAYMENT-DEBUG] Error fields:", JSON.stringify(errorJson.errors, null, 2));
+        }
+      } catch {
+        // not JSON
+      }
+      console.log("=== PAYMENT REQUEST DEBUG END (PAYROC ERROR) ===\n");
+      return NextResponse.json({
+        success: false,
+        error: `Payroc error: ${payrRes.status}`,
+        declineReason: errorDetail,
+      });
+    }
+
+    const response = JSON.parse(responseText);
+    console.log("[PAYMENT-DEBUG] Payroc parsed response:", JSON.stringify(response, null, 2));
+
     const responseCode =
       response.transactionResult?.responseCode ?? response.responseCode;
     const responseMessage =
@@ -103,6 +169,11 @@ export async function POST(request: Request) {
       response.card?.type ?? response.card?.scheme ?? response.card?.cardBrand;
     const paymentId = response.paymentId;
     const orderAmount = response.order?.amount ?? amountInCents;
+
+    console.log("[PAYMENT-DEBUG] responseCode:", responseCode);
+    console.log("[PAYMENT-DEBUG] approvalCode:", approvalCode);
+    console.log("[PAYMENT-DEBUG] last4:", last4);
+    console.log("=== PAYMENT REQUEST DEBUG END ===\n");
 
     if (responseCode === "A") {
       const amountDollars = orderAmount / 100;
@@ -151,7 +222,8 @@ export async function POST(request: Request) {
       responseCode,
     });
   } catch (error) {
-    console.error("[CHECKOUT] Error:", error);
+    console.error("[PAYMENT-DEBUG] Unhandled error:", error);
+    console.log("=== PAYMENT REQUEST DEBUG END (EXCEPTION) ===\n");
     const message = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json({ error: message }, { status: 500 });
   }
