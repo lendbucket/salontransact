@@ -49,7 +49,9 @@ export async function POST(request: Request) {
       );
     }
 
-    const amountInCents = Math.round(amount * 100);
+    const parsedAmount = typeof amount === "string" ? parseFloat(amount) : amount;
+    const amountInCents = Math.round(parsedAmount * 100);
+    console.log("[CHECKOUT] Amount received:", amount, "type:", typeof amount, "parsed:", parsedAmount, "cents:", amountInCents);
     const terminalId = process.env.PAYROC_TERMINAL_ID;
     const finalOrderId =
       orderId || crypto.randomUUID().slice(0, 8).toUpperCase();

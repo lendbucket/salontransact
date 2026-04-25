@@ -61,9 +61,25 @@ export function CheckoutForm() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const cardFormRef = useRef<any>(null);
 
-  // ---- processPayment (stable — no deps on refs) ----
+  // Use refs to capture current form values so processPayment always reads fresh state
+  const amountRef = useRef(amount);
+  const descriptionRef = useRef(description);
+  const firstNameRef = useRef(firstName);
+  const lastNameRef = useRef(lastName);
+  const emailRef = useRef(email);
+  const orderIdRef = useRef(orderId);
+  amountRef.current = amount;
+  descriptionRef.current = description;
+  firstNameRef.current = firstName;
+  lastNameRef.current = lastName;
+  emailRef.current = email;
+  orderIdRef.current = orderId;
+
+  // ---- processPayment — reads from refs for fresh values ----
   async function processPayment(token: string) {
+    const amt = parseFloat(amountRef.current);
     console.log("[CHECKOUT] Processing payment with token:", token.substring(0, 20));
+    console.log("[CHECKOUT] Amount from ref:", amountRef.current, "parsed:", amt, "cents:", Math.round(amt * 100));
     setStatus("processing");
     try {
       const res = await fetch("/api/payroc/checkout", {
@@ -71,12 +87,12 @@ export function CheckoutForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           token,
-          amount: parseFloat(amount),
-          description: description || undefined,
-          customerFirstName: firstName || undefined,
-          customerLastName: lastName || undefined,
-          customerEmail: email || undefined,
-          orderId,
+          amount: amt,
+          description: descriptionRef.current || undefined,
+          customerFirstName: firstNameRef.current || undefined,
+          customerLastName: lastNameRef.current || undefined,
+          customerEmail: emailRef.current || undefined,
+          orderId: orderIdRef.current,
         }),
       });
       const result = await res.json();
@@ -655,7 +671,7 @@ export function CheckoutForm() {
             <div>
               <label className={LABEL}>Name on Card</label>
               <div className="card-holder-name" style={{ minHeight: 44 }} />
-              <div className="card-holder-name-error text-xs text-[#ef4444] mt-1" />
+              <div className="card-holder-name-error error-message text-xs text-[#ef4444] mt-1" />
             </div>
             <div>
               <label className={LABEL}>Card Number</label>
@@ -667,18 +683,18 @@ export function CheckoutForm() {
                   </div>
                 )}
               </div>
-              <div className="card-number-error text-xs text-[#ef4444] mt-1" />
+              <div className="card-number-error error-message text-xs text-[#ef4444] mt-1" />
             </div>
             <div className="flex gap-3">
               <div className="flex-1">
                 <label className={LABEL}>Expiry</label>
                 <div className="card-expiry" style={{ minHeight: 44 }} />
-                <div className="card-expiry-error text-xs text-[#ef4444] mt-1" />
+                <div className="card-expiry-error error-message text-xs text-[#ef4444] mt-1" />
               </div>
               <div className="card-cvv-wrapper flex-1">
                 <label className={LABEL}>CVV</label>
                 <div className="card-cvv" style={{ minHeight: 44 }} />
-                <div className="card-cvv-error text-xs text-[#ef4444] mt-1" />
+                <div className="card-cvv-error error-message text-xs text-[#ef4444] mt-1" />
               </div>
             </div>
             <div className="card-submit submit-button" style={{ width: "100%", height: 52, minHeight: 52, display: "block", position: "relative", zIndex: 1, marginTop: 16, borderRadius: 10, overflow: "hidden" }} />
