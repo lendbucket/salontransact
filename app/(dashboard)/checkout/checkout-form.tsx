@@ -283,7 +283,15 @@ export function CheckoutForm() {
         cardForm.on("error", ({ type, field, message }: any) => {
           console.error("[CHECKOUT] error event:", { type, field, message });
           if (type === "submission") {
-            setError(message || "Payment submission failed");
+            const isSessionError = (message ?? "").toLowerCase().includes("session") ||
+              (message ?? "").toLowerCase().includes("expired") ||
+              (message ?? "").toLowerCase().includes("missing required");
+            if (isSessionError) {
+              setError("Payment session expired. Refreshing...");
+              setTimeout(() => window.location.reload(), 1500);
+            } else {
+              setError(message || "Payment submission failed");
+            }
             setStatus("ready");
           }
         });
@@ -291,7 +299,15 @@ export function CheckoutForm() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         cardForm.on("submissionError", ({ type, message }: any) => {
           console.error("[CHECKOUT] submissionError:", { type, message });
-          setError(message || "Payment failed. Please try again.");
+          const isSessionError = (message ?? "").toLowerCase().includes("session") ||
+            (message ?? "").toLowerCase().includes("expired") ||
+            (message ?? "").toLowerCase().includes("missing required");
+          if (isSessionError) {
+            setError("Payment session expired. Refreshing...");
+            setTimeout(() => window.location.reload(), 1500);
+          } else {
+            setError(message || "Payment failed. Please try again.");
+          }
           setStatus("ready");
         });
 
@@ -473,23 +489,8 @@ export function CheckoutForm() {
   }, []); // EMPTY deps — never re-run
 
   function resetForm() {
-    setAmount("");
-    setDescription("");
-    setFirstName("");
-    setLastName("");
-    setEmail("");
-    setError("");
-    setPaymentResult(null);
-    setCardBrand("unknown");
-    // For reset, we allow re-init
-    initOnceRef.current = false;
-    setStatus("loading");
-    // Need a tick for React to re-render before re-init
-    setTimeout(() => {
-      initOnceRef.current = false;
-      // Re-run init manually
-      window.location.reload();
-    }, 100);
+    console.log("[CHECKOUT] Resetting form — reloading for fresh session");
+    window.location.reload();
   }
 
   const parsedAmount = parseFloat(amount) || 0;
@@ -525,12 +526,16 @@ export function CheckoutForm() {
           {paymentResult.approvalCode && (
             <p className="text-xs text-[#878787] font-mono mt-1">Approval Code: {paymentResult.approvalCode}</p>
           )}
-          <div className="flex flex-col gap-3 w-full max-w-[280px] mt-6">
+          <div className="flex flex-col gap-3 w-full mt-8">
             <button
               onClick={resetForm}
-              className="w-full inline-flex items-center justify-center gap-2 h-10 bg-[#017ea7] hover:bg-[#0290be] text-white text-sm font-medium rounded-lg border border-[#015f80] transition-all duration-150 cursor-pointer"
+              className="w-full inline-flex items-center justify-center gap-2 h-[52px] text-white text-base font-medium rounded-[10px] border border-[#015f80] transition-all duration-150 cursor-pointer hover:-translate-y-px active:translate-y-0"
+              style={{
+                background: "linear-gradient(180deg, #0290be 0%, #017ea7 100%)",
+                boxShadow: "0 1px 2px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.12)",
+              }}
             >
-              New Payment
+              Process Another Payment
             </button>
             <Link href="/transactions" className="text-[13px] font-medium text-[#878787] text-center hover:text-[#1A1313] transition-colors">
               View Transactions
