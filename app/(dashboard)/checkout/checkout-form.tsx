@@ -122,28 +122,28 @@ export function CheckoutForm() {
             fields: {
               card: {
                 cardholderName: {
-                  target: ".payroc-cardholder-name",
-                  errorTarget: ".payroc-cardholder-name-error",
+                  target: ".card-holder-name",
+                  errorTarget: ".card-holder-name-error",
                   placeholder: "Cardholder Name",
                 },
                 cardNumber: {
-                  target: ".payroc-card-number",
-                  errorTarget: ".payroc-card-number-error",
+                  target: ".card-number",
+                  errorTarget: ".card-number-error",
                   placeholder: "1234 5678 1234 1211",
                 },
                 cvv: {
-                  wrapperTarget: ".payroc-cvv-wrapper",
-                  target: ".payroc-card-cvv",
-                  errorTarget: ".payroc-card-cvv-error",
+                  wrapperTarget: ".card-cvv-wrapper",
+                  target: ".card-cvv",
+                  errorTarget: ".card-cvv-error",
                   placeholder: "CVV",
                 },
                 expiryDate: {
-                  target: ".payroc-card-expiry",
-                  errorTarget: ".payroc-card-expiry-error",
+                  target: ".card-expiry",
+                  errorTarget: ".card-expiry-error",
                   placeholder: "MM/YY",
                 },
                 submit: {
-                  target: ".payroc-submit-button",
+                  target: ".submit-button",
                   value: chargeLabel,
                 },
               },
@@ -591,36 +591,36 @@ export function CheckoutForm() {
         <div style={{ display: formState === "ready" || formState === "processing" ? "flex" : "none", flexDirection: "column", gap: 12 }}>
           <div>
             <label className={LABEL}>Name on Card</label>
-            <div className="payroc-cardholder-name bg-[#F4F5F7] border border-[#E8EAED] rounded-lg h-11 flex items-center px-3 transition-all duration-150 focus-within:border-[#017ea7] focus-within:ring-[3px] focus-within:ring-[#017ea7]/10 focus-within:bg-white overflow-hidden" />
-            <div className="payroc-cardholder-name-error text-xs text-[#ef4444] mt-1" />
+            <div className="card-holder-name bg-[#F4F5F7] border border-[#E8EAED] rounded-lg h-11 flex items-center px-3 transition-all duration-150 focus-within:border-[#017ea7] focus-within:ring-[3px] focus-within:ring-[#017ea7]/10 focus-within:bg-white overflow-hidden" />
+            <div className="card-holder-name-error text-xs text-[#ef4444] mt-1" />
           </div>
           <div>
             <label className={LABEL}>Card Number</label>
             <div className="relative">
-              <div className="payroc-card-number bg-[#F4F5F7] border border-[#E8EAED] rounded-lg h-11 flex items-center px-3 transition-all duration-150 focus-within:border-[#017ea7] focus-within:ring-[3px] focus-within:ring-[#017ea7]/10 focus-within:bg-white overflow-hidden" />
+              <div className="card-numberbg-[#F4F5F7] border border-[#E8EAED] rounded-lg h-11 flex items-center px-3 transition-all duration-150 focus-within:border-[#017ea7] focus-within:ring-[3px] focus-within:ring-[#017ea7]/10 focus-within:bg-white overflow-hidden" />
               {cardBrand !== "unknown" && (
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                   <CardBrandIcon brand={cardBrand} size={24} />
                 </div>
               )}
             </div>
-            <div className="payroc-card-number-error text-xs text-[#ef4444] mt-1" />
+            <div className="card-number-error text-xs text-[#ef4444] mt-1" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className={LABEL}>Expiry</label>
-              <div className="payroc-card-expiry bg-[#F4F5F7] border border-[#E8EAED] rounded-lg h-11 flex items-center px-3 transition-all duration-150 focus-within:border-[#017ea7] focus-within:ring-[3px] focus-within:ring-[#017ea7]/10 focus-within:bg-white overflow-hidden" />
-              <div className="payroc-card-expiry-error text-xs text-[#ef4444] mt-1" />
+              <div className="card-expirybg-[#F4F5F7] border border-[#E8EAED] rounded-lg h-11 flex items-center px-3 transition-all duration-150 focus-within:border-[#017ea7] focus-within:ring-[3px] focus-within:ring-[#017ea7]/10 focus-within:bg-white overflow-hidden" />
+              <div className="card-expiry-error text-xs text-[#ef4444] mt-1" />
             </div>
-            <div className="payroc-cvv-wrapper">
+            <div className="card-cvv-wrapper">
               <label className={LABEL}>CVV</label>
-              <div className="payroc-card-cvv bg-[#F4F5F7] border border-[#E8EAED] rounded-lg h-11 flex items-center px-3 transition-all duration-150 focus-within:border-[#017ea7] focus-within:ring-[3px] focus-within:ring-[#017ea7]/10 focus-within:bg-white overflow-hidden" />
-              <div className="payroc-card-cvv-error text-xs text-[#ef4444] mt-1" />
+              <div className="card-cvvbg-[#F4F5F7] border border-[#E8EAED] rounded-lg h-11 flex items-center px-3 transition-all duration-150 focus-within:border-[#017ea7] focus-within:ring-[3px] focus-within:ring-[#017ea7]/10 focus-within:bg-white overflow-hidden" />
+              <div className="card-cvv-error text-xs text-[#ef4444] mt-1" />
             </div>
           </div>
           {/* Payroc-injected submit button — this is the ONLY submit */}
           <div
-            className="payroc-submit-button w-full rounded-[10px] overflow-hidden"
+            className="card-submit submit-button w-full rounded-[10px] overflow-hidden"
             style={{ height: 52 }}
           />
         </div>

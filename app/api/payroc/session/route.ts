@@ -26,7 +26,7 @@ export async function GET() {
       expiresAt: result.expiresAt,
       terminalId: process.env.PAYROC_TERMINAL_ID,
       libUrl: config.url,
-      integrity: "", // Temporarily removed for debugging — integrity mismatch blocks script loading
+      integrity: config.integrityHash,
       _diag: {
         sessionHost:
           process.env.PAYROC_SESSION_HOST ||

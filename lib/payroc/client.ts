@@ -120,8 +120,6 @@ export async function getHostedFieldsSessionToken(
   scenario: "payment" | "tokenization"
 ): Promise<{ token: string; expiresAt: string }> {
   const bearerToken = await getPayrocToken();
-  // PAYROC_SESSION_HOST overrides the default API URL for session minting.
-  // Use this when Payroc support specifies a different host.
   const sessionHost =
     process.env.PAYROC_SESSION_HOST || process.env.PAYROC_API_URL;
   const terminalId = process.env.PAYROC_TERMINAL_ID;
@@ -130,6 +128,13 @@ export async function getHostedFieldsSessionToken(
     throw new Error("Payroc session host or Terminal ID not configured");
   }
 
+  // Extract libVersion from CDN URL so it always matches the loaded SDK
+  const { getHostedFieldsConfig } = await import("./hosted-fields");
+  const config = getHostedFieldsConfig();
+  const urlMatch = config.url.match(/hosted-fields-([\d.]+)\.js/);
+  const libVersion = urlMatch ? urlMatch[1] : "1.7.0.261457";
+
+  console.log("[SESSION] libVersion:", libVersion);
   console.log(
     "[PAYROC-DIAG] Minting session token from:",
     `${sessionHost}/processing-terminals/${terminalId}/hosted-fields-sessions`
@@ -145,7 +150,7 @@ export async function getHostedFieldsSessionToken(
         "Idempotency-Key": crypto.randomUUID(),
       },
       body: JSON.stringify({
-        libVersion: "1.6.0.172429",
+        libVersion,
         scenario,
       }),
     }
