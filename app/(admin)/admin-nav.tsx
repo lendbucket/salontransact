@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { LayoutDashboard, Store, Mail, Settings, LogOut } from "lucide-react";
+import { LayoutDashboard, Store, Mail, Settings, LogOut, CreditCard, ExternalLink } from "lucide-react";
 
 const navItems = [
   { href: "/admin", label: "Overview", icon: LayoutDashboard },
@@ -121,6 +121,33 @@ export function AdminNav({ email }: { email: string }) {
             );
           })}
         </nav>
+
+        {/* Test Checkout */}
+        <div style={{ padding: "0 8px", marginBottom: 8 }}>
+          <a
+            href="https://portal.salontransact.com/checkout"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              height: 36,
+              padding: "0 12px",
+              borderRadius: 6,
+              fontSize: 13,
+              fontWeight: 500,
+              color: "#017ea7",
+              background: "#E6F4F8",
+              textDecoration: "none",
+              border: "1px solid #BAE6FD",
+            }}
+          >
+            <CreditCard size={16} strokeWidth={1.5} />
+            Test Checkout
+            <ExternalLink size={12} strokeWidth={1.5} style={{ marginLeft: "auto", opacity: 0.6 }} />
+          </a>
+        </div>
 
         {/* User section */}
         <div
