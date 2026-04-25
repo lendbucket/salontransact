@@ -49,6 +49,12 @@ export function CheckoutForm() {
   const [error, setError] = useState("");
   const [paymentResult, setPaymentResult] = useState<PaymentResult | null>(null);
   const [cardBrand, setCardBrand] = useState<CardBrand>("unknown");
+  const [surchargeInfo, setSurchargeInfo] = useState<{
+    amount: number;
+    percentage: number;
+    total: number;
+  } | null>(null);
+  const [showSurchargeConfirm, setShowSurchargeConfirm] = useState(false);
 
   // CRITICAL: prevent double initialization
   const initOnceRef = useRef(false);
@@ -289,6 +295,67 @@ export function CheckoutForm() {
           console.log("[CHECKOUT] hosted fields ready event");
         });
 
+        // ---- Surcharge handling (RewardPay) ----
+        // The SDK fires surcharge-info when terminal has surcharging enabled.
+        // Payment hangs until we accept or decline the surcharge.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        cardForm.on("surcharge-info", (data: any) => {
+          console.log("[PAYROC-DIAG] surcharge-info event received:", JSON.stringify(data));
+          const payload = data?.payload ?? data;
+          const surchargeAmount = payload?.amount ?? payload?.surchargeAmount ?? 0;
+          const surchargePercent = payload?.percentage ?? payload?.surchargePercentage ?? 0;
+          const totalAmount = payload?.total ?? payload?.totalAmount ?? 0;
+
+          setSurchargeInfo({
+            amount: surchargeAmount,
+            percentage: surchargePercent,
+            total: totalAmount,
+          });
+
+          // Auto-accept surcharge — the SDK continues to submissionSuccess after this.
+          // Some SDK versions require calling acceptSurcharge(), others auto-continue.
+          console.log("[PAYROC-DIAG] Auto-accepting surcharge...");
+          if (typeof cardForm.acceptSurcharge === "function") {
+            console.log("[PAYROC-DIAG] Calling cardForm.acceptSurcharge()");
+            cardForm.acceptSurcharge();
+          } else if (typeof cardForm.surchargeAccepted === "function") {
+            console.log("[PAYROC-DIAG] Calling cardForm.surchargeAccepted()");
+            cardForm.surchargeAccepted();
+          } else if (typeof cardForm.confirmSurcharge === "function") {
+            console.log("[PAYROC-DIAG] Calling cardForm.confirmSurcharge()");
+            cardForm.confirmSurcharge();
+          } else {
+            // Try posting acceptance message back to the iframe
+            console.log("[PAYROC-DIAG] No surcharge method found, trying postMessage acceptance");
+            const iframes = document.querySelectorAll("iframe");
+            iframes.forEach((iframe) => {
+              const src = iframe.src ?? "";
+              if (src.includes("worldnet") || src.includes("payroc")) {
+                console.log("[PAYROC-DIAG] Posting surcharge-accepted to iframe:", src.substring(0, 60));
+                iframe.contentWindow?.postMessage(
+                  { type: "surcharge-accepted", accepted: true },
+                  "*"
+                );
+                iframe.contentWindow?.postMessage(
+                  JSON.stringify({ type: "surcharge-accepted", accepted: true }),
+                  "*"
+                );
+              }
+            });
+          }
+
+          // Log all available methods on cardForm for debugging
+          const methods = Object.getOwnPropertyNames(Object.getPrototypeOf(cardForm))
+            .filter((m) => typeof cardForm[m] === "function" && m !== "constructor");
+          console.log("[PAYROC-DIAG] cardForm methods:", methods.join(", "));
+        });
+
+        // Also listen for surcharge variants the SDK might use
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        cardForm.on("surchargeInfo", (data: any) => {
+          console.log("[PAYROC-DIAG] surchargeInfo (camelCase) event:", JSON.stringify(data));
+        });
+
         cardForm.initialize();
         cardFormRef.current = cardForm;
         console.log("[CHECKOUT] Payroc.hostedFields initialized");
@@ -300,7 +367,7 @@ export function CheckoutForm() {
       }
     }
 
-    // Diagnostic: capture postMessage traffic
+    // Diagnostic + surcharge auto-accept via postMessage
     function onMessage(e: MessageEvent) {
       const origin = (e.origin ?? "").toLowerCase();
       if (
@@ -309,6 +376,28 @@ export function CheckoutForm() {
         origin.includes("worldnettps")
       ) {
         console.log("[PAYROC-DIAG] postMessage from", e.origin, "data:", e.data);
+
+        // Auto-accept surcharge if the SDK communicates via postMessage
+        const msgData = typeof e.data === "string" ? (() => { try { return JSON.parse(e.data); } catch { return null; } })() : e.data;
+        if (msgData) {
+          const msgType = msgData.type ?? msgData.id ?? msgData.event ?? "";
+          if (
+            typeof msgType === "string" &&
+            msgType.toLowerCase().includes("surcharge")
+          ) {
+            console.log("[PAYROC-DIAG] Surcharge postMessage detected, sending acceptance back");
+            if (e.source && typeof (e.source as Window).postMessage === "function") {
+              (e.source as Window).postMessage(
+                { type: "surcharge-accepted", accepted: true },
+                e.origin || "*"
+              );
+              (e.source as Window).postMessage(
+                JSON.stringify({ type: "surcharge-accepted", accepted: true }),
+                e.origin || "*"
+              );
+            }
+          }
+        }
       }
     }
     window.addEventListener("message", onMessage);
@@ -568,9 +657,23 @@ export function CheckoutForm() {
 
       {/* TOTAL + CANCEL */}
       <div>
+        {surchargeInfo && surchargeInfo.amount > 0 && (
+          <div className="bg-[#FFFBEB] border border-[#FDE68A] rounded-lg p-3 mb-3">
+            <p className="text-[13px] font-medium text-[#92400E] mb-1">
+              Processing Fee Notice
+            </p>
+            <p className="text-[12px] text-[#92400E]">
+              A {surchargeInfo.percentage}% surcharge of ${(surchargeInfo.amount / 100).toFixed(2)} will be added to cover processing fees.
+            </p>
+          </div>
+        )}
         <div className="flex items-center justify-between mb-2 px-1">
           <span className="text-sm font-medium text-[#878787]">Total</span>
-          <span className="text-2xl font-semibold text-[#1A1313] tracking-tight">${parsedAmount.toFixed(2)}</span>
+          <span className="text-2xl font-semibold text-[#1A1313] tracking-tight">
+            ${surchargeInfo && surchargeInfo.total > 0
+              ? (surchargeInfo.total / 100).toFixed(2)
+              : parsedAmount.toFixed(2)}
+          </span>
         </div>
         <Link href="/dashboard" className="flex items-center justify-center mt-3 text-[13px] font-medium text-[#878787] hover:text-[#1A1313] transition-colors">
           Cancel
