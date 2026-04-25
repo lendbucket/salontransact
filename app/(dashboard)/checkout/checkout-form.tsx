@@ -277,6 +277,8 @@ export function CheckoutForm() {
         cardForm.on("submissionSuccess", async ({ token }: any) => {
           console.log("[CHECKOUT] submissionSuccess — token:", token?.substring(0, 20));
           await processPayment(token);
+          // Session token is single-use — auto-reload for fresh session
+          setTimeout(() => window.location.reload(), 3000);
         });
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
