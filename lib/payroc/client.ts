@@ -120,15 +120,23 @@ export async function getHostedFieldsSessionToken(
   scenario: "payment" | "tokenization"
 ): Promise<{ token: string; expiresAt: string }> {
   const bearerToken = await getPayrocToken();
-  const baseUrl = process.env.PAYROC_API_URL;
+  // PAYROC_SESSION_HOST overrides the default API URL for session minting.
+  // Use this when Payroc support specifies a different host.
+  const sessionHost =
+    process.env.PAYROC_SESSION_HOST || process.env.PAYROC_API_URL;
   const terminalId = process.env.PAYROC_TERMINAL_ID;
 
-  if (!baseUrl || !terminalId) {
-    throw new Error("Payroc API URL or Terminal ID not configured");
+  if (!sessionHost || !terminalId) {
+    throw new Error("Payroc session host or Terminal ID not configured");
   }
 
+  console.log(
+    "[PAYROC-DIAG] Minting session token from:",
+    `${sessionHost}/processing-terminals/${terminalId}/hosted-fields-sessions`
+  );
+
   const response = await fetch(
-    `${baseUrl}/processing-terminals/${terminalId}/hosted-fields-sessions`,
+    `${sessionHost}/processing-terminals/${terminalId}/hosted-fields-sessions`,
     {
       method: "POST",
       headers: {

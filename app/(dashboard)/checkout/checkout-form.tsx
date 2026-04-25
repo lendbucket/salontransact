@@ -76,6 +76,10 @@ export function CheckoutForm() {
       console.log("[CHECKOUT] Session response:", JSON.stringify(data));
       console.log("[CHECKOUT] Session token:", data.sessionToken?.substring(0, 20));
       console.log("[CHECKOUT] Lib URL:", data.libUrl);
+      if (data._diag) {
+        console.log("[PAYROC-DIAG] sessionHost:", data._diag.sessionHost);
+        console.log("[PAYROC-DIAG] gatewayHost:", data._diag.gatewayHost);
+      }
 
       const { sessionToken, libUrl, integrity } = data;
       if (!sessionToken) {
@@ -233,6 +237,19 @@ export function CheckoutForm() {
       setFormState("loadError");
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Diagnostic: capture postMessage traffic from Payroc/Worldnet iframes
+  useEffect(() => {
+    function onMessage(e: MessageEvent) {
+      const origin = (e.origin ?? "").toLowerCase();
+      if (origin.includes("worldnet") || origin.includes("payroc") || origin.includes("worldnettps")) {
+        console.log("[PAYROC-DIAG] postMessage from", e.origin, "data:", e.data);
+      }
+    }
+    window.addEventListener("message", onMessage);
+    console.log("[PAYROC-DIAG] postMessage listener attached");
+    return () => window.removeEventListener("message", onMessage);
   }, []);
 
   useEffect(() => {

@@ -27,6 +27,14 @@ export async function GET() {
       terminalId: process.env.PAYROC_TERMINAL_ID,
       libUrl: config.url,
       integrity: "", // Temporarily removed for debugging — integrity mismatch blocks script loading
+      _diag: {
+        sessionHost:
+          process.env.PAYROC_SESSION_HOST ||
+          process.env.PAYROC_API_URL,
+        gatewayHost:
+          process.env.PAYROC_GATEWAY_HOST ||
+          "https://testpayments.worldnettps.com",
+      },
     });
   } catch (error) {
     console.error("[SESSION] Error:", error);
