@@ -77,9 +77,16 @@ export function CheckoutForm() {
 
   // ---- processPayment — reads from refs for fresh values ----
   async function processPayment(token: string) {
-    const amt = parseFloat(amountRef.current);
+    const rawAmount = amountRef.current;
+    const amt = parseFloat(rawAmount) || 0;
     console.log("[CHECKOUT] Processing payment with token:", token.substring(0, 20));
-    console.log("[CHECKOUT] Amount from ref:", amountRef.current, "parsed:", amt, "cents:", Math.round(amt * 100));
+    console.log("[CHECKOUT] Amount raw:", JSON.stringify(rawAmount), "parsed:", amt, "cents:", Math.round(amt * 100));
+    if (amt <= 0) {
+      console.error("[CHECKOUT] Amount is 0 or invalid — aborting payment");
+      setError("Please enter an amount before paying");
+      setStatus("ready");
+      return;
+    }
     setStatus("processing");
     try {
       const res = await fetch("/api/payroc/checkout", {
