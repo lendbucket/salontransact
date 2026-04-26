@@ -236,3 +236,21 @@ model PayrocPaymentRecord {
   @@index([payrocPaymentId])
   @@index([recordedAt])
 }
+
+model WebhookEvent {
+  id           String    @id @default(cuid())
+  source       String
+  eventId      String    @unique
+  eventType    String
+  payload      Json
+  status       String    @default("received")
+  processedAt  DateTime?
+  errorMessage String?
+  ipAddress    String?
+  receivedAt   DateTime  @default(now())
+
+  @@index([source])
+  @@index([eventType])
+  @@index([status])
+  @@index([receivedAt])
+}

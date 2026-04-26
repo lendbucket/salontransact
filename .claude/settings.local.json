@@ -27,7 +27,11 @@
       "Bash(rmdir \"app/\\(admin\\)/merchants\")",
       "Bash(python scripts/search.py \"fintech payment onboarding wizard dark\" --design-system -p \"SalonTransact\")",
       "Read(//mnt/**)",
-      "Bash(ls /mnt/)"
+      "Bash(ls /mnt/)",
+      "Bash(git rm:*)",
+      "WebFetch(domain:www.google.com)",
+      "WebFetch(domain:docs.payroc.com)",
+      "Bash(xargs grep:*)"
     ]
   }
 }

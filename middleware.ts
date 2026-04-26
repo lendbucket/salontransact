@@ -27,6 +27,7 @@ export default withAuth(
           path.startsWith('/magic') ||
           path.startsWith('/api/auth') ||
           path.startsWith('/api/invite') ||
+          path.startsWith('/api/webhooks/payroc') ||
           path === '/'
         ) return true
         return !!token
