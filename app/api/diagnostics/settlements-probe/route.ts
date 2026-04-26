@@ -18,52 +18,57 @@ export async function GET() {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const tid = process.env.PAYROC_TERMINAL_ID ?? "";
-  const dates = ["2026-04-26", "2026-04-25", "2026-04-24", "2026-04-23", "2026-04-22"];
+  // 1. GET /disputes — no params
+  console.log("[DISPUTES-PROBE] GET /disputes (no params)");
+  const noParams = await payrocRefundRequest<unknown>("GET", "/disputes", undefined, null);
+  console.log("[DISPUTES-PROBE] no params status:", noParams.status, "body:", noParams.rawBody.slice(0, 500));
 
-  // 1-5. GET /batches?date=...&processingTerminalId=...
-  const byDate: Record<string, ReturnType<typeof pick>> = {};
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let firstBatch: { batchId: string; date: string } | null = null;
+  // 2. GET /disputes?limit=10
+  console.log("[DISPUTES-PROBE] GET /disputes?limit=10");
+  const limitOnly = await payrocRefundRequest<unknown>("GET", "/disputes?limit=10", undefined, null);
+  console.log("[DISPUTES-PROBE] limit=10 status:", limitOnly.status, "body:", limitOnly.rawBody.slice(0, 500));
 
-  for (const d of dates) {
-    const path = `/batches?date=${d}&processingTerminalId=${tid}`;
-    console.log(`[SETTLEMENTS-PROBE] GET ${path}`);
-    const r = await payrocRefundRequest<unknown>("GET", path, undefined, null);
-    console.log(`[SETTLEMENTS-PROBE] ${d} status:`, r.status, "body:", r.rawBody.slice(0, 500));
-    byDate[d] = pick(r);
+  // 3. GET /disputes?date=2026-04-25
+  console.log("[DISPUTES-PROBE] GET /disputes?date=2026-04-25");
+  const singleDate = await payrocRefundRequest<unknown>("GET", "/disputes?date=2026-04-25", undefined, null);
+  console.log("[DISPUTES-PROBE] date status:", singleDate.status, "body:", singleDate.rawBody.slice(0, 500));
 
-    if (!firstBatch && r.ok) {
+  // 4. GET /disputes?dateFrom=...&dateTo=...
+  console.log("[DISPUTES-PROBE] GET /disputes?dateFrom=2026-04-01&dateTo=2026-04-26");
+  const dateRange = await payrocRefundRequest<unknown>(
+    "GET",
+    "/disputes?dateFrom=2026-04-01T00:00:00Z&dateTo=2026-04-26T23:59:59Z",
+    undefined,
+    null
+  );
+  console.log("[DISPUTES-PROBE] dateRange status:", dateRange.status, "body:", dateRange.rawBody.slice(0, 500));
+
+  // Find first dispute from any successful response
+  let firstDisputeId: string | null = null;
+  for (const r of [noParams, limitOnly, singleDate, dateRange]) {
+    if (r.ok && r.data) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const rd = r.data as any;
-      const id = rd?.data?.[0]?.batchId ?? rd?.data?.[0]?.id ?? null;
-      if (id) firstBatch = { batchId: id, date: d };
+      const id = rd?.data?.[0]?.disputeId ?? rd?.data?.[0]?.id ?? null;
+      if (id) { firstDisputeId = id; break; }
     }
   }
 
-  // 8. GET /batches?date=2026-04-25 without terminalId
-  console.log("[SETTLEMENTS-PROBE] GET /batches?date=2026-04-25 (no terminal)");
-  const noTerm = await payrocRefundRequest<unknown>("GET", "/batches?date=2026-04-25", undefined, null);
-  console.log("[SETTLEMENTS-PROBE] no-terminal status:", noTerm.status, "body:", noTerm.rawBody.slice(0, 500));
-
-  // 6-7. Drill-down
+  // 5. Drill-down if we found a dispute
   let drilldown = null;
-  if (firstBatch) {
-    console.log(`[SETTLEMENTS-PROBE] GET /batches/${firstBatch.batchId}?processingTerminalId=${tid}`);
-    const bd = await payrocRefundRequest<unknown>("GET", `/batches/${firstBatch.batchId}?processingTerminalId=${tid}`, undefined, null);
-    console.log("[SETTLEMENTS-PROBE] batch detail status:", bd.status, "body:", bd.rawBody.slice(0, 500));
-
-    console.log(`[SETTLEMENTS-PROBE] GET /transactions?batchId=${firstBatch.batchId}&processingTerminalId=${tid}`);
-    const tx = await payrocRefundRequest<unknown>("GET", `/transactions?batchId=${firstBatch.batchId}&processingTerminalId=${tid}`, undefined, null);
-    console.log("[SETTLEMENTS-PROBE] tx by batch status:", tx.status, "body:", tx.rawBody.slice(0, 500));
-
-    drilldown = { batchDetail: pick(bd), transactions: pick(tx), batchId: firstBatch.batchId, date: firstBatch.date };
+  if (firstDisputeId) {
+    console.log(`[DISPUTES-PROBE] GET /disputes/${firstDisputeId}/statuses`);
+    const statuses = await payrocRefundRequest<unknown>("GET", `/disputes/${firstDisputeId}/statuses`, undefined, null);
+    console.log("[DISPUTES-PROBE] statuses status:", statuses.status, "body:", statuses.rawBody.slice(0, 500));
+    drilldown = pick(statuses);
   }
 
   return NextResponse.json({
-    terminalIdUsed: tid || null,
-    byDate,
-    withoutTerminal: pick(noTerm),
+    noParams: pick(noParams),
+    limitOnly: pick(limitOnly),
+    withSingleDate: pick(singleDate),
+    withDateRange: pick(dateRange),
     drilldown,
+    firstDisputeId,
   });
 }
