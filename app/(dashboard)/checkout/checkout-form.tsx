@@ -86,6 +86,55 @@ export function CheckoutForm() {
               },
             },
           },
+          styles: {
+            css: {
+              input: {
+                "background-color": "transparent",
+                border: "none",
+                "border-radius": "0",
+                padding: "0 12px",
+                "font-family": "Inter, -apple-system, sans-serif",
+                "font-size": "15px",
+                "font-weight": "400",
+                color: "#1A1313",
+                outline: "none",
+                width: "100%",
+                height: "100%",
+                "box-sizing": "border-box",
+                "letter-spacing": "-0.31px",
+              },
+              "input:focus": {
+                outline: "none",
+              },
+              "input::placeholder": {
+                color: "#ABABAB",
+              },
+              button: {
+                background: "linear-gradient(180deg, #0290be 0%, #017ea7 100%)",
+                color: "#ffffff",
+                border: "1px solid #015f80",
+                "border-radius": "10px",
+                width: "100%",
+                height: "52px",
+                "font-family": "Inter, sans-serif",
+                "font-size": "16px",
+                "font-weight": "500",
+                "letter-spacing": "-0.1px",
+                "text-align": "center",
+                cursor: "pointer",
+                padding: "0",
+                margin: "0",
+                "box-shadow": "0 1px 2px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.12)",
+                transition: "all 150ms ease",
+              },
+              "button:hover": {
+                background: "linear-gradient(180deg, #03a0d1 0%, #0290be 100%)",
+                "box-shadow": "0 2px 4px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.15)",
+              },
+              body: { margin: "0", padding: "0" },
+              form: { display: "block" },
+            },
+          },
         });
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
