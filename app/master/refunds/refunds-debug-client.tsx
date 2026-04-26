@@ -254,23 +254,23 @@ export default function RefundsDebugClient() {
   return (
     <div className="space-y-8">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight">
+        <h1 className="text-2xl font-bold tracking-tight text-white">
           Refunds &amp; Reversals — Diagnostic
         </h1>
-        <p className="text-sm text-gray-400 mt-1">
+        <p className="text-sm text-gray-300 mt-1">
           Master portal only. Operations are logged to the RefundOperation
           audit table.
         </p>
       </header>
 
       {/* Payments list */}
-      <section className="bg-[#0d1117] rounded-lg border border-white/[0.06]">
-        <div className="flex items-center justify-between p-4 border-b border-white/[0.06]">
+      <section className="bg-[#0d1117] rounded-lg border border-white/[0.12]">
+        <div className="flex items-center justify-between p-4 border-b border-white/[0.12]">
           <div>
-            <h2 className="text-base font-medium">
+            <h2 className="text-base font-semibold text-white">
               Recent Payroc payments
             </h2>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-gray-400">
               Click a row to populate the form below.
             </p>
           </div>
@@ -278,7 +278,7 @@ export default function RefundsDebugClient() {
             type="button"
             onClick={() => void loadPayments()}
             disabled={paymentsLoading}
-            className="inline-flex items-center gap-2 text-sm px-3 py-1.5 rounded border border-white/[0.06] hover:bg-white/[0.04] disabled:opacity-50"
+            className="inline-flex items-center gap-2 text-sm px-3 py-1.5 rounded border border-white/[0.12] hover:bg-white/[0.04] disabled:opacity-50"
           >
             <RefreshCw
               size={16}
@@ -299,13 +299,13 @@ export default function RefundsDebugClient() {
             <span>{paymentsError}</span>
           </div>
         ) : payments.length === 0 && !paymentsLoading ? (
-          <div className="p-4 text-sm text-gray-500">
+          <div className="p-4 text-sm text-gray-300">
             No payments returned.
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="text-xs text-gray-500 uppercase tracking-wide">
+              <thead className="text-xs text-gray-400 uppercase tracking-wide">
                 <tr>
                   <th className="text-left px-4 py-2 font-medium">
                     Payment ID
@@ -336,7 +336,7 @@ export default function RefundsDebugClient() {
                   return (
                     <tr
                       key={p.paymentId}
-                      className="border-t border-white/[0.04] hover:bg-white/[0.02]"
+                      className="border-t border-white/[0.08] hover:bg-white/[0.02]"
                     >
                       <td className="px-4 py-3 font-mono text-xs">
                         {p.paymentId}
@@ -362,7 +362,7 @@ export default function RefundsDebugClient() {
                             type="button"
                             onClick={() => fillFromPayment(p, "refund")}
                             disabled={!canRefund}
-                            className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded border border-white/[0.06] hover:bg-white/[0.04] disabled:opacity-30 disabled:cursor-not-allowed"
+                            className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded border border-white/[0.12] hover:bg-white/[0.04] disabled:opacity-30 disabled:cursor-not-allowed"
                           >
                             <ArrowDownCircle size={14} strokeWidth={1.5} />
                             Refund
@@ -371,7 +371,7 @@ export default function RefundsDebugClient() {
                             type="button"
                             onClick={() => fillFromPayment(p, "reverse")}
                             disabled={!canReverse}
-                            className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded border border-white/[0.06] hover:bg-white/[0.04] disabled:opacity-30 disabled:cursor-not-allowed"
+                            className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded border border-white/[0.12] hover:bg-white/[0.04] disabled:opacity-30 disabled:cursor-not-allowed"
                           >
                             <RotateCcw size={14} strokeWidth={1.5} />
                             Reverse
@@ -390,10 +390,10 @@ export default function RefundsDebugClient() {
       {/* Form */}
       <section
         id="refund-form"
-        className="bg-[#0d1117] rounded-lg border border-white/[0.06] sticky top-4 z-10"
+        className="bg-[#0d1117] rounded-lg border border-white/[0.12] sticky top-4 z-10"
       >
-        <div className="p-4 border-b border-white/[0.06]">
-          <h2 className="text-base font-medium">
+        <div className="p-4 border-b border-white/[0.12]">
+          <h2 className="text-base font-semibold text-white">
             Submit refund or reverse
           </h2>
         </div>
@@ -405,7 +405,7 @@ export default function RefundsDebugClient() {
               className={`px-3 py-1.5 text-sm rounded border ${
                 operation === "refund"
                   ? "bg-[#7a8f96] text-[#06080d] border-[#7a8f96]"
-                  : "border-white/[0.06] hover:bg-white/[0.04]"
+                  : "border-white/[0.12] hover:bg-white/[0.04]"
               }`}
             >
               Refund
@@ -416,7 +416,7 @@ export default function RefundsDebugClient() {
               className={`px-3 py-1.5 text-sm rounded border ${
                 operation === "reverse"
                   ? "bg-[#7a8f96] text-[#06080d] border-[#7a8f96]"
-                  : "border-white/[0.06] hover:bg-white/[0.04]"
+                  : "border-white/[0.12] hover:bg-white/[0.04]"
               }`}
             >
               Reverse
@@ -425,19 +425,19 @@ export default function RefundsDebugClient() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-gray-400 mb-1">
+              <label className="block text-xs text-gray-300 mb-1">
                 Payment ID
               </label>
               <input
                 type="text"
                 value={paymentId}
                 onChange={(e) => setPaymentId(e.target.value)}
-                className="w-full px-3 py-2 bg-[#06080d] border border-white/[0.06] rounded text-sm font-mono"
+                className="w-full px-3 py-2 bg-[#06080d] border border-white/[0.12] rounded text-sm font-mono"
                 placeholder="e.g. M2MJOG6O2Y"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-400 mb-1">
+              <label className="block text-xs text-gray-300 mb-1">
                 Amount (USD)
                 {operation === "reverse" && isFullReverse
                   ? " — ignored on full reverse"
@@ -449,7 +449,7 @@ export default function RefundsDebugClient() {
                 min="0"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className="w-full px-3 py-2 bg-[#06080d] border border-white/[0.06] rounded text-sm"
+                className="w-full px-3 py-2 bg-[#06080d] border border-white/[0.12] rounded text-sm"
                 placeholder="0.00"
               />
             </div>
@@ -457,7 +457,7 @@ export default function RefundsDebugClient() {
 
           {operation === "refund" ? (
             <div>
-              <label className="block text-xs text-gray-400 mb-1">
+              <label className="block text-xs text-gray-300 mb-1">
                 Description ({description.length}/100)
               </label>
               <input
@@ -466,7 +466,7 @@ export default function RefundsDebugClient() {
                 onChange={(e) =>
                   setDescription(e.target.value.slice(0, 100))
                 }
-                className="w-full px-3 py-2 bg-[#06080d] border border-white/[0.06] rounded text-sm"
+                className="w-full px-3 py-2 bg-[#06080d] border border-white/[0.12] rounded text-sm"
                 placeholder="Reason for refund"
                 maxLength={100}
               />
@@ -484,7 +484,7 @@ export default function RefundsDebugClient() {
           )}
 
           <div className="flex items-center justify-between pt-2">
-            <div className="text-xs text-gray-500">
+            <div className="text-xs text-gray-400">
               {operation === "refund"
                 ? "POST /api/refunds/refund"
                 : "POST /api/refunds/reverse"}
@@ -527,11 +527,11 @@ export default function RefundsDebugClient() {
       </section>
 
       {/* Audit log */}
-      <section className="bg-[#0d1117] rounded-lg border border-white/[0.06]">
-        <div className="flex items-center justify-between p-4 border-b border-white/[0.06]">
+      <section className="bg-[#0d1117] rounded-lg border border-white/[0.12]">
+        <div className="flex items-center justify-between p-4 border-b border-white/[0.12]">
           <div>
-            <h2 className="text-base font-medium">Audit log</h2>
-            <p className="text-xs text-gray-500">
+            <h2 className="text-base font-semibold text-white">Audit log</h2>
+            <p className="text-xs text-gray-400">
               Last 50 RefundOperation rows.
             </p>
           </div>
@@ -539,7 +539,7 @@ export default function RefundsDebugClient() {
             type="button"
             onClick={() => void loadAudit()}
             disabled={auditLoading}
-            className="inline-flex items-center gap-2 text-sm px-3 py-1.5 rounded border border-white/[0.06] hover:bg-white/[0.04] disabled:opacity-50"
+            className="inline-flex items-center gap-2 text-sm px-3 py-1.5 rounded border border-white/[0.12] hover:bg-white/[0.04] disabled:opacity-50"
           >
             <RefreshCw
               size={16}
@@ -560,13 +560,13 @@ export default function RefundsDebugClient() {
             <span>{auditError}</span>
           </div>
         ) : auditRows.length === 0 && !auditLoading ? (
-          <div className="p-4 text-sm text-gray-500">
+          <div className="p-4 text-sm text-gray-300">
             No operations yet.
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="text-xs text-gray-500 uppercase tracking-wide">
+              <thead className="text-xs text-gray-400 uppercase tracking-wide">
                 <tr>
                   <th className="text-left px-4 py-2 font-medium">When</th>
                   <th className="text-left px-4 py-2 font-medium">Op</th>
@@ -591,7 +591,7 @@ export default function RefundsDebugClient() {
                 {auditRows.map((r) => (
                   <tr
                     key={r.id}
-                    className="border-t border-white/[0.04]"
+                    className="border-t border-white/[0.08]"
                   >
                     <td className="px-4 py-3 text-gray-300 whitespace-nowrap">
                       {formatDate(r.createdAt)}
