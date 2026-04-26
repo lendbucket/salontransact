@@ -28,13 +28,21 @@ function fmtDate(iso: string) {
 
 const SHADOW = "0 0 0 1px rgba(0,0,0,0.05), 0 1px 1px rgba(0,0,0,0.05), 0 2px 2px rgba(0,0,0,0.05), 0 4px 4px rgba(0,0,0,0.05), 0 8px 8px rgba(0,0,0,0.05), 0 16px 16px rgba(0,0,0,0.05)";
 
+function statusPillStyles(status: string): { bg: string; text: string; dot: string } {
+  const s = status.toLowerCase().trim();
+  if (["complete", "succeeded", "success", "approved", "captured"].includes(s))
+    return { bg: "#DCFCE7", text: "#15803D", dot: "#22c55e" };
+  if (["pending", "processing"].includes(s))
+    return { bg: "#FEF3C7", text: "#92400E", dot: "#F59E0B" };
+  if (["failed", "declined", "error"].includes(s))
+    return { bg: "#FEF2F2", text: "#DC2626", dot: "#EF4444" };
+  if (s === "refunded")
+    return { bg: "#F4F5F7", text: "#4A4A4A", dot: "#878787" };
+  return { bg: "#F4F5F7", text: "#4A4A4A", dot: "#878787" };
+}
+
 function StatusPill({ status }: { status: string }) {
-  const cfg: Record<string, { bg: string; text: string; dot: string }> = {
-    success: { bg: "#DCFCE7", text: "#15803D", dot: "#22c55e" },
-    failed: { bg: "#FEF2F2", text: "#DC2626", dot: "#ef4444" },
-    pending: { bg: "#FEF3C7", text: "#92400E", dot: "#F59E0B" },
-  };
-  const c = cfg[status] ?? cfg.pending;
+  const c = statusPillStyles(status);
   return (
     <span className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5" style={{ background: c.bg, color: c.text, fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>
       <span className="w-1.5 h-1.5 rounded-full" style={{ background: c.dot }} />
