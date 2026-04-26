@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Loader2, CheckCircle2, XCircle, Lock, DollarSign, FileText } from "lucide-react";
 import Link from "next/link";
-import { clientLogEvent, getOrCreateSessionId, getMsSinceMount, fingerprintToken } from "@/lib/diagnostics/client-log";
 
 type Status = "loading" | "ready" | "loadError" | "processing" | "success" | "declined";
 
@@ -21,25 +20,13 @@ export function CheckoutForm() {
   const initRef = useRef(false);
   const amountRef = useRef("");
   const descriptionRef = useRef("");
-  const diagSessionId = useRef(getOrCreateSessionId());
-  const tokenFpRef = useRef<string | null>(null);
   amountRef.current = amount;
   descriptionRef.current = description;
 
-  // ---- beforeunload tracking ----
-  useEffect(() => {
-    const sid = diagSessionId.current;
-    const handler = () => { void clientLogEvent({ sessionId: sid, source: "client-form", eventName: "page-unloading", payload: { msSinceMount: getMsSinceMount() } }); };
-    window.addEventListener("beforeunload", handler);
-    return () => window.removeEventListener("beforeunload", handler);
-  }, []);
-
-  // ---- SDK init (DO NOT MODIFY behavior) ----
+  // ---- SDK init (DO NOT MODIFY) ----
   useEffect(() => {
     if (initRef.current) return;
     initRef.current = true;
-    const sid = diagSessionId.current;
-    void clientLogEvent({ sessionId: sid, source: "client-form", eventName: "page-mounted", payload: { msSinceMount: 0 } });
 
     (async () => {
       try {
@@ -48,14 +35,10 @@ export function CheckoutForm() {
         const data = await res.json();
         if (!data.sessionToken) {
           console.error("[HF] No session token:", data);
-          void clientLogEvent({ sessionId: sid, source: "client-form", eventName: "session-fetch-failed", payload: { msSinceMount: getMsSinceMount(), error: data.error } });
           setStatus("loadError");
           return;
         }
         console.log("[HF] Session OK, token length:", data.sessionToken.length);
-        const fp = await fingerprintToken(data.sessionToken);
-        tokenFpRef.current = fp;
-        void clientLogEvent({ sessionId: sid, source: "client-form", eventName: "session-fetched", payload: { msSinceMount: getMsSinceMount(), tokenFingerprint: fp, tokenLength: data.sessionToken.length, libUrl: data.libUrl } });
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if (!(window as any).Payroc) {
@@ -72,7 +55,6 @@ export function CheckoutForm() {
           });
         }
         console.log("[HF] SDK loaded");
-        void clientLogEvent({ sessionId: sid, source: "client-sdk", eventName: "sdk-loaded", payload: { msSinceMount: getMsSinceMount() } });
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const Payroc = (window as any).Payroc;
@@ -161,8 +143,6 @@ export function CheckoutForm() {
         cardForm.on("submissionSuccess", async (evt: any) => {
           const token = evt?.token;
           console.log("[HF] submissionSuccess, token:", token?.substring(0, 20));
-          const suFp = token ? await fingerprintToken(token) : null;
-          void clientLogEvent({ sessionId: sid, source: "client-sdk", eventName: "submission-success", payload: { msSinceMount: getMsSinceMount(), tokenFingerprint: suFp, sessionTokenFingerprint: tokenFpRef.current } });
           setStatus("processing");
 
           const amt = parseFloat(amountRef.current) || 0;
@@ -173,8 +153,6 @@ export function CheckoutForm() {
           }
 
           try {
-            const _oid = crypto.randomUUID().slice(0, 8).toUpperCase();
-            void clientLogEvent({ sessionId: sid, source: "client-form", eventName: "checkout-request-sent", payload: { msSinceMount: getMsSinceMount(), amount: amt, orderId: _oid, tokenFingerprint: suFp } });
             const pr = await fetch("/api/payroc/checkout", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -182,13 +160,11 @@ export function CheckoutForm() {
                 token,
                 amount: amt,
                 description: descriptionRef.current || "Payment",
-                orderId: _oid,
-                sessionId: sid,
+                orderId: crypto.randomUUID().slice(0, 8).toUpperCase(),
               }),
             });
             const result = await pr.json();
             console.log("[HF] Payment result:", result);
-            void clientLogEvent({ sessionId: sid, source: "client-form", eventName: "checkout-response", payload: { msSinceMount: getMsSinceMount(), success: result.success, paymentId: result.paymentId, error: result.error || result.declineReason } });
 
             if (result.success) {
               setPaymentId(result.paymentId || "");
@@ -210,7 +186,6 @@ export function CheckoutForm() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         cardForm.on("submissionError", (evt: any) => {
           console.error("[HF] submissionError:", evt);
-          void clientLogEvent({ sessionId: sid, source: "client-sdk", eventName: "submission-error", payload: { msSinceMount: getMsSinceMount(), message: evt?.message, type: evt?.type, sessionTokenFingerprint: tokenFpRef.current } });
           setError(evt?.message || "Submission failed");
           setStatus("ready");
         });
@@ -218,27 +193,20 @@ export function CheckoutForm() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         cardForm.on("error", (evt: any) => {
           console.error("[HF] error:", evt);
-          void clientLogEvent({ sessionId: sid, source: "client-sdk", eventName: "sdk-error", payload: { msSinceMount: getMsSinceMount(), type: evt?.type, field: evt?.field, message: evt?.message } });
         });
 
-        cardForm.on("ready", () => {
-          console.log("[HF] Fields ready");
-          void clientLogEvent({ sessionId: sid, source: "client-sdk", eventName: "fields-ready", payload: { msSinceMount: getMsSinceMount(), sessionTokenFingerprint: tokenFpRef.current } });
-        });
+        cardForm.on("ready", () => console.log("[HF] Fields ready"));
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         cardForm.on("surcharge-info", (evt: any) => {
           console.log("[HF] Surcharge info:", evt);
-          void clientLogEvent({ sessionId: sid, source: "client-sdk", eventName: "surcharge-info", payload: { msSinceMount: getMsSinceMount() } });
         });
 
         cardForm.initialize();
         console.log("[HF] Initialized");
-        void clientLogEvent({ sessionId: sid, source: "client-sdk", eventName: "sdk-initialized", payload: { msSinceMount: getMsSinceMount(), sessionTokenFingerprint: tokenFpRef.current } });
         setStatus("ready");
       } catch (err) {
         console.error("[HF] Init failed:", err);
-        void clientLogEvent({ sessionId: sid, source: "client-form", eventName: "init-error", payload: { msSinceMount: getMsSinceMount(), error: (err as Error).message } });
         setStatus("loadError");
       }
     })();
