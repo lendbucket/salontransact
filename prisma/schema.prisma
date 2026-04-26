@@ -220,3 +220,19 @@ model RefundOperation {
   @@index([operatorUserId])
   @@index([createdAt])
 }
+
+model PayrocPaymentRecord {
+  id              String   @id @default(cuid())
+  payrocPaymentId String   @unique
+  merchantId      String
+  amountCents     Int
+  currency        String   @default("USD")
+  status          String
+  source          String
+  recordedAt      DateTime @default(now())
+  createdAt       DateTime @default(now())
+
+  @@index([merchantId])
+  @@index([payrocPaymentId])
+  @@index([recordedAt])
+}
