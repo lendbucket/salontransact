@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getPayrocToken } from "@/lib/payroc/client";
 import crypto from "crypto";
+import { logEvent } from "@/lib/diagnostics/log";
 
 export async function POST(request: Request) {
   console.log("\n=== PAYMENT REQUEST DEBUG START ===");
@@ -39,6 +40,9 @@ export async function POST(request: Request) {
       customerEmail,
       orderId,
     } = body;
+    const _diagSid = typeof body.sessionId === "string" ? body.sessionId : crypto.randomUUID();
+    const _tokFp = token ? crypto.createHash("sha256").update(token).digest("hex").slice(0, 16) : null;
+    void logEvent({ sessionId: _diagSid, source: "server-checkout", eventName: "checkout-started", payload: { hasToken: !!token, tokenFingerprint: _tokFp, amount, orderId, merchantId: merchant.id }, userId, merchantId: merchant.id });
 
     console.log("[PAYMENT-DEBUG] Token:", token?.substring(0, 30) + "...");
     console.log("[PAYMENT-DEBUG] Amount:", amount, "type:", typeof amount);
@@ -125,6 +129,7 @@ export async function POST(request: Request) {
 
     const responseText = await payrRes.text();
 
+    void logEvent({ sessionId: _diagSid, source: "server-checkout", eventName: "payroc-response", payload: { status: payrRes.status, tokenFingerprint: _tokFp, bodyLength: responseText.length }, userId, merchantId: merchant.id });
     console.log("[PAYMENT-DEBUG] Payroc HTTP status:", payrRes.status);
     console.log("[PAYMENT-DEBUG] Payroc response headers:");
     payrRes.headers.forEach((v, k) => console.log(`  ${k}: ${v}`));
@@ -176,6 +181,7 @@ export async function POST(request: Request) {
     console.log("=== PAYMENT REQUEST DEBUG END ===\n");
 
     if (responseCode === "A") {
+      void logEvent({ sessionId: _diagSid, source: "server-checkout", eventName: "payment-approved", payload: { paymentId, approvalCode, last4, amountCents: orderAmount, tokenFingerprint: _tokFp }, userId, merchantId: merchant.id });
       const amountDollars = orderAmount / 100;
 
       try {
@@ -216,6 +222,7 @@ export async function POST(request: Request) {
       });
     }
 
+    void logEvent({ sessionId: _diagSid, source: "server-checkout", eventName: "payment-declined", payload: { responseCode, responseMessage, tokenFingerprint: _tokFp }, userId, merchantId: merchant.id });
     return NextResponse.json({
       success: false,
       declineReason: responseMessage || "Payment declined",

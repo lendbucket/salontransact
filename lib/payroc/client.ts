@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
+import { logEvent } from "@/lib/diagnostics/log";
 
 interface TokenCache {
   token: string;
@@ -123,7 +124,8 @@ export async function payrocRequest<T>(
 }
 
 export async function getHostedFieldsSessionToken(
-  scenario: "payment" | "tokenization" = "payment"
+  scenario: "payment" | "tokenization" = "payment",
+  diagSessionId?: string
 ): Promise<{ token: string; expiresAt: string }> {
   const bearerToken = await getPayrocToken();
   const terminalId = process.env.PAYROC_TERMINAL_ID;
@@ -149,6 +151,8 @@ export async function getHostedFieldsSessionToken(
     libVersion,
     scenario,
   };
+
+  void logEvent({ sessionId: diagSessionId || "no-session", source: "server-session", eventName: "session-token-requested", payload: { libVersion, scenario, idempotencyKey, terminalId: terminalId || "" } });
 
   console.log("=========== PAYROC SESSION REQUEST ===========");
   console.log("URL:", requestUrl);
@@ -224,6 +228,9 @@ export async function getHostedFieldsSessionToken(
   console.log("expiresAt:", data.expiresAt);
   console.log("All response keys:", Object.keys(data).join(", "));
   console.log("=============================================");
+
+  const _sf = data.token ? crypto.createHash("sha256").update(data.token).digest("hex").slice(0, 16) : null;
+  void logEvent({ sessionId: diagSessionId || "no-session", source: "server-session", eventName: "session-token-response", payload: { status: response.status, tokenFingerprint: _sf, tokenLength: data.token?.length, expiresAt: data.expiresAt } });
 
   return {
     token: data.token,

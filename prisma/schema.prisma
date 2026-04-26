@@ -236,3 +236,18 @@ model PayrocPaymentRecord {
   @@index([payrocPaymentId])
   @@index([recordedAt])
 }
+
+model DiagnosticEvent {
+  id         String   @id @default(cuid())
+  sessionId  String
+  source     String
+  eventName  String
+  payload    Json
+  userId     String?
+  merchantId String?
+  createdAt  DateTime @default(now())
+
+  @@index([sessionId])
+  @@index([eventName])
+  @@index([createdAt])
+}
