@@ -527,50 +527,50 @@ textarea,
 
 /* ── Payroc Hosted Fields containers ── */
 
-.card-holder-name,
-.card-number,
-.card-cvv,
-.card-expiry {
+.hf-cardholder,
+.hf-cardnumber,
+.hf-cvv,
+.hf-expiry {
   min-height: 44px;
   height: 44px;
   display: block;
   width: 100%;
-  background: #F4F5F7;
-  border: 1px solid #E8EAED;
-  border-radius: 8px;
   overflow: hidden;
-  transition: border-color 150ms ease, box-shadow 150ms ease;
 }
 
-.card-holder-name:focus-within,
-.card-number:focus-within,
-.card-cvv:focus-within,
-.card-expiry:focus-within {
-  border-color: #017ea7;
+.hf-cardholder:focus-within,
+.hf-cardnumber:focus-within,
+.hf-cvv:focus-within,
+.hf-expiry:focus-within {
+  border-color: #017ea7 !important;
   box-shadow: 0 0 0 3px rgba(1, 126, 167, 0.1);
-  background: #FFFFFF;
+  background: #FFFFFF !important;
 }
 
-.card-holder-name iframe,
-.card-number iframe,
-.card-cvv iframe,
-.card-expiry iframe {
+.hf-cardholder iframe,
+.hf-cardnumber iframe,
+.hf-cvv iframe,
+.hf-expiry iframe {
   width: 100% !important;
   height: 100% !important;
   border: none !important;
   display: block !important;
 }
 
-.card-submit.submit-button {
+.hf-cvv-wrapper {
+  display: block;
+  width: 100%;
+}
+
+.hf-submit {
   display: block !important;
   width: 100% !important;
   min-height: 52px !important;
-  height: 52px !important;
   overflow: hidden;
   border-radius: 10px;
 }
 
-.card-submit.submit-button iframe {
+.hf-submit iframe {
   width: 100% !important;
   height: 100% !important;
   border: none !important;

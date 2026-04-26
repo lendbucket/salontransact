@@ -169,6 +169,8 @@ export function CheckoutForm() {
               setApprovalCode(result.approvalCode || "");
               setLast4(result.last4 || "");
               setStatus("success");
+              // Session token is single-use — reload after 3s for fresh session
+              setTimeout(() => window.location.reload(), 3000);
             } else {
               setError(result.declineReason || result.error || "Declined");
               setStatus("declined");
