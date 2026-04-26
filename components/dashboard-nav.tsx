@@ -36,7 +36,7 @@ const links: NavLink[] = [
   { href: "/analytics", label: "Analytics", icon: TrendingUp, section: "Overview" },
   { href: "/transactions", label: "Transactions", icon: ArrowLeftRight, section: "Payments" },
   { href: "/payouts", label: "Payouts", icon: Wallet, section: "Payments" },
-  { href: "/disputes", label: "Disputes", icon: AlertCircle, section: "Payments" },
+  { href: "/master/disputes", label: "Disputes", icon: AlertCircle, section: "Payments" },
   { href: "/master/refunds", label: "Refunds", icon: ArrowDownCircle, section: "Payments" },
   { href: "/master/settlements", label: "Settlements", icon: Wallet, section: "Payments" },
   { href: "/api-keys", label: "API Keys", icon: KeyRound, section: "Developers" },
