@@ -204,7 +204,7 @@ function PaymentsTab({ merchant }: { merchant: MerchantData }) {
   const connected = !!merchant.stripeAccountId;
   return (
     <div className="card" style={{ padding: 24 }}>
-      <h3 style={{ marginBottom: 16 }}>Payroc Connection</h3>
+      <h3 style={{ marginBottom: 16 }}>Payment Processing</h3>
       <div
         style={{
           display: "flex",
@@ -233,7 +233,7 @@ function PaymentsTab({ merchant }: { merchant: MerchantData }) {
       </div>
       {!connected && (
         <p style={{ fontSize: 14, color: "#878787" }}>
-          Our team will contact you to complete your Payroc merchant setup.
+          Our team will contact you to complete your SalonTransact merchant setup.
         </p>
       )}
       {merchant.fundingSpeed && (

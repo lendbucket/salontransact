@@ -75,7 +75,7 @@ export default function SupportPage() {
       Icon: BookOpen,
       title: "Documentation",
       desc: "Integration guides and API reference",
-      detail: "Payroc API docs, hosted fields, Pay by Cloud",
+      detail: "SalonTransact API docs, integration guides, Pay by Cloud",
       action: "View Docs",
       href: "https://docs.payroc.com",
       iconBg: "#E6F4F8",

@@ -901,7 +901,7 @@ export default function OnboardingPage() {
               Where should we send your payouts?
             </h2>
             <p style={{ color: "#6b7280", fontSize: 14, marginBottom: 28 }}>
-              Your bank account for receiving daily settlements from Payroc
+              Your bank account for receiving daily settlements
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               <div>
@@ -980,7 +980,7 @@ export default function OnboardingPage() {
               <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "12px 14px", borderRadius: 8, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
                 <Lock size={14} strokeWidth={1.5} color="#635bff" style={{ marginTop: 2, flexShrink: 0 }} />
                 <span style={{ color: "#4b5563", fontSize: 12 }}>
-                  Your banking information is encrypted with 256-bit AES encryption and transmitted securely to Payroc for payment processing setup.
+                  Your banking information is encrypted with 256-bit AES encryption and transmitted securely for payment processing setup.
                 </span>
               </div>
             </div>
@@ -1104,7 +1104,7 @@ export default function OnboardingPage() {
                   style={{ marginTop: 3, accentColor: "#635bff", width: 16, height: 16 }}
                 />
                 <span style={{ color: "#9ca3af", fontSize: 13, lineHeight: 1.5 }}>
-                  I certify that all information provided is accurate and complete. I authorize Reyna Pay LLC and Payroc to verify this information and process my merchant application.
+                  I certify that all information provided is accurate and complete. I authorize Reyna Pay LLC and SalonTransact to verify this information and process my merchant application.
                 </span>
               </label>
               <FieldError msg={errors.agreedToTerms} />
@@ -1163,7 +1163,7 @@ export default function OnboardingPage() {
               </p>
               {[
                 { Icon: FileCheck, label: "Application Review", desc: "Our team reviews your business information", time: "1-2 business days" },
-                { Icon: UserCheck, label: "Payroc Underwriting", desc: "Payroc verifies your business and banking information", time: "2-3 business days" },
+                { Icon: UserCheck, label: "Underwriting Review", desc: "Your business and banking information is verified", time: "2-3 business days" },
                 { Icon: Zap, label: "Start Processing", desc: "Receive your merchant ID and begin accepting payments", time: "After approval" },
               ].map((item, i) => (
                 <div key={item.label} style={{ display: "flex", gap: 14 }}>
