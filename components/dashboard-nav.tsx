@@ -20,6 +20,7 @@ import {
   Search,
   Menu,
   ArrowDownCircle,
+  Lock,
 } from "lucide-react";
 
 type NavLink = {
@@ -38,6 +39,7 @@ const links: NavLink[] = [
   { href: "/payouts", label: "Payouts", icon: Wallet, section: "Payments" },
   { href: "/master/disputes", label: "Disputes", icon: AlertCircle, section: "Payments" },
   { href: "/master/refunds", label: "Refunds", icon: ArrowDownCircle, section: "Payments" },
+  { href: "/master/authorizations", label: "Authorizations", icon: Lock, section: "Payments" },
   { href: "/master/settlements", label: "Settlements", icon: Wallet, section: "Payments" },
   { href: "/api-keys", label: "API Keys", icon: KeyRound, section: "Developers" },
   { href: "/webhooks", label: "Webhooks", icon: Webhook, section: "Developers" },

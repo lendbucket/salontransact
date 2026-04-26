@@ -22,6 +22,7 @@ const PAGE_TITLES: Record<string, string> = {
   "/master/refunds": "Refunds & Reversals",
   "/master/settlements": "Settlements",
   "/master/disputes": "Disputes",
+  "/master/authorizations": "Authorizations",
 };
 
 export function Topbar() {
