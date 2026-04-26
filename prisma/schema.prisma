@@ -195,3 +195,28 @@ model Affiliate {
   updatedAt      DateTime @updatedAt
   referredCount  Int      @default(0)
 }
+
+model RefundOperation {
+  id                  String   @id @default(cuid())
+  operation           String
+  payrocPaymentId     String
+  payrocRefundId      String?
+  idempotencyKey      String   @unique
+  amountCents         Int
+  description         String?
+  operatorUserId      String
+  operatorEmail       String
+  merchantId          String?
+  status              String
+  payrocRequestBody   Json?
+  payrocResponseBody  Json?
+  payrocStatusCode    Int?
+  errorMessage        String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([payrocPaymentId])
+  @@index([merchantId])
+  @@index([operatorUserId])
+  @@index([createdAt])
+}
