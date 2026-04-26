@@ -19,6 +19,7 @@ const PAGE_TITLES: Record<string, string> = {
   "/logs": "Logs",
   "/settings": "Settings",
   "/support": "Support",
+  "/master/refunds": "Refunds & Reversals",
 };
 
 export function Topbar() {

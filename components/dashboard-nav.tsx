@@ -19,6 +19,7 @@ import {
   LogOut,
   Search,
   Menu,
+  ArrowDownCircle,
 } from "lucide-react";
 
 type NavLink = {
@@ -26,6 +27,7 @@ type NavLink = {
   label: string;
   icon: typeof LayoutDashboard;
   section: string;
+  masterOnly?: boolean;
 };
 
 const links: NavLink[] = [
@@ -35,6 +37,7 @@ const links: NavLink[] = [
   { href: "/transactions", label: "Transactions", icon: ArrowLeftRight, section: "Payments" },
   { href: "/payouts", label: "Payouts", icon: Wallet, section: "Payments" },
   { href: "/disputes", label: "Disputes", icon: AlertCircle, section: "Payments" },
+  { href: "/master/refunds", label: "Refunds", icon: ArrowDownCircle, section: "Payments", masterOnly: true },
   { href: "/api-keys", label: "API Keys", icon: KeyRound, section: "Developers" },
   { href: "/webhooks", label: "Webhooks", icon: Webhook, section: "Developers" },
   { href: "/logs", label: "Logs", icon: FileText, section: "Developers" },
@@ -47,9 +50,11 @@ const sections = ["Overview", "Payments", "Developers", "Account"];
 export function Sidebar({
   businessName,
   plan,
+  role,
 }: {
   businessName: string;
   plan: string;
+  role?: string;
 }) {
   const pathname = usePathname();
   const { data: session } = useSession();
@@ -169,6 +174,7 @@ export function Sidebar({
             </p>
             {links
               .filter((l) => l.section === section)
+              .filter((l) => !l.masterOnly || role === "master portal")
               .map((link) => {
                 const Icon = link.icon;
                 const active = pathname === link.href;

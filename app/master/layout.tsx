@@ -1,6 +1,8 @@
 import { ReactNode } from "react";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { Sidebar, BottomNav } from "@/components/dashboard-nav";
+import { Topbar } from "@/components/topbar";
 
 export default async function MasterLayout({
   children,
@@ -35,14 +37,17 @@ export default async function MasterLayout({
   }
 
   return (
-    <main
-      className="min-h-screen bg-[#FBFBFB]"
-      style={{
-        fontFamily: "Inter, -apple-system, BlinkMacSystemFont, sans-serif",
-        letterSpacing: "-0.31px",
-      }}
-    >
-      <div className="max-w-[1280px] mx-auto px-8 py-8">{children}</div>
-    </main>
+    <div className="flex min-h-screen bg-background">
+      <Sidebar
+        businessName="Master Portal"
+        plan="admin"
+        role="master portal"
+      />
+      <div className="flex-1 flex flex-col">
+        <Topbar />
+        <main className="flex-1 pb-20 md:pb-0">{children}</main>
+      </div>
+      <BottomNav />
+    </div>
   );
 }
