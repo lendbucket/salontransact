@@ -129,12 +129,6 @@ export default function RefundsDebugClient() {
 
   return (
     <div className="space-y-8">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-semibold text-[#1A1313]">Refunds &amp; Reversals</h1>
-        <p className="text-sm text-[#878787] mt-1">Master portal diagnostic. Operations logged to RefundOperation table.</p>
-      </div>
-
       {/* Payments list */}
       <div className="bg-white border border-[#E8EAED] rounded-xl overflow-hidden" style={{ boxShadow: SHADOW }}>
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#E8EAED]">
