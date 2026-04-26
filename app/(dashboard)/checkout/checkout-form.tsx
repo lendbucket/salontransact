@@ -110,26 +110,28 @@ export function CheckoutForm() {
                 color: "#ABABAB",
               },
               button: {
+                "background-color": "#017ea7",
                 background: "linear-gradient(180deg, #0290be 0%, #017ea7 100%)",
                 color: "#ffffff",
-                border: "1px solid #015f80",
+                border: "none",
                 "border-radius": "10px",
                 width: "100%",
                 height: "52px",
-                "font-family": "Inter, sans-serif",
+                "font-family": "Inter, -apple-system, sans-serif",
                 "font-size": "16px",
                 "font-weight": "500",
                 "letter-spacing": "-0.1px",
                 "text-align": "center",
                 cursor: "pointer",
-                padding: "0",
+                padding: "14px 24px",
                 margin: "0",
-                "box-shadow": "0 1px 2px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.12)",
-                transition: "all 150ms ease",
+                "box-shadow": "0 1px 2px rgba(0,0,0,0.15)",
+                transition: "all 200ms ease",
               },
               "button:hover": {
+                "background-color": "#0290be",
                 background: "linear-gradient(180deg, #03a0d1 0%, #0290be 100%)",
-                "box-shadow": "0 2px 4px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.15)",
+                "box-shadow": "0 2px 4px rgba(0,0,0,0.2)",
               },
               body: { margin: "0", padding: "0" },
               form: { display: "block" },
@@ -320,7 +322,7 @@ export function CheckoutForm() {
         <div className="flex items-center gap-2 mb-4">
           <Lock size={16} strokeWidth={1.5} className="text-[#017ea7]" />
           <span className="text-base font-semibold text-[#1A1313]">Card Information</span>
-          <span className="text-xs text-[#878787] ml-auto">Secured by Payroc</span>
+          <span className="text-xs text-[#878787] ml-auto">Powered by SalonTransact</span>
         </div>
         <div className="h-px bg-[#F4F5F7] mb-5" />
 
@@ -371,7 +373,7 @@ export function CheckoutForm() {
         )}
 
         <p className="flex items-center gap-1.5 text-[11px] text-[#878787] mt-4">
-          <Lock size={10} strokeWidth={1.5} /> 256-bit encrypted · Secured by Payroc
+          <Lock size={10} strokeWidth={1.5} /> 256-bit encrypted · Powered by SalonTransact
         </p>
       </div>
 
