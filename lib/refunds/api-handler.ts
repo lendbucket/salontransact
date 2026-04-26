@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { payrocRefundRequest } from "@/lib/refunds/payroc-helper";
+import { canInitiateRefundForPayment } from "@/lib/refunds/permissions";
 import type {
   OperationKind,
   PayrocPayment,
@@ -37,7 +38,7 @@ export type HandlerResult = HandlerSuccess | HandlerFailure;
 export async function handleRefundOperation(
   input: HandlerInput
 ): Promise<HandlerResult> {
-  // 1 & 2. Auth + authorization
+  // 1. Authentication
   const session = await getServerSession(authOptions);
   const user = session?.user as
     | { id?: string; email?: string | null; role?: string }
@@ -47,15 +48,7 @@ export async function handleRefundOperation(
     return { ok: false, status: 401, error: "Not authenticated" };
   }
 
-  if (user.role !== "master portal") {
-    return {
-      ok: false,
-      status: 403,
-      error: "Refunds and reversals are restricted in this release. Contact support.",
-    };
-  }
-
-  // 3. Validation
+  // 2. Validation (runs before permission check because check needs paymentId)
   const { operation, paymentId, amountCents, description, isFullReverse } =
     input;
 
@@ -96,6 +89,18 @@ export async function handleRefundOperation(
     }
   }
 
+  // 3. Authorization — checks ownership (merchant) or full access (master portal)
+  const permission = await canInitiateRefundForPayment(user, paymentId);
+  if (!permission.allowed) {
+    const friendly =
+      permission.reason === "payment-belongs-to-other-merchant"
+        ? "You can only refund your own transactions."
+        : permission.reason === "no-transaction-for-payment"
+          ? "No matching transaction found in your account. If this is a recent payment, please try again in a moment."
+          : "You are not authorized to refund this payment.";
+    return { ok: false, status: 403, error: friendly };
+  }
+
   // 4. Idempotency key
   const idempotencyKey = crypto.randomUUID();
 
@@ -132,7 +137,7 @@ export async function handleRefundOperation(
         description: description ?? null,
         operatorUserId: user.id,
         operatorEmail: user.email ?? "",
-        merchantId: null,
+        merchantId: permission.merchantId ?? null,
         status: "pending",
         payrocRequestBody: payrocRequestBody as object,
       },

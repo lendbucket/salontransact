@@ -12,7 +12,7 @@ export default async function MasterLayout({
   const session = await getServerSession(authOptions);
   const user = session?.user as { role?: string } | undefined;
 
-  if (!user || user.role !== "master portal") {
+  if (!user || (user.role !== "master portal" && user.role !== "merchant")) {
     return (
       <main className="min-h-screen flex items-center justify-center bg-[#FBFBFB]">
         <div

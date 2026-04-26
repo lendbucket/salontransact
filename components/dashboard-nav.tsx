@@ -37,7 +37,7 @@ const links: NavLink[] = [
   { href: "/transactions", label: "Transactions", icon: ArrowLeftRight, section: "Payments" },
   { href: "/payouts", label: "Payouts", icon: Wallet, section: "Payments" },
   { href: "/disputes", label: "Disputes", icon: AlertCircle, section: "Payments" },
-  { href: "/master/refunds", label: "Refunds", icon: ArrowDownCircle, section: "Payments", masterOnly: true },
+  { href: "/master/refunds", label: "Refunds", icon: ArrowDownCircle, section: "Payments" },
   { href: "/api-keys", label: "API Keys", icon: KeyRound, section: "Developers" },
   { href: "/webhooks", label: "Webhooks", icon: Webhook, section: "Developers" },
   { href: "/logs", label: "Logs", icon: FileText, section: "Developers" },
