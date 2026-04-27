@@ -101,6 +101,7 @@ model Merchant {
   payouts               Payout[]
   apiKeys               ApiKey[]
   webhooks              Webhook[]
+  savedPaymentMethods   SavedPaymentMethod[]
 }
 
 model Transaction {
@@ -221,6 +222,31 @@ model RefundOperation {
   @@index([payrocPaymentId])
   @@index([merchantId])
   @@index([operatorUserId])
+  @@index([createdAt])
+}
+
+model SavedPaymentMethod {
+  id                  String    @id @default(cuid())
+  merchantId          String
+  customerEmail       String
+  payrocSecureTokenId String    @unique
+  cardScheme          String?
+  last4               String?
+  expiryMonth         String?
+  expiryYear          String?
+  cardholderName      String?
+  label               String?
+  status              String    @default("active")
+  mitAgreement        String    @default("unscheduled")
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  lastUsedAt          DateTime?
+
+  merchant            Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@index([merchantId, customerEmail])
+  @@index([payrocSecureTokenId])
+  @@index([status])
   @@index([createdAt])
 }
 
