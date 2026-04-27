@@ -506,6 +506,17 @@ textarea,
   box-shadow: 0 0 0 3px rgba(1, 126, 167, 0.1);
 }
 
+/* Icon-padding override: when .st-input has Tailwind's pl-10 utility,
+   it means the input has a left icon (e.g., search bar). Two-class
+   selector beats single-class .st-input in the cascade. */
+.st-input.pl-10 {
+  padding-left: 40px;
+}
+
+.st-input.pl-11 {
+  padding-left: 44px;
+}
+
 /* ── Auth pages (keep dark for auth) ── */
 
 @keyframes orbFloat1 {
