@@ -52,7 +52,7 @@ export function DashboardCharts({ chartData }: { chartData: ChartData[] }) {
         Revenue
       </h2>
       <p className="text-xs text-muted mb-6">30-day transaction volume</p>
-      <div className="h-64">
+      <div className="h-64 w-full min-w-0">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={chartData}>
             <defs>

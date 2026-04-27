@@ -121,7 +121,7 @@ export default async function DashboardPage() {
       </p>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <StatCard
           title="Total Volume"
           value={formatMoney(merchant.totalVolume)}
@@ -174,7 +174,9 @@ export default async function DashboardPage() {
               No transactions yet. Connect Stripe to start accepting payments.
             </p>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+            {/* Desktop table */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left text-muted">
@@ -222,6 +224,42 @@ export default async function DashboardPage() {
                 </tbody>
               </table>
             </div>
+
+            {/* Mobile cards */}
+            <div className="md:hidden divide-y divide-[#F4F5F7]">
+              {recent.map(
+                (tx: {
+                  id: string;
+                  amount: number;
+                  status: string;
+                  description: string | null;
+                  customerEmail: string | null;
+                  customerName: string | null;
+                  createdAt: Date;
+                }) => (
+                  <div key={tx.id} className="py-3 space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="text-sm text-foreground font-medium truncate">
+                        {tx.description ?? "Payment"}
+                      </span>
+                      <Badge status={tx.status} />
+                    </div>
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className="text-base font-semibold text-foreground">
+                        {formatMoney(tx.amount)}
+                      </span>
+                      <span className="text-xs text-muted">
+                        {format(tx.createdAt, "MMM d")}
+                      </span>
+                    </div>
+                    <div className="text-xs text-secondary truncate">
+                      {tx.customerName ?? tx.customerEmail ?? "\u2014"}
+                    </div>
+                  </div>
+                )
+              )}
+            </div>
+            </>
           )}
         </div>
 
