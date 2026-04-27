@@ -235,7 +235,9 @@ export default function RefundsDebugClient() {
             <p className="text-[13px] text-[#878787]">When you process payments, they'll appear here for refund management.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          {/* Desktop table */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-[13px]">
               <thead>
                 <tr className="bg-[#F9FAFB]">
@@ -288,6 +290,63 @@ export default function RefundsDebugClient() {
               </tbody>
             </table>
           </div>
+
+          {/* Mobile cards */}
+          <div className="md:hidden divide-y divide-[#F4F5F7]">
+            {payments.map(p => {
+              const ops = p.supportedOperations || [];
+              const totalRefunded = refundedCents(p);
+              const fullyRefunded = totalRefunded >= p.order.amount;
+              const hasRefunds = totalRefunded > 0;
+              const canRefund = ops.includes("refund") && !fullyRefunded;
+              const canReverse = (ops.includes("fullyReverse") || ops.includes("partiallyReverse")) && !hasRefunds;
+              return (
+                <div key={p.paymentId} className="px-4 py-4 space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="font-mono text-[12px] text-[#4A4A4A] truncate">{p.paymentId}</span>
+                    <StatusPill status={p.transactionResult.status} />
+                  </div>
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="text-base font-semibold text-[#1A1313]">{fmt(p.order.amount, p.order.currency)}</span>
+                    <span className="text-[12px] text-[#878787]">{fmtDate(p.order.dateTime)}</span>
+                  </div>
+                  <div className="text-[13px] text-[#4A4A4A]">
+                    {p.card.type} ····{p.card.cardNumber.slice(-4)}
+                  </div>
+                  {totalRefunded > 0 && (
+                    <div className="text-[13px]">
+                      <span className="text-[#878787]">Refunded:</span>{" "}
+                      <span className={fullyRefunded ? "text-[#4A4A4A]" : "text-[#1A1313]"}>
+                        {fmt(totalRefunded, p.order.currency)}
+                        {fullyRefunded && <span className="text-[#878787]"> (full)</span>}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => fillFromPayment(p, "refund")}
+                      disabled={!canRefund}
+                      title={fullyRefunded ? "Already fully refunded" : undefined}
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 text-[13px] font-medium px-3 h-10 rounded-md border border-[#D1D5DB] bg-white hover:bg-[#F4F5F7] disabled:opacity-30 disabled:cursor-not-allowed text-[#1A1313] transition-all cursor-pointer"
+                    >
+                      <ArrowDownCircle size={14} strokeWidth={1.5} /> Refund
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => fillFromPayment(p, "reverse")}
+                      disabled={!canReverse}
+                      title={hasRefunds ? "Cannot reverse after refund" : undefined}
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 text-[13px] font-medium px-3 h-10 rounded-md border border-[#D1D5DB] bg-white hover:bg-[#F4F5F7] disabled:opacity-30 disabled:cursor-not-allowed text-[#1A1313] transition-all cursor-pointer"
+                    >
+                      <RotateCcw size={14} strokeWidth={1.5} /> Reverse
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          </>
         )}
       </div>
 
@@ -371,7 +430,9 @@ export default function RefundsDebugClient() {
             <p className="text-[13px] text-[#878787]">When you refund a payment, the operation will be recorded here.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          {/* Desktop table */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-[13px]">
               <thead>
                 <tr className="bg-[#F9FAFB]">
@@ -395,6 +456,28 @@ export default function RefundsDebugClient() {
               </tbody>
             </table>
           </div>
+
+          {/* Mobile cards */}
+          <div className="md:hidden divide-y divide-[#F4F5F7]">
+            {auditRows.map(r => (
+              <div key={r.id} className="px-4 py-4 space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <span className="text-[#1A1313] capitalize font-medium">{r.operation}</span>
+                  <StatusPill status={r.status} />
+                </div>
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="text-base font-semibold text-[#1A1313]">{fmt(r.amountCents)}</span>
+                  <span className="text-[12px] text-[#878787]">{fmtDate(r.createdAt)}</span>
+                </div>
+                <div className="font-mono text-[12px] text-[#4A4A4A] truncate">{r.payrocPaymentId}</div>
+                <div className="text-[11px] text-[#878787]">{r.operatorEmail}</div>
+                {(r.errorMessage || r.description) && (
+                  <div className="text-[12px] text-[#878787]">{r.errorMessage || r.description}</div>
+                )}
+              </div>
+            ))}
+          </div>
+          </>
         )}
       </div>
     </div>
