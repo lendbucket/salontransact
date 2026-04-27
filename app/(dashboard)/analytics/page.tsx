@@ -65,7 +65,9 @@ export default async function AnalyticsPage() {
             <p className="text-[13px] text-[#878787]">Analytics will populate as you process payments</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          {/* Desktop table */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="data-table">
               <thead>
                 <tr>
@@ -98,6 +100,35 @@ export default async function AnalyticsPage() {
               </tbody>
             </table>
           </div>
+
+          {/* Mobile cards */}
+          <div className="md:hidden divide-y divide-[#F4F5F7]">
+            {recent.map((tx) => (
+              <div key={tx.id} className="px-4 py-4 space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <span className="text-[#1A1313] font-medium truncate">
+                    {tx.description || "Payment"}
+                  </span>
+                  <span className={`badge ${tx.status === "succeeded" ? "badge-success" : "badge-pending"}`}>
+                    <span className="badge-dot" />
+                    {tx.status}
+                  </span>
+                </div>
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="text-base font-semibold text-[#1A1313] font-mono">
+                    {fmt(tx.amount)}
+                  </span>
+                  <span className="text-[12px] text-[#878787]">
+                    {format(tx.createdAt, "MMM d, yyyy")}
+                  </span>
+                </div>
+                <div className="text-[13px] text-[#4A4A4A] truncate">
+                  {tx.customerName || tx.customerEmail || "\u2014"}
+                </div>
+              </div>
+            ))}
+          </div>
+          </>
         )}
       </div>
     </div>
