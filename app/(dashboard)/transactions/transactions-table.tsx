@@ -96,7 +96,7 @@ export function TransactionsTable({ transactions }: { transactions: Tx[] }) {
       <div className="p-6 pb-0">
         <div className="flex flex-col sm:flex-row gap-3 mb-6">
           <div className="relative flex-1">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#878787] pointer-events-none" />
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
             <input
               value={query}
               onChange={(e) => {
@@ -104,7 +104,7 @@ export function TransactionsTable({ transactions }: { transactions: Tx[] }) {
                 setPage(0);
               }}
               placeholder="Search transactions..."
-              className="st-input pl-10"
+              className="st-input pl-9"
             />
           </div>
           <select

@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Lock, ArrowLeft, RefreshCw } from "lucide-react";
 import type { PayrocAuthorization } from "@/lib/authorizations/types";
-import AuthorizationCard from "@/components/authorizations/authorization-card";
 
 const SHADOW =
   "0 0 0 1px rgba(0,0,0,0.05), 0 1px 1px rgba(0,0,0,0.05), 0 2px 2px rgba(0,0,0,0.05), 0 4px 4px rgba(0,0,0,0.05), 0 8px 8px rgba(0,0,0,0.05), 0 16px 16px rgba(0,0,0,0.05)";
@@ -172,81 +171,65 @@ export default function AuthorizationsClient() {
               </p>
             </div>
           ) : (
-            <>
-            {/* Desktop table */}
-            <div className="hidden md:block">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-[#F9FAFB] border-b border-[#E8EAED]">
-                    {[
-                      "Authorization ID",
-                      "Payment ID",
-                      "Date",
-                      "Card",
-                      "Amount",
-                      "Response",
-                      "Status",
-                    ].map((h) => (
-                      <th
-                        key={h}
-                        className={`px-6 py-3 text-[10px] font-semibold uppercase tracking-wider text-[#878787] ${h === "Amount" ? "text-right" : "text-left"}`}
-                      >
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {authorizations.map((a) => (
-                    <tr
-                      key={a.authorizationId}
-                      onClick={() => selectAuth(a)}
-                      className="border-b border-[#F4F5F7] hover:bg-[#F9FAFB] cursor-pointer transition-colors"
+            <table className="w-full">
+              <thead>
+                <tr className="bg-[#F9FAFB] border-b border-[#E8EAED]">
+                  {[
+                    "Authorization ID",
+                    "Payment ID",
+                    "Date",
+                    "Card",
+                    "Amount",
+                    "Response",
+                    "Status",
+                  ].map((h) => (
+                    <th
+                      key={h}
+                      className={`px-6 py-3 text-[10px] font-semibold uppercase tracking-wider text-[#878787] ${h === "Amount" ? "text-right" : "text-left"}`}
                     >
-                      <td className="px-6 py-3 text-[13px] text-[#1A1313] font-mono">
-                        {a.authorizationId}
-                      </td>
-                      <td className="px-6 py-3 text-[13px] text-[#4A4A4A] font-mono">
-                        {a.paymentId ?? "\u2014"}
-                      </td>
-                      <td className="px-6 py-3 text-[13px] text-[#1A1313]">
-                        {a.date ?? fmtDate(a.dateTime)}
-                      </td>
-                      <td className="px-6 py-3 text-[13px] text-[#4A4A4A]">
-                        {a.cardScheme && a.last4
-                          ? `${a.cardScheme} \u00B7\u00B7\u00B7\u00B7${a.last4}`
-                          : "\u2014"}
-                      </td>
-                      <td className="px-6 py-3 text-[13px] text-[#1A1313] text-right font-medium">
-                        {fmtMoney(a.amount)}
-                      </td>
-                      <td className="px-6 py-3 text-[13px] text-[#4A4A4A] font-mono">
-                        {a.responseCode ?? a.approvalCode ?? "\u2014"}
-                      </td>
-                      <td className="px-6 py-3">
-                        <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wider ${statusPill(a.status)}`}
-                        >
-                          {a.status ?? "unknown"}
-                        </span>
-                      </td>
-                    </tr>
+                      {h}
+                    </th>
                   ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Mobile cards */}
-            <div className="md:hidden divide-y" style={{ borderColor: "#E8EAED" }}>
-              {authorizations.map((a) => (
-                <AuthorizationCard
-                  key={a.authorizationId}
-                  authorization={a}
-                  onClick={() => selectAuth(a)}
-                />
-              ))}
-            </div>
-            </>
+                </tr>
+              </thead>
+              <tbody>
+                {authorizations.map((a) => (
+                  <tr
+                    key={a.authorizationId}
+                    onClick={() => selectAuth(a)}
+                    className="border-b border-[#F4F5F7] hover:bg-[#F9FAFB] cursor-pointer transition-colors"
+                  >
+                    <td className="px-6 py-3 text-[13px] text-[#1A1313] font-mono">
+                      {a.authorizationId}
+                    </td>
+                    <td className="px-6 py-3 text-[13px] text-[#4A4A4A] font-mono">
+                      {a.paymentId ?? "\u2014"}
+                    </td>
+                    <td className="px-6 py-3 text-[13px] text-[#1A1313]">
+                      {a.date ?? fmtDate(a.dateTime)}
+                    </td>
+                    <td className="px-6 py-3 text-[13px] text-[#4A4A4A]">
+                      {a.cardScheme && a.last4
+                        ? `${a.cardScheme} \u00B7\u00B7\u00B7\u00B7${a.last4}`
+                        : "\u2014"}
+                    </td>
+                    <td className="px-6 py-3 text-[13px] text-[#1A1313] text-right font-medium">
+                      {fmtMoney(a.amount)}
+                    </td>
+                    <td className="px-6 py-3 text-[13px] text-[#4A4A4A] font-mono">
+                      {a.responseCode ?? a.approvalCode ?? "\u2014"}
+                    </td>
+                    <td className="px-6 py-3">
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wider ${statusPill(a.status)}`}
+                      >
+                        {a.status ?? "unknown"}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
         </div>
       )}

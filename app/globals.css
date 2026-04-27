@@ -479,12 +479,20 @@ textarea,
   background: var(--bg-tertiary);
   border: 1px solid var(--border-default);
   border-radius: 8px;
-  padding: 0 14px;
+  padding-left: 14px;
+  padding-right: 14px;
   height: 40px;
   color: var(--text-primary);
   font-size: 14px;
   font-weight: 400;
   width: 100%;
+}
+
+@media (max-width: 767px) {
+  .st-input {
+    font-size: 16px;
+    height: 44px;
+  }
 }
 
 .st-input::placeholder {

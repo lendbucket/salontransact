@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { AlertCircle, ArrowLeft, RefreshCw } from "lucide-react";
-import DisputeCard from "@/components/disputes/dispute-card";
 import type {
   PayrocDispute,
   PayrocDisputeStatus,
@@ -175,79 +174,63 @@ export default function DisputesClient() {
               </p>
             </div>
           ) : (
-            <>
-            {/* Desktop table */}
-            <div className="hidden md:block">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-[#F9FAFB] border-b border-[#E8EAED]">
-                    {[
-                      "Dispute ID",
-                      "Payment ID",
-                      "Date",
-                      "Reason",
-                      "Amount",
-                      "Deadline",
-                      "Status",
-                    ].map((h) => (
-                      <th
-                        key={h}
-                        className={`px-6 py-3 text-[10px] font-semibold uppercase tracking-wider text-[#878787] ${h === "Amount" ? "text-right" : "text-left"}`}
-                      >
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {disputes.map((d) => (
-                    <tr
-                      key={d.disputeId}
-                      onClick={() => selectDispute(d)}
-                      className="border-b border-[#F4F5F7] hover:bg-[#F9FAFB] cursor-pointer transition-colors"
+            <table className="w-full">
+              <thead>
+                <tr className="bg-[#F9FAFB] border-b border-[#E8EAED]">
+                  {[
+                    "Dispute ID",
+                    "Payment ID",
+                    "Date",
+                    "Reason",
+                    "Amount",
+                    "Deadline",
+                    "Status",
+                  ].map((h) => (
+                    <th
+                      key={h}
+                      className={`px-6 py-3 text-[10px] font-semibold uppercase tracking-wider text-[#878787] ${h === "Amount" ? "text-right" : "text-left"}`}
                     >
-                      <td className="px-6 py-3 text-[13px] text-[#1A1313] font-mono">
-                        {d.disputeId}
-                      </td>
-                      <td className="px-6 py-3 text-[13px] text-[#4A4A4A] font-mono">
-                        {d.paymentId ?? "\u2014"}
-                      </td>
-                      <td className="px-6 py-3 text-[13px] text-[#1A1313]">
-                        {d.date ?? "\u2014"}
-                      </td>
-                      <td className="px-6 py-3 text-[13px] text-[#4A4A4A]">
-                        {d.reasonDescription ?? d.reasonCode ?? "\u2014"}
-                      </td>
-                      <td className="px-6 py-3 text-[13px] text-[#1A1313] text-right font-medium">
-                        {fmtMoney(d.amount)}
-                      </td>
-                      <td className="px-6 py-3 text-[13px] text-[#4A4A4A]">
-                        {fmtDate(d.responseDeadline)}
-                      </td>
-                      <td className="px-6 py-3">
-                        <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wider ${statusPill(d.status)}`}
-                        >
-                          {d.status ?? "unknown"}
-                        </span>
-                      </td>
-                    </tr>
+                      {h}
+                    </th>
                   ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Mobile cards */}
-            <div className="md:hidden divide-y" style={{ borderColor: "#E8EAED" }}>
-              {disputes.map((d) => (
-                <DisputeCard
-                  key={d.disputeId}
-                  dispute={d}
-                  onClick={() => selectDispute(d)}
-                />
-              ))}
-            </div>
-            </>
+                </tr>
+              </thead>
+              <tbody>
+                {disputes.map((d) => (
+                  <tr
+                    key={d.disputeId}
+                    onClick={() => selectDispute(d)}
+                    className="border-b border-[#F4F5F7] hover:bg-[#F9FAFB] cursor-pointer transition-colors"
+                  >
+                    <td className="px-6 py-3 text-[13px] text-[#1A1313] font-mono">
+                      {d.disputeId}
+                    </td>
+                    <td className="px-6 py-3 text-[13px] text-[#4A4A4A] font-mono">
+                      {d.paymentId ?? "\u2014"}
+                    </td>
+                    <td className="px-6 py-3 text-[13px] text-[#1A1313]">
+                      {d.date ?? "\u2014"}
+                    </td>
+                    <td className="px-6 py-3 text-[13px] text-[#4A4A4A]">
+                      {d.reasonDescription ?? d.reasonCode ?? "\u2014"}
+                    </td>
+                    <td className="px-6 py-3 text-[13px] text-[#1A1313] text-right font-medium">
+                      {fmtMoney(d.amount)}
+                    </td>
+                    <td className="px-6 py-3 text-[13px] text-[#4A4A4A]">
+                      {fmtDate(d.responseDeadline)}
+                    </td>
+                    <td className="px-6 py-3">
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wider ${statusPill(d.status)}`}
+                      >
+                        {d.status ?? "unknown"}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
         </div>
       )}
