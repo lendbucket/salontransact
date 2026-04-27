@@ -1,7 +1,20 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { adjustPayment } from "@/lib/payroc/payments";
+import {
+  adjustPayment,
+  type AdjustPaymentRequest,
+  type PaymentAdjustment,
+} from "@/lib/payroc/payments";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+interface AdjustBody {
+  amount?: unknown;
+  adjustments?: unknown;
+  operator?: unknown;
+}
 
 export async function POST(
   request: Request,
@@ -9,21 +22,44 @@ export async function POST(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const user = session?.user as
+      | { id?: string; email?: string | null; role?: string }
+      | undefined;
+
+    if (!user || !user.id) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    }
+    if (user.role !== "master portal" && user.role !== "merchant") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const { id } = await params;
-    const { amount } = await request.json();
+    const body = (await request.json()) as AdjustBody;
 
-    if (!amount || amount <= 0) {
+    let adjustments: PaymentAdjustment[];
+    if (Array.isArray(body.adjustments)) {
+      adjustments = body.adjustments as PaymentAdjustment[];
+    } else if (typeof body.amount === "number" && body.amount > 0) {
+      adjustments = [{ type: "order", amount: body.amount }];
+    } else {
       return NextResponse.json(
-        { error: "Amount must be greater than 0" },
+        {
+          error:
+            "Provide either { adjustments: PaymentAdjustment[] } or { amount: number }",
+        },
         { status: 400 }
       );
     }
 
-    const result = await adjustPayment(id, amount);
+    const req: AdjustPaymentRequest = {
+      adjustments,
+      operator:
+        typeof body.operator === "string"
+          ? body.operator.slice(0, 50)
+          : user.email?.slice(0, 50) ?? undefined,
+    };
+
+    const result = await adjustPayment(id, req);
     return NextResponse.json(result);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";

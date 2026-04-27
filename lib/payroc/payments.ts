@@ -58,23 +58,74 @@ export async function reversePayment(
   )
 }
 
+/**
+ * Adjustment variant for adjustPayment.
+ * Per Payroc docs: polymorphic object whose `type` field selects the variant.
+ * https://docs.payroc.com/api/schema/card-payments/payments/adjust
+ */
+export type PaymentAdjustment =
+  | { type: 'order'; amount?: number; tipAmount?: number }
+  | { type: 'status'; status: 'ready' | 'pending' }
+  | {
+      type: 'customer'
+      firstName?: string
+      lastName?: string
+      contactMethods?: Array<{ type: 'mobile' | 'email'; value: string }>
+      shippingAddress?: {
+        recipientName?: string
+        address: {
+          address1: string
+          address2?: string
+          address3?: string
+          city: string
+          state: string
+          country: string
+          postalCode: string
+        }
+      }
+    }
+  | { type: 'signature'; data: string; format: 'png' | 'svg' }
+
+export interface AdjustPaymentRequest {
+  adjustments: PaymentAdjustment[]
+  operator?: string
+}
+
+/**
+ * Adjust a payment in an open batch.
+ * Per docs, body must be { adjustments: [...] } where each item is a polymorphic object.
+ * https://docs.payroc.com/api/schema/card-payments/payments/adjust
+ */
 export async function adjustPayment(
   paymentId: string,
-  amount: number
+  request: AdjustPaymentRequest
 ): Promise<PayrocPaymentResponse> {
   return payrocRequest<PayrocPaymentResponse>(
     'POST',
     `/payments/${paymentId}/adjust`,
-    { amount }
+    request
   )
 }
 
+export interface CapturePaymentRequest {
+  amount?: number
+  operator?: string
+  processingTerminalId?: string
+}
+
+/**
+ * Capture a pre-authorization.
+ * - Omit `amount` to capture the full authorized amount.
+ * - Provide `amount` to capture less than the authorized amount.
+ * https://docs.payroc.com/api/schema/card-payments/payments/capture
+ */
 export async function capturePayment(
-  paymentId: string
+  paymentId: string,
+  request: CapturePaymentRequest = {}
 ): Promise<PayrocPaymentResponse> {
   return payrocRequest<PayrocPaymentResponse>(
     'POST',
     `/payments/${paymentId}/capture`,
-    {}
+    request
   )
 }
