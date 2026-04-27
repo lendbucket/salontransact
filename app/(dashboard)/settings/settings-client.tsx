@@ -11,9 +11,11 @@ import {
   CheckCircle,
   Eye,
   EyeOff,
+  Smartphone,
 } from "lucide-react";
+import { DevicesSection } from "./devices-section";
 
-type TabId = "business" | "payments" | "team" | "security" | "notifications";
+type TabId = "business" | "payments" | "devices" | "team" | "security" | "notifications";
 
 type MerchantData = {
   businessName: string;
@@ -51,6 +53,7 @@ export function SettingsClient({ merchant }: { merchant: MerchantData }) {
   const tabs: { id: TabId; label: string; Icon: typeof Building2 }[] = [
     { id: "business", label: "Business Info", Icon: Building2 },
     { id: "payments", label: "Payments", Icon: CreditCard },
+    { id: "devices", label: "Devices", Icon: Smartphone },
     { id: "team", label: "Team", Icon: Users },
     { id: "security", label: "Security", Icon: Lock },
     { id: "notifications", label: "Notifications", Icon: Bell },
@@ -110,6 +113,7 @@ export function SettingsClient({ merchant }: { merchant: MerchantData }) {
 
       {tab === "business" && <BusinessTab merchant={merchant} />}
       {tab === "payments" && <PaymentsTab merchant={merchant} />}
+      {tab === "devices" && <DevicesSection />}
       {tab === "team" && <TeamTab />}
       {tab === "security" && <SecurityTab />}
       {tab === "notifications" && <NotificationsTab />}
