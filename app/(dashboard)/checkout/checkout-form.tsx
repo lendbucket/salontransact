@@ -18,6 +18,8 @@ export function CheckoutForm() {
   const [last4, setLast4] = useState("");
 
   const initRef = useRef(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const cardFormRef = useRef<any>(null);
   const amountRef = useRef("");
   const descriptionRef = useRef("");
   amountRef.current = amount;
@@ -138,6 +140,7 @@ export function CheckoutForm() {
             },
           },
         });
+        cardFormRef.current = cardForm;
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         cardForm.on("submissionSuccess", async (evt: any) => {
@@ -210,6 +213,19 @@ export function CheckoutForm() {
         setStatus("loadError");
       }
     })();
+
+    return () => {
+      if (cardFormRef.current) {
+        try {
+          cardFormRef.current.destroy();
+          console.log("[HF] destroy() called on unmount");
+        } catch (err) {
+          console.error("[HF] destroy() failed:", err);
+        }
+        cardFormRef.current = null;
+      }
+      initRef.current = false;
+    };
   }, []);
 
   const parsedAmount = parseFloat(amount) || 0;
