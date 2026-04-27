@@ -52,6 +52,8 @@ export const authOptions: NextAuthOptions = {
             email: user.email,
             name: user.name ?? "",
             role: user.role,
+            emailVerified: user.emailVerified?.toISOString() ?? null,
+            approvalStatus: (user as unknown as { approvalStatus: string }).approvalStatus,
           };
         }
 
@@ -67,6 +69,8 @@ export const authOptions: NextAuthOptions = {
           email: user.email,
           name: user.name ?? "",
           role: user.role,
+          emailVerified: user.emailVerified?.toISOString() ?? null,
+          approvalStatus: (user as unknown as { approvalStatus: string }).approvalStatus,
         };
       },
     }),
@@ -76,15 +80,18 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         token.role = (user as unknown as { role: string }).role;
+        token.emailVerified = (user as unknown as { emailVerified: string | null }).emailVerified;
+        token.approvalStatus = (user as unknown as { approvalStatus: string }).approvalStatus;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
-        (session.user as { id?: string; role?: string }).id =
-          token.id as string;
-        (session.user as { id?: string; role?: string }).role =
-          token.role as string;
+        const u = session.user as { id?: string; role?: string; emailVerified?: string | null; approvalStatus?: string };
+        u.id = token.id as string;
+        u.role = token.role as string;
+        u.emailVerified = token.emailVerified as string | null;
+        u.approvalStatus = token.approvalStatus as string;
       }
       return session;
     },

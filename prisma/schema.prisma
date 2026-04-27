@@ -7,18 +7,20 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String    @unique
-  emailVerified DateTime?
-  image         String?
-  password      String?
-  role          String    @default("merchant")
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  accounts      Account[]
-  sessions      Session[]
-  merchant      Merchant?
+  id                     String    @id @default(cuid())
+  name                   String?
+  email                  String    @unique
+  emailVerified          DateTime?
+  emailVerificationToken String?   @unique
+  image                  String?
+  password               String?
+  role                   String    @default("merchant")
+  approvalStatus         String    @default("pending")
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+  accounts               Account[]
+  sessions               Session[]
+  merchant               Merchant?
 }
 
 model Account {
