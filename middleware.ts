@@ -20,6 +20,7 @@ export default withAuth(
         const path = req.nextUrl.pathname
         if (
           path.startsWith('/login') ||
+          path.startsWith('/signup') ||
           path.startsWith('/register') ||
           path.startsWith('/invite') ||
           path.startsWith('/forgot-password') ||

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
+import Link from "next/link";
 import {
   Loader2,
   Eye,
@@ -12,6 +13,19 @@ import {
   AlertCircle,
   ArrowLeft,
 } from "lucide-react";
+import AuthLayout from "@/components/auth/AuthLayout";
+
+const INPUT: React.CSSProperties = {
+  width: "100%",
+  height: 48,
+  background: "#FFFFFF",
+  border: "1px solid #E8EAED",
+  borderRadius: 8,
+  color: "#1A1313",
+  fontSize: 15,
+  outline: "none",
+  boxSizing: "border-box",
+};
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -37,7 +51,6 @@ export default function LoginPage() {
         setLoading(false);
         return;
       }
-      // Hard navigation to trigger server-side layout role checks
       window.location.href = "/dashboard";
     } catch {
       setError("Something went wrong. Please try again.");
@@ -75,7 +88,7 @@ export default function LoginPage() {
   /* ---- Magic link sent ---- */
   if (magicSent) {
     return (
-      <Page>
+      <AuthLayout>
         <div
           style={{
             display: "flex",
@@ -90,30 +103,29 @@ export default function LoginPage() {
               width: 56,
               height: 56,
               borderRadius: "50%",
-              background: "rgba(99,91,255,0.1)",
-              boxShadow: "0 0 40px rgba(99,91,255,0.15)",
+              background: "rgba(1,126,167,0.1)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               marginBottom: 20,
             }}
           >
-            <Mail size={24} strokeWidth={1.5} color="#635bff" />
+            <Mail size={24} strokeWidth={1.5} color="#017ea7" />
           </div>
           <h2
             style={{
-              color: "#f9fafb",
+              color: "#1A1313",
               fontSize: 24,
-              fontWeight: 700,
-              letterSpacing: "-0.8px",
+              fontWeight: 600,
+              letterSpacing: "-0.31px",
               marginBottom: 8,
             }}
           >
             Check your email
           </h2>
-          <p style={{ color: "#9ca3af", fontSize: 14, marginBottom: 24 }}>
+          <p style={{ color: "#878787", fontSize: 14, marginBottom: 24 }}>
             We sent a sign-in link to{" "}
-            <strong style={{ color: "#f9fafb" }}>{email}</strong>
+            <strong style={{ color: "#1A1313" }}>{email}</strong>
           </p>
           <button
             type="button"
@@ -122,7 +134,7 @@ export default function LoginPage() {
               handleMagicLink();
             }}
             style={{
-              color: "#635bff",
+              color: "#017ea7",
               background: "none",
               border: "none",
               cursor: "pointer",
@@ -137,7 +149,7 @@ export default function LoginPage() {
             type="button"
             onClick={() => setMagicSent(false)}
             style={{
-              color: "#6b7280",
+              color: "#878787",
               background: "none",
               border: "none",
               cursor: "pointer",
@@ -151,19 +163,19 @@ export default function LoginPage() {
             Back to sign in
           </button>
         </div>
-      </Page>
+      </AuthLayout>
     );
   }
 
   /* ---- Main form ---- */
   return (
-    <Page>
+    <AuthLayout>
       {/* Error */}
       {error && (
         <div
           style={{
-            background: "rgba(239,68,68,0.1)",
-            border: "1px solid rgba(239,68,68,0.25)",
+            background: "rgba(239,68,68,0.06)",
+            border: "1px solid rgba(239,68,68,0.2)",
             borderRadius: 8,
             padding: "10px 14px",
             marginBottom: 20,
@@ -175,26 +187,26 @@ export default function LoginPage() {
           <AlertCircle
             size={16}
             strokeWidth={1.5}
-            color="#ef4444"
+            color="#DC2626"
             style={{ flexShrink: 0 }}
           />
-          <span style={{ color: "#ef4444", fontSize: 14 }}>{error}</span>
+          <span style={{ color: "#DC2626", fontSize: 14 }}>{error}</span>
         </div>
       )}
 
       {/* Heading */}
-      <h2
+      <h1
         style={{
-          color: "#f9fafb",
-          fontSize: 28,
-          fontWeight: 700,
-          letterSpacing: "-0.8px",
+          color: "#1A1313",
+          fontSize: 24,
+          fontWeight: 600,
+          letterSpacing: "-0.31px",
           marginBottom: 4,
         }}
       >
         Welcome back
-      </h2>
-      <p style={{ color: "#6b7280", fontSize: 14, marginBottom: 24 }}>
+      </h1>
+      <p style={{ color: "#878787", fontSize: 13, marginBottom: 28 }}>
         Sign in to your account
       </p>
 
@@ -204,7 +216,7 @@ export default function LoginPage() {
         <div style={{ marginBottom: 16 }}>
           <label
             style={{
-              color: "#9ca3af",
+              color: "#4A4A4A",
               fontSize: 13,
               fontWeight: 500,
               display: "block",
@@ -217,7 +229,7 @@ export default function LoginPage() {
             <Mail
               size={16}
               strokeWidth={1.5}
-              color="#4b5563"
+              color="#878787"
               style={{
                 position: "absolute",
                 left: 14,
@@ -233,18 +245,14 @@ export default function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
               disabled={loading}
-              style={{
-                width: "100%",
-                height: 48,
-                background: "#0d1f3c",
-                border: "1px solid rgba(255,255,255,0.1)",
-                borderRadius: 8,
-                color: "#f9fafb",
-                fontSize: 15,
-                paddingLeft: 42,
-                paddingRight: 14,
-                outline: "none",
-                boxSizing: "border-box",
+              style={{ ...INPUT, paddingLeft: 42, paddingRight: 14 }}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = "#017ea7";
+                e.currentTarget.style.boxShadow = "0 0 0 3px rgba(1,126,167,0.1)";
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.borderColor = "#E8EAED";
+                e.currentTarget.style.boxShadow = "none";
               }}
             />
           </div>
@@ -254,7 +262,7 @@ export default function LoginPage() {
         <div style={{ marginBottom: 8 }}>
           <label
             style={{
-              color: "#9ca3af",
+              color: "#4A4A4A",
               fontSize: 13,
               fontWeight: 500,
               display: "block",
@@ -267,7 +275,7 @@ export default function LoginPage() {
             <Lock
               size={16}
               strokeWidth={1.5}
-              color="#4b5563"
+              color="#878787"
               style={{
                 position: "absolute",
                 left: 14,
@@ -283,18 +291,14 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter your password"
               disabled={loading}
-              style={{
-                width: "100%",
-                height: 48,
-                background: "#0d1f3c",
-                border: "1px solid rgba(255,255,255,0.1)",
-                borderRadius: 8,
-                color: "#f9fafb",
-                fontSize: 15,
-                paddingLeft: 42,
-                paddingRight: 48,
-                outline: "none",
-                boxSizing: "border-box",
+              style={{ ...INPUT, paddingLeft: 42, paddingRight: 48 }}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = "#017ea7";
+                e.currentTarget.style.boxShadow = "0 0 0 3px rgba(1,126,167,0.1)";
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.borderColor = "#E8EAED";
+                e.currentTarget.style.boxShadow = "none";
               }}
             />
             <button
@@ -313,26 +317,26 @@ export default function LoginPage() {
               aria-label={showPassword ? "Hide password" : "Show password"}
             >
               {showPassword ? (
-                <EyeOff size={16} strokeWidth={1.5} color="#4b5563" />
+                <EyeOff size={16} strokeWidth={1.5} color="#878787" />
               ) : (
-                <Eye size={16} strokeWidth={1.5} color="#4b5563" />
+                <Eye size={16} strokeWidth={1.5} color="#878787" />
               )}
             </button>
           </div>
         </div>
 
         <div style={{ textAlign: "right", marginBottom: 20 }}>
-          <a
+          <Link
             href="/forgot-password"
             style={{
-              color: "#635bff",
+              color: "#017ea7",
               fontSize: 13,
               textDecoration: "none",
               fontWeight: 500,
             }}
           >
             Forgot password?
-          </a>
+          </Link>
         </div>
 
         {/* Sign in */}
@@ -342,8 +346,10 @@ export default function LoginPage() {
           style={{
             width: "100%",
             height: 48,
-            background: loading ? "#4f46e5" : "#635bff",
-            border: "none",
+            background: loading
+              ? "#015f80"
+              : "linear-gradient(180deg, #0290be 0%, #017ea7 100%)",
+            border: "1px solid #015f80",
             borderRadius: 8,
             color: "#fff",
             fontSize: 15,
@@ -372,21 +378,9 @@ export default function LoginPage() {
           margin: "20px 0",
         }}
       >
-        <div
-          style={{
-            flex: 1,
-            height: 1,
-            background: "rgba(255,255,255,0.06)",
-          }}
-        />
-        <span style={{ color: "#4b5563", fontSize: 13 }}>or</span>
-        <div
-          style={{
-            flex: 1,
-            height: 1,
-            background: "rgba(255,255,255,0.06)",
-          }}
-        />
+        <div style={{ flex: 1, height: 1, background: "#E8EAED" }} />
+        <span style={{ color: "#878787", fontSize: 13 }}>or</span>
+        <div style={{ flex: 1, height: 1, background: "#E8EAED" }} />
       </div>
 
       {/* Magic link */}
@@ -397,10 +391,10 @@ export default function LoginPage() {
         style={{
           width: "100%",
           height: 48,
-          background: "rgba(255,255,255,0.04)",
-          border: "1px solid rgba(255,255,255,0.1)",
+          background: "#FFFFFF",
+          border: "1px solid #017ea7",
           borderRadius: 8,
-          color: "#f9fafb",
+          color: "#017ea7",
           fontSize: 15,
           fontWeight: 500,
           cursor: magicLoading ? "not-allowed" : "pointer",
@@ -414,117 +408,32 @@ export default function LoginPage() {
         {magicLoading ? (
           <Loader2 size={16} strokeWidth={1.5} className="animate-spin" />
         ) : (
-          <Zap size={16} strokeWidth={1.5} color="#635bff" />
+          <Zap size={16} strokeWidth={1.5} color="#017ea7" />
         )}
         {magicLoading ? "Sending..." : "Send magic link"}
       </button>
-    </Page>
-  );
-}
 
-/* ------------------------------------------------------------------ */
-/*  Page shell — logo, grid bg, badges, footer                         */
-/* ------------------------------------------------------------------ */
-
-function Page({ children }: { children: React.ReactNode }) {
-  return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "#0a1628",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 24,
-        position: "relative",
-        fontFamily: "Inter, system-ui, sans-serif",
-      }}
-    >
-      {/* Grid overlay */}
-      <div
+      {/* Signup link */}
+      <p
         style={{
-          position: "absolute",
-          inset: 0,
-          pointerEvents: "none",
-          backgroundImage:
-            "linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)",
-          backgroundSize: "60px 60px",
-        }}
-      />
-
-      <div
-        style={{
-          position: "relative",
-          zIndex: 1,
-          width: "100%",
-          maxWidth: 420,
+          textAlign: "center",
+          marginTop: 24,
+          fontSize: 14,
+          color: "#4A4A4A",
         }}
       >
-        {/* Logo */}
-        <div
+        Don&apos;t have an account?{" "}
+        <Link
+          href="/signup"
           style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: 8,
-            marginBottom: 24,
+            color: "#017ea7",
+            fontWeight: 500,
+            textDecoration: "none",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: 10,
-                background: "linear-gradient(135deg, #635bff, #4f46e5)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#fff",
-                fontWeight: 700,
-                fontSize: 18,
-              }}
-            >
-              ST
-            </div>
-            <span
-              style={{
-                color: "#f9fafb",
-                fontSize: 22,
-                fontWeight: 600,
-                letterSpacing: "-0.5px",
-              }}
-            >
-              SalonTransact
-            </span>
-          </div>
-          <span style={{ color: "#6b7280", fontSize: 13 }}>
-            Payment Infrastructure for Salons
-          </span>
-        </div>
-
-        {/* Divider */}
-        <div
-          style={{
-            height: 1,
-            background: "rgba(255,255,255,0.06)",
-            marginBottom: 32,
-          }}
-        />
-
-        {/* Content */}
-        {children}
-
-        <div style={{ textAlign: "center", marginTop: 32 }}>
-          <div style={{ color: "#4b5563", fontSize: 12 }}>
-            Access by invitation only
-          </div>
-          <div style={{ color: "#374151", fontSize: 11, marginTop: 4 }}>
-            &copy; 2026 Reyna Pay LLC. All rights reserved.
-          </div>
-        </div>
-      </div>
-    </div>
+          Sign up
+        </Link>
+      </p>
+    </AuthLayout>
   );
 }
