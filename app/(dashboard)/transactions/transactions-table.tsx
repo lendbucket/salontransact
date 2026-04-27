@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Search, Download, ChevronLeft, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
+import TransactionCard from "@/components/transactions/transaction-card";
 
 type Tx = {
   id: string;
@@ -129,7 +130,7 @@ export function TransactionsTable({ transactions }: { transactions: Tx[] }) {
         </div>
       </div>
 
-      {/* Table */}
+      {/* Empty state */}
       {paged.length === 0 ? (
         <div className="px-6 pb-6">
           <div className="py-12 text-center">
@@ -139,7 +140,8 @@ export function TransactionsTable({ transactions }: { transactions: Tx[] }) {
         </div>
       ) : (
         <>
-          <div className="overflow-x-auto px-6">
+          {/* Desktop table */}
+          <div className="hidden md:block overflow-x-auto px-6">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-muted">
@@ -188,6 +190,13 @@ export function TransactionsTable({ transactions }: { transactions: Tx[] }) {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile cards */}
+          <div className="md:hidden divide-y" style={{ borderColor: "#E8EAED" }}>
+            {paged.map((t) => (
+              <TransactionCard key={t.id} transaction={t} />
+            ))}
           </div>
 
           {/* Pagination */}
