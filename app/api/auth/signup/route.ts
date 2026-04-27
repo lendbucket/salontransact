@@ -85,21 +85,27 @@ export async function POST(req: Request) {
 
     const apiKey = process.env.RESEND_API_KEY;
     if (apiKey) {
-      fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          from: "SalonTransact <onboarding@resend.dev>",
-          to: normalizedEmail,
-          subject: "Verify your SalonTransact email",
-          html: verificationEmailHtml(user.name ?? "there", verifyUrl),
-        }),
-      }).catch((err) => {
-        console.error("[SIGNUP] Failed to send verification email:", err);
-      });
+      try {
+        const emailRes = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            from: "SalonTransact <noreply@salontransact.com>",
+            to: normalizedEmail,
+            subject: "Verify your SalonTransact email",
+            html: verificationEmailHtml(user.name ?? "there", verifyUrl),
+          }),
+        });
+        if (!emailRes.ok) {
+          const errBody = await emailRes.text();
+          console.error("[SIGNUP] Resend rejected verification email:", emailRes.status, errBody);
+        }
+      } catch (emailErr) {
+        console.error("[SIGNUP] Verification email send failed:", emailErr);
+      }
     } else {
       console.warn("[SIGNUP] RESEND_API_KEY not configured, skipping verification email");
     }

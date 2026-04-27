@@ -1,44 +1,42 @@
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { generateVerificationToken } from "@/lib/auth/verification-token";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function POST(req: Request) {
-  let body: { email?: string };
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
-  }
+export async function POST() {
+  const session = await getServerSession(authOptions);
+  const user = session?.user as
+    | { id?: string; email?: string | null }
+    | undefined;
 
-  const { email } = body;
-  if (!email || typeof email !== "string") {
-    return NextResponse.json({ error: "Email is required" }, { status: 400 });
-  }
-
-  const normalizedEmail = email.toLowerCase().trim();
-
-  const user = await prisma.user.findUnique({
-    where: { email: normalizedEmail },
-    select: { id: true, emailVerified: true, name: true },
+  // Generic success response for all cases — don't leak session or email state
+  const genericResponse = NextResponse.json({
+    ok: true,
+    message:
+      "If that account exists and needs verification, a new email has been sent.",
   });
 
-  if (!user) {
-    // Don't reveal whether email exists
-    return NextResponse.json({ success: true });
+  if (!user?.id || !user.email) {
+    return genericResponse;
   }
 
-  if (user.emailVerified) {
-    return NextResponse.json({ success: true, alreadyVerified: true });
-  }
-
-  const token = generateVerificationToken();
-
-  await prisma.user.update({
+  const dbUser = await prisma.user.findUnique({
     where: { id: user.id },
-    data: { emailVerificationToken: token },
+    select: { id: true, email: true, name: true, emailVerified: true },
+  });
+
+  if (!dbUser || dbUser.emailVerified) {
+    return genericResponse;
+  }
+
+  const newToken = generateVerificationToken();
+  await prisma.user.update({
+    where: { id: dbUser.id },
+    data: { emailVerificationToken: newToken },
   });
 
   const baseUrl =
@@ -46,41 +44,38 @@ export async function POST(req: Request) {
     (process.env.VERCEL_URL
       ? `https://${process.env.VERCEL_URL}`
       : "http://localhost:3000");
-  const verifyUrl = `${baseUrl}/verify-email/${token}`;
+  const verifyUrl = `${baseUrl}/verify-email/${newToken}`;
 
   const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) {
-    console.error("[RESEND-VERIFY] RESEND_API_KEY not configured");
-    return NextResponse.json(
-      { error: "Email service not configured" },
-      { status: 500 }
-    );
+  if (apiKey) {
+    try {
+      const res = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          from: "SalonTransact <noreply@salontransact.com>",
+          to: dbUser.email,
+          subject: "Verify your SalonTransact email",
+          html: verificationEmailHtml(dbUser.name ?? "there", verifyUrl),
+        }),
+      });
+      if (!res.ok) {
+        const errBody = await res.text();
+        console.error(
+          "[RESEND-VERIFICATION] Resend rejected:",
+          res.status,
+          errBody
+        );
+      }
+    } catch (err) {
+      console.error("[RESEND-VERIFICATION] Email send failed:", err);
+    }
   }
 
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      from: "SalonTransact <onboarding@resend.dev>",
-      to: normalizedEmail,
-      subject: "Verify your SalonTransact email",
-      html: verificationEmailHtml(user.name ?? "there", verifyUrl),
-    }),
-  });
-
-  if (!res.ok) {
-    const errData = await res.json().catch(() => ({}));
-    console.error("[RESEND-VERIFY] Resend error:", JSON.stringify(errData));
-    return NextResponse.json(
-      { error: "Failed to send verification email" },
-      { status: 500 }
-    );
-  }
-
-  return NextResponse.json({ success: true });
+  return genericResponse;
 }
 
 function verificationEmailHtml(name: string, verifyUrl: string): string {
@@ -95,7 +90,7 @@ function verificationEmailHtml(name: string, verifyUrl: string): string {
     <div style="background:#FFFFFF;border:1px solid #E8EAED;border-radius:12px;padding:40px;text-align:center;">
       <h1 style="color:#1A1313;font-size:24px;font-weight:600;margin:0 0 16px;">Verify your email</h1>
       <p style="color:#4A4A4A;font-size:15px;line-height:1.6;margin:0 0 32px;">
-        Hi ${name}, please verify your email address to complete your SalonTransact account setup.
+        Hi ${name}, you requested a new verification link. Click below to verify your email address.
       </p>
       <a href="${verifyUrl}" style="display:inline-block;background:#017ea7;color:#fff;text-decoration:none;padding:14px 32px;border-radius:8px;font-weight:600;font-size:15px;">
         Verify Email Address
