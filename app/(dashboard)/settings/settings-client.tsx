@@ -70,6 +70,7 @@ export function SettingsClient({ merchant }: { merchant: MerchantData }) {
 
       {/* Tabs */}
       <div
+        className="scrollbar-hide -mx-6 md:mx-0 px-6 md:px-0"
         style={{
           display: "flex",
           gap: 2,
@@ -169,15 +170,15 @@ function BusinessTab({ merchant }: { merchant: MerchantData }) {
 
   return (
     <div className="card" style={{ padding: 24 }}>
-      <div className="space-y-4" style={{ maxWidth: 480 }}>
+      <div className="space-y-4 max-w-full md:max-w-lg">
         {field("Business Name", "businessName")}
         {field("Email", "email", "email")}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {field("Phone", "phone", "tel")}
           {field("Business Type", "businessType")}
         </div>
         {field("Address", "address")}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {field("City", "city")}
           {field("State", "state")}
           {field("ZIP", "zip")}

@@ -287,7 +287,7 @@ export function BottomNav() {
     { href: "/transactions", label: "Transactions", icon: ArrowLeftRight },
     { href: "/payouts", label: "Payouts", icon: Wallet },
     { href: "/settings", label: "Settings", icon: Settings },
-    { href: "/api-keys", label: "More", icon: Menu },
+    { href: "/more", label: "More", icon: Menu },
   ];
 
   return (
@@ -307,7 +307,7 @@ export function BottomNav() {
             href={link.href}
             className="flex flex-col items-center justify-center py-3 px-2 flex-1"
             style={{
-              color: active ? "#635bff" : "#6b7280",
+              color: active ? "#017ea7" : "#878787",
               fontSize: 10,
               fontWeight: 500,
               textDecoration: "none",

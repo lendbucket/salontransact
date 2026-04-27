@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
-import { Bell, ChevronDown, Menu, Settings, User, LogOut } from "lucide-react";
+import { Bell, ChevronDown, Settings, User, LogOut } from "lucide-react";
 
 const PAGE_TITLES: Record<string, string> = {
   "/dashboard": "Dashboard",
@@ -23,6 +23,7 @@ const PAGE_TITLES: Record<string, string> = {
   "/master/settlements": "Settlements",
   "/master/disputes": "Disputes",
   "/master/authorizations": "Authorizations",
+  "/more": "More",
 };
 
 export function Topbar() {
@@ -56,14 +57,7 @@ export function Topbar() {
     >
       {/* Left: page title (desktop) / hamburger + logo (mobile) */}
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        {/* Mobile hamburger */}
-        <button
-          className="md:hidden"
-          style={{ background: "none", border: "none", color: "#4A4A4A", cursor: "pointer", padding: 0 }}
-          aria-label="Menu"
-        >
-          <Menu size={16} strokeWidth={1.5} />
-        </button>
+        {/* Mobile hamburger — hidden; bottom tab bar handles mobile nav */}
 
         {/* Mobile logo */}
         <Image
