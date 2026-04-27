@@ -6,9 +6,7 @@ import {
   Loader2,
   Eye,
   EyeOff,
-  Shield,
   Lock,
-  CheckCircle,
   Mail,
   Zap,
   AlertCircle,
@@ -518,42 +516,7 @@ function Page({ children }: { children: React.ReactNode }) {
         {/* Content */}
         {children}
 
-        {/* Trust badges */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            gap: 8,
-            marginTop: 32,
-            flexWrap: "wrap",
-          }}
-        >
-          {[
-            { Icon: Shield, label: "PCI DSS Level 1" },
-            { Icon: Lock, label: "256-bit Encryption" },
-            { Icon: CheckCircle, label: "Stripe Verified" },
-          ].map(({ Icon, label }) => (
-            <div
-              key={label}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 4,
-                background: "rgba(255,255,255,0.04)",
-                border: "1px solid rgba(255,255,255,0.08)",
-                borderRadius: 100,
-                padding: "4px 10px",
-              }}
-            >
-              <Icon size={10} strokeWidth={1.5} color="#6b7280" />
-              <span style={{ color: "#6b7280", fontSize: 11, fontWeight: 500 }}>
-                {label}
-              </span>
-            </div>
-          ))}
-        </div>
-
-        <div style={{ textAlign: "center", marginTop: 16 }}>
+        <div style={{ textAlign: "center", marginTop: 32 }}>
           <div style={{ color: "#4b5563", fontSize: 12 }}>
             Access by invitation only
           </div>

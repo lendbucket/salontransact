@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import { signIn } from 'next-auth/react'
-import { Loader2, Eye, EyeOff, ShieldX, Shield, Lock, Check } from 'lucide-react'
+import { Loader2, Eye, EyeOff, ShieldX } from 'lucide-react'
 
 export default function InviteRedeemPage() {
   const params = useParams<{ token: string }>()
@@ -274,34 +274,6 @@ export default function InviteRedeemPage() {
           </button>
         </form>
 
-        {/* Trust badges */}
-        <div className="flex items-center justify-center gap-3 mt-10">
-          {[
-            { icon: Shield, label: 'PCI DSS' },
-            { icon: Lock, label: '256-bit SSL' },
-            { icon: Check, label: 'Stripe Verified' },
-          ].map((b) => {
-            const Icon = b.icon
-            return (
-              <div
-                key={b.label}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg"
-                style={{
-                  background: 'rgba(255,255,255,0.03)',
-                  border: '1px solid rgba(255,255,255,0.06)',
-                }}
-              >
-                <Icon className="w-3 h-3" style={{ color: '#635bff' }} />
-                <span
-                  className="text-[10px] font-medium"
-                  style={{ color: '#4b5563' }}
-                >
-                  {b.label}
-                </span>
-              </div>
-            )
-          })}
-        </div>
       </div>
     </div>
   )
