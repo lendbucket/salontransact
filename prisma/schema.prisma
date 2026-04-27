@@ -21,6 +21,7 @@ model User {
   accounts               Account[]
   sessions               Session[]
   merchant               Merchant?
+  merchantApplication    MerchantApplication?
 }
 
 model Account {
@@ -255,4 +256,46 @@ model WebhookEvent {
   @@index([eventType])
   @@index([status])
   @@index([receivedAt])
+}
+
+model MerchantApplication {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  legalBusinessName String
+  dba               String?
+  businessType      String
+  ein               String
+  businessPhone     String
+  website           String?
+
+  addressStreet     String
+  addressCity       String
+  addressState      String
+  addressZip        String
+  addressCountry    String   @default("US")
+
+  ownerFullName     String
+  ownerEmail        String
+  ownerPhone        String
+  ownerTitle        String   @default("Owner")
+
+  bankName          String
+  accountHolderName String
+  routingNumber     String
+  accountNumber     String
+  accountType       String
+
+  monthlyVolume     String
+  averageTicket     String
+  mccCode           String
+  agreementAccepted Boolean  @default(false)
+
+  status            String   @default("submitted")
+  submittedAt       DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
 }
