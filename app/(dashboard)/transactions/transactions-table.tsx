@@ -103,7 +103,8 @@ export function TransactionsTable({ transactions }: { transactions: Tx[] }) {
                 setQuery(e.target.value);
                 setPage(0);
               }}
-              placeholder="Search transactions..."
+              placeholder=""
+              aria-label="Search transactions"
               className="st-input pl-9"
             />
           </div>

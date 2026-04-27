@@ -146,7 +146,8 @@ export default function MerchantsPage() {
         />
         <input
           type="text"
-          placeholder="Search merchants..."
+          placeholder=""
+          aria-label="Search merchants"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="w-full pl-10 pr-4 py-2.5 rounded-lg text-sm"
