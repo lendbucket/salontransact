@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { DollarSign, Wallet } from "lucide-react";
+import PayoutCard from "@/components/payouts/payout-card";
 
 function formatMoney(value: number) {
   return new Intl.NumberFormat("en-US", {
@@ -77,7 +78,9 @@ export default async function PayoutsPage() {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          {/* Desktop table */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-muted">
@@ -126,6 +129,23 @@ export default async function PayoutsPage() {
               </tbody>
             </table>
           </div>
+
+          {/* Mobile cards */}
+          <div className="md:hidden divide-y" style={{ borderColor: "#E8EAED" }}>
+            {payouts.map(
+              (p: {
+                id: string;
+                stripePayoutId: string | null;
+                amount: number;
+                status: string;
+                arrivalDate: Date | null;
+                createdAt: Date;
+              }) => (
+                <PayoutCard key={p.id} payout={p} />
+              )
+            )}
+          </div>
+          </>
         )}
       </div>
     </div>

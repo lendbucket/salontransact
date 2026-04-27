@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Wallet, ArrowLeft, RefreshCw } from "lucide-react";
+import SettlementCard from "@/components/settlements/settlement-card";
 import type {
   PayrocBatch,
   PayrocSettlementTransaction,
@@ -172,61 +173,77 @@ export default function SettlementsClient() {
               </p>
             </div>
           ) : (
-            <table className="w-full">
-              <thead>
-                <tr className="bg-[#F9FAFB] border-b border-[#E8EAED]">
-                  {[
-                    "Batch ID",
-                    "Date",
-                    "Closed",
-                    "Transactions",
-                    "Total",
-                    "Status",
-                  ].map((h) => (
-                    <th
-                      key={h}
-                      className={`px-6 py-3 text-[10px] font-semibold uppercase tracking-wider text-[#878787] ${h === "Total" ? "text-right" : "text-left"}`}
-                    >
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {batches.map((b) => (
-                  <tr
-                    key={b.batchId}
-                    onClick={() => selectBatch(b)}
-                    className="border-b border-[#F4F5F7] hover:bg-[#F9FAFB] cursor-pointer transition-colors"
-                  >
-                    <td className="px-6 py-3 text-[13px] text-[#1A1313] font-mono">
-                      {b.batchId}
-                    </td>
-                    <td className="px-6 py-3 text-[13px] text-[#1A1313]">
-                      {b.date ?? "\u2014"}
-                    </td>
-                    <td className="px-6 py-3 text-[13px] text-[#4A4A4A]">
-                      {fmtDate(b.closedAt)}
-                    </td>
-                    <td className="px-6 py-3 text-[13px] text-[#4A4A4A]">
-                      {typeof b.transactionCount === "number"
-                        ? b.transactionCount
-                        : "\u2014"}
-                    </td>
-                    <td className="px-6 py-3 text-[13px] text-[#1A1313] text-right font-medium">
-                      {fmtMoney(b.totalAmount)}
-                    </td>
-                    <td className="px-6 py-3">
-                      <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wider ${statusPillClasses(b.status)}`}
+            <>
+            {/* Desktop table */}
+            <div className="hidden md:block">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-[#F9FAFB] border-b border-[#E8EAED]">
+                    {[
+                      "Batch ID",
+                      "Date",
+                      "Closed",
+                      "Transactions",
+                      "Total",
+                      "Status",
+                    ].map((h) => (
+                      <th
+                        key={h}
+                        className={`px-6 py-3 text-[10px] font-semibold uppercase tracking-wider text-[#878787] ${h === "Total" ? "text-right" : "text-left"}`}
                       >
-                        {b.status ?? "unknown"}
-                      </span>
-                    </td>
+                        {h}
+                      </th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {batches.map((b) => (
+                    <tr
+                      key={b.batchId}
+                      onClick={() => selectBatch(b)}
+                      className="border-b border-[#F4F5F7] hover:bg-[#F9FAFB] cursor-pointer transition-colors"
+                    >
+                      <td className="px-6 py-3 text-[13px] text-[#1A1313] font-mono">
+                        {b.batchId}
+                      </td>
+                      <td className="px-6 py-3 text-[13px] text-[#1A1313]">
+                        {b.date ?? "\u2014"}
+                      </td>
+                      <td className="px-6 py-3 text-[13px] text-[#4A4A4A]">
+                        {fmtDate(b.closedAt)}
+                      </td>
+                      <td className="px-6 py-3 text-[13px] text-[#4A4A4A]">
+                        {typeof b.transactionCount === "number"
+                          ? b.transactionCount
+                          : "\u2014"}
+                      </td>
+                      <td className="px-6 py-3 text-[13px] text-[#1A1313] text-right font-medium">
+                        {fmtMoney(b.totalAmount)}
+                      </td>
+                      <td className="px-6 py-3">
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wider ${statusPillClasses(b.status)}`}
+                        >
+                          {b.status ?? "unknown"}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile cards */}
+            <div className="md:hidden divide-y" style={{ borderColor: "#E8EAED" }}>
+              {batches.map((b) => (
+                <SettlementCard
+                  key={b.batchId}
+                  batch={b}
+                  onClick={() => selectBatch(b)}
+                />
+              ))}
+            </div>
+            </>
           )}
         </div>
       )}
