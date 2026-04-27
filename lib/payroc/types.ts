@@ -155,3 +155,72 @@ export interface PayrocApiErrorBody {
   message: string
   details?: string
 }
+
+// ===== Tokenization types (Phase 5) =====
+// Per https://docs.payroc.com/api/schema/tokenization/secure-tokens/create
+
+export interface TokenizationCardKeyedPlainText {
+  type: 'plainText'
+  cardNumber: string
+  cvv?: string
+  expiryDate: string
+}
+
+export interface TokenizationCardKeyed {
+  type: 'keyed'
+  keyedData: TokenizationCardKeyedPlainText
+  cardholderName?: string
+}
+
+export interface TokenizationCardPayload {
+  type: 'card'
+  cardDetails: TokenizationCardKeyed
+}
+
+export interface TokenizationSingleUseTokenPayload {
+  type: 'singleUseToken'
+  singleUseToken: string
+}
+
+export type TokenizationSource =
+  | TokenizationCardPayload
+  | TokenizationSingleUseTokenPayload
+
+export type MitAgreement = 'unscheduled' | 'recurring' | 'installment'
+
+export interface TokenizationCustomer {
+  firstName?: string
+  lastName?: string
+  referenceNumber?: string
+  contactMethods?: Array<{ type: 'mobile' | 'email'; value: string }>
+}
+
+export interface CreateSecureTokenRequest {
+  source: TokenizationSource
+  secureTokenId?: string
+  operator?: string
+  mitAgreement?: MitAgreement
+  customer?: TokenizationCustomer
+}
+
+export interface SecureTokenSourceResponse {
+  type: string
+  cardNumber?: string
+  cardholderName?: string
+  expiryDate?: string
+}
+
+export interface CreateSecureTokenResponse {
+  secureTokenId: string
+  processingTerminalId: string
+  source: SecureTokenSourceResponse
+  token: string
+  status: string
+  mitAgreement?: MitAgreement
+  customer?: TokenizationCustomer
+}
+
+export interface UpdateSecureTokenRequest {
+  customer?: TokenizationCustomer
+  mitAgreement?: MitAgreement
+}

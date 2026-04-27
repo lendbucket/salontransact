@@ -1,53 +1,83 @@
 import { payrocRequest } from './client'
 import type {
-  PayrocSecureTokenRequest,
-  PayrocSecureTokenResponse,
+  CreateSecureTokenRequest,
+  CreateSecureTokenResponse,
+  UpdateSecureTokenRequest,
 } from './types'
 
 const TERMINAL_ID = process.env.PAYROC_TERMINAL_ID!
 
+/**
+ * Create a Secure Token representing a customer's payment method.
+ *
+ * Lets Payroc generate the secureTokenId (returned in response with MREF_ prefix
+ * unless the caller explicitly supplies their own).
+ *
+ * https://docs.payroc.com/api/schema/tokenization/secure-tokens/create
+ */
 export async function createSecureToken(
-  request: Omit<PayrocSecureTokenRequest, 'processingTerminalId'>
-): Promise<PayrocSecureTokenResponse> {
-  return payrocRequest<PayrocSecureTokenResponse>(
+  request: CreateSecureTokenRequest
+): Promise<CreateSecureTokenResponse> {
+  return payrocRequest<CreateSecureTokenResponse>(
     'POST',
     `/processing-terminals/${TERMINAL_ID}/secure-tokens`,
-    { ...request, processingTerminalId: TERMINAL_ID }
+    request
   )
 }
 
+/**
+ * Retrieve a Secure Token by its merchant-assigned (or Payroc-generated) ID.
+ *
+ * https://docs.payroc.com/api/schema/tokenization/secure-tokens/retrieve
+ */
 export async function getSecureToken(
-  tokenId: string
-): Promise<PayrocSecureTokenResponse> {
-  return payrocRequest<PayrocSecureTokenResponse>(
+  secureTokenId: string
+): Promise<CreateSecureTokenResponse> {
+  return payrocRequest<CreateSecureTokenResponse>(
     'GET',
-    `/processing-terminals/${TERMINAL_ID}/secure-tokens/${tokenId}`
+    `/processing-terminals/${TERMINAL_ID}/secure-tokens/${encodeURIComponent(secureTokenId)}`
   )
 }
 
+/**
+ * Partially update a Secure Token. PATCH per docs.
+ *
+ * https://docs.payroc.com/api/schema/tokenization/secure-tokens/partially-update
+ */
 export async function updateSecureToken(
-  tokenId: string,
-  updates: Partial<PayrocSecureTokenRequest>
-): Promise<PayrocSecureTokenResponse> {
-  return payrocRequest<PayrocSecureTokenResponse>(
+  secureTokenId: string,
+  updates: UpdateSecureTokenRequest
+): Promise<CreateSecureTokenResponse> {
+  return payrocRequest<CreateSecureTokenResponse>(
     'PATCH',
-    `/processing-terminals/${TERMINAL_ID}/secure-tokens/${tokenId}`,
+    `/processing-terminals/${TERMINAL_ID}/secure-tokens/${encodeURIComponent(secureTokenId)}`,
     updates
   )
 }
 
-export async function deleteSecureToken(tokenId: string): Promise<void> {
+/**
+ * Delete a Secure Token. Cannot be recovered; the secureTokenId cannot be reused.
+ *
+ * https://docs.payroc.com/api/schema/tokenization/secure-tokens/delete
+ */
+export async function deleteSecureToken(secureTokenId: string): Promise<void> {
   return payrocRequest<void>(
     'DELETE',
-    `/processing-terminals/${TERMINAL_ID}/secure-tokens/${tokenId}`
+    `/processing-terminals/${TERMINAL_ID}/secure-tokens/${encodeURIComponent(secureTokenId)}`
   )
 }
 
+/**
+ * Create a Single-Use Token for raw card data.
+ * For Hosted Fields integrations, single-use tokens are produced client-side by the SDK,
+ * not by this function. This is here for server-side scenarios (MOTO, batch enrollment).
+ *
+ * https://docs.payroc.com/api/schema/tokenization/single-use-tokens/create
+ */
 export async function createSingleUseToken(request: {
   cardNumber: string
-  expiryMonth: string
-  expiryYear: string
-  cvv: string
+  expiryDate: string
+  cvv?: string
   cardholderName?: string
 }): Promise<{ token: string; expiresAt: string }> {
   return payrocRequest(
