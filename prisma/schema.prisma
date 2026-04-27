@@ -102,6 +102,7 @@ model Merchant {
   apiKeys               ApiKey[]
   webhooks              Webhook[]
   savedPaymentMethods   SavedPaymentMethod[]
+  devices               Device[]
 }
 
 model Transaction {
@@ -246,6 +247,26 @@ model SavedPaymentMethod {
 
   @@index([merchantId, customerEmail])
   @@index([payrocSecureTokenId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Device {
+  id            String    @id @default(cuid())
+  merchantId    String
+  serialNumber  String    @unique
+  model         String?
+  label         String?
+  status        String    @default("active")
+  pairedAt      DateTime  @default(now())
+  lastSeenAt    DateTime?
+  lastChargeAt  DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  merchant      Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@index([merchantId])
   @@index([status])
   @@index([createdAt])
 }
