@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getPayrocToken } from "@/lib/payroc/client";
+import { createSecureToken } from "@/lib/payroc/tokens";
 import crypto from "crypto";
 
 export async function POST(request: Request) {
@@ -38,6 +39,7 @@ export async function POST(request: Request) {
       customerLastName,
       customerEmail,
       orderId,
+      saveCard,
     } = body;
 
     console.log("[PAYMENT-DEBUG] Token:", token?.substring(0, 30) + "...");
@@ -61,6 +63,93 @@ export async function POST(request: Request) {
       typeof amount === "string" ? parseFloat(amount) : amount;
     const amountInCents = Math.round(parsedAmount * 100);
     const terminalId = process.env.PAYROC_TERMINAL_ID;
+
+    // ----- OPTIONAL SAVE CARD FLOW -----
+    let secureTokenIdForPayment: string | null = null;
+    let savedCardRowId: string | null = null;
+
+    if (saveCard === true) {
+      const trimmedEmail =
+        typeof customerEmail === "string"
+          ? customerEmail.trim().toLowerCase()
+          : "";
+      if (!trimmedEmail || trimmedEmail.length === 0 || !trimmedEmail.includes("@")) {
+        return NextResponse.json(
+          { error: "customerEmail is required when saveCard is true" },
+          { status: 400 }
+        );
+      }
+
+      try {
+        console.log("[CHECKOUT-SAVE] Exchanging single-use token for Secure Token");
+        const secureToken = await createSecureToken({
+          source: { type: "singleUseToken", singleUseToken: token },
+          mitAgreement: "unscheduled",
+          operator: (merchant.businessName || "SalonTransact").slice(0, 50),
+        });
+        secureTokenIdForPayment = secureToken.secureTokenId;
+        console.log(
+          "[CHECKOUT-SAVE] Secure Token created:",
+          secureToken.secureTokenId
+        );
+
+        let expiryMonth: string | null = null;
+        let expiryYear: string | null = null;
+        if (
+          typeof secureToken.source.expiryDate === "string" &&
+          secureToken.source.expiryDate.length === 4
+        ) {
+          expiryMonth = secureToken.source.expiryDate.slice(0, 2);
+          expiryYear = `20${secureToken.source.expiryDate.slice(2, 4)}`;
+        }
+        let extractedLast4: string | null = null;
+        if (typeof secureToken.source.cardNumber === "string") {
+          const m = secureToken.source.cardNumber.match(/(\d{4})$/);
+          extractedLast4 = m ? m[1] : null;
+        }
+
+        try {
+          const row = await prisma.savedPaymentMethod.create({
+            data: {
+              merchantId: merchant.id,
+              customerEmail: trimmedEmail,
+              payrocSecureTokenId: secureToken.secureTokenId,
+              cardScheme: null,
+              last4: extractedLast4,
+              expiryMonth,
+              expiryYear,
+              cardholderName: secureToken.source.cardholderName ?? null,
+              label: null,
+              status: "active",
+              mitAgreement: "unscheduled",
+            },
+          });
+          savedCardRowId = row.id;
+          console.log("[CHECKOUT-SAVE] SavedPaymentMethod row created:", row.id);
+        } catch (dbErr) {
+          console.error(
+            "[CHECKOUT-SAVE] SavedPaymentMethod DB save failed (non-fatal):",
+            dbErr
+          );
+        }
+      } catch (tokenErr) {
+        const message =
+          tokenErr instanceof Error ? tokenErr.message : "Unknown error";
+        console.error(
+          "[CHECKOUT-SAVE] Secure Token creation failed:",
+          message
+        );
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Failed to save card: ${message}`.slice(0, 500),
+          },
+          { status: 502 }
+        );
+      }
+    }
+    // ----- END SAVE CARD FLOW -----
+
     const finalOrderId =
       orderId || crypto.randomUUID().slice(0, 8).toUpperCase();
 
@@ -75,10 +164,15 @@ export async function POST(request: Request) {
         amount: amountInCents,
         currency: "USD",
       },
-      paymentMethod: {
-        type: "singleUseToken",
-        token,
-      },
+      paymentMethod: secureTokenIdForPayment
+        ? {
+            type: "secureToken",
+            secureToken: secureTokenIdForPayment,
+          }
+        : {
+            type: "singleUseToken",
+            token,
+          },
       customer:
         customerFirstName || customerLastName || customerEmail
           ? {
@@ -213,6 +307,7 @@ export async function POST(request: Request) {
         last4,
         cardBrand: cardScheme,
         amount: orderAmount,
+        savedCardId: savedCardRowId,
       });
     }
 
