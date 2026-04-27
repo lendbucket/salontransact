@@ -303,14 +303,8 @@ export default function OnboardingForm({ userEmail, userName }: Props) {
 
   return (
     <div
-      style={{
-        minHeight: "100vh",
-        background: "#FBFBFB",
-        padding: "32px 16px",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-      }}
+      className="min-h-screen flex flex-col items-center px-4 py-8 md:py-16"
+      style={{ background: "#FBFBFB" }}
     >
       {/* Header */}
       <div style={{ width: "100%", maxWidth: 720, marginBottom: 24 }}>
@@ -354,13 +348,10 @@ export default function OnboardingForm({ userEmail, userName }: Props) {
 
       {/* Card */}
       <div
+        className="w-full max-w-2xl rounded-lg md:rounded-xl p-5 md:p-8"
         style={{
-          width: "100%",
-          maxWidth: 720,
           background: "#FFFFFF",
-          borderRadius: 12,
           boxShadow: SHADOW,
-          padding: 32,
         }}
       >
         {/* Step 1 — Business */}
@@ -408,13 +399,7 @@ export default function OnboardingForm({ userEmail, userName }: Props) {
               </div>
               <div>
                 <Label required>Business type</Label>
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr 1fr",
-                    gap: 8,
-                  }}
-                >
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                   {BUSINESS_TYPES.map((bt) => (
                     <RadioCard
                       key={bt.id}
@@ -440,13 +425,7 @@ export default function OnboardingForm({ userEmail, userName }: Props) {
                 />
                 <FieldError msg={errors.ein} />
               </div>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: 12,
-                }}
-              >
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
                   <Label required>Business phone</Label>
                   <input
@@ -536,13 +515,7 @@ export default function OnboardingForm({ userEmail, userName }: Props) {
                 />
                 <FieldError msg={errors.addressCity} />
               </div>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: 12,
-                }}
-              >
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
                   <Label required>State</Label>
                   <select
@@ -707,7 +680,7 @@ export default function OnboardingForm({ userEmail, userName }: Props) {
               />
               <span style={{ color: "#4A4A4A", fontSize: 12 }}>
                 Your banking information is sensitive. We share it only with our
-                payment processor (Payroc) for KYC verification.
+                payment processor for identity verification.
               </span>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -856,13 +829,7 @@ export default function OnboardingForm({ userEmail, userName }: Props) {
             <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
               <div>
                 <Label required>Monthly processing volume</Label>
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr 1fr",
-                    gap: 8,
-                  }}
-                >
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                   {VOLUME_OPTIONS.map((v) => (
                     <RadioCard
                       key={v.id}
@@ -876,13 +843,7 @@ export default function OnboardingForm({ userEmail, userName }: Props) {
               </div>
               <div>
                 <Label required>Average ticket size</Label>
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr 1fr",
-                    gap: 8,
-                  }}
-                >
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                   {TICKET_OPTIONS.map((t) => (
                     <RadioCard
                       key={t.id}
@@ -941,14 +902,14 @@ export default function OnboardingForm({ userEmail, userName }: Props) {
                 >
                   <li>
                     Your information will be reviewed and may be shared with
-                    Payroc for KYC verification
+                    our payment processor for identity verification
                   </li>
                   <li>
                     Approval is not guaranteed and may take 1-3 business days
                   </li>
                   <li>
-                    You will need to complete a separate merchant agreement with
-                    Payroc before processing payments
+                    You will need to complete a separate merchant agreement
+                    before processing payments
                   </li>
                   <li>
                     All information provided is accurate to the best of your
@@ -1018,10 +979,8 @@ export default function OnboardingForm({ userEmail, userName }: Props) {
 
         {/* Navigation */}
         <div
+          className="flex flex-col-reverse gap-3 md:flex-row md:justify-between md:gap-0"
           style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
             marginTop: 28,
             paddingTop: 20,
             borderTop: "1px solid #E8EAED",
@@ -1031,8 +990,9 @@ export default function OnboardingForm({ userEmail, userName }: Props) {
             <button
               type="button"
               onClick={back}
+              className="w-full md:w-auto"
               style={{
-                height: 36,
+                height: 44,
                 padding: "0 16px",
                 borderRadius: 8,
                 border: "1px solid #E8EAED",
@@ -1046,15 +1006,16 @@ export default function OnboardingForm({ userEmail, userName }: Props) {
               Back
             </button>
           ) : (
-            <div />
+            <div className="hidden md:block" />
           )}
 
           {step < TOTAL_STEPS - 1 ? (
             <button
               type="button"
               onClick={next}
+              className="w-full md:w-auto"
               style={{
-                height: 36,
+                height: 44,
                 padding: "0 20px",
                 borderRadius: 8,
                 border: "1px solid #015f80",
@@ -1073,8 +1034,9 @@ export default function OnboardingForm({ userEmail, userName }: Props) {
               type="button"
               onClick={handleSubmit}
               disabled={submitting}
+              className="w-full md:w-auto"
               style={{
-                height: 36,
+                height: 44,
                 padding: "0 20px",
                 borderRadius: 8,
                 border: "1px solid #015f80",
@@ -1087,6 +1049,7 @@ export default function OnboardingForm({ userEmail, userName }: Props) {
                 cursor: submitting ? "not-allowed" : "pointer",
                 display: "flex",
                 alignItems: "center",
+                justifyContent: "center",
                 gap: 8,
                 opacity: submitting ? 0.7 : 1,
               }}

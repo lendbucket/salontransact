@@ -53,10 +53,10 @@ export default async function ThankYouPage() {
           </div>
           <div>
             <p className="text-sm font-medium text-[#1A1313]">
-              Sign with Payroc
+              Sign the merchant agreement
             </p>
             <p className="text-sm text-[#4A4A4A]">
-              Complete the merchant agreement with our payment processor.
+              Complete your SalonTransact merchant agreement to begin processing.
             </p>
           </div>
         </div>
@@ -76,17 +76,17 @@ export default async function ThankYouPage() {
         </div>
       </div>
 
-      {/* TODO: Replace with real Payroc Agreement Express URL */}
+      {/* TODO: Replace with real Agreement Express URL */}
       <a
         href="https://agreement-express-placeholder.example.com"
-        className="inline-flex items-center justify-center px-4 h-9 rounded-lg text-sm font-medium text-white"
+        className="inline-flex items-center justify-center w-full md:w-auto px-6 h-11 rounded-lg text-sm font-medium text-white"
         style={{
           background: "linear-gradient(180deg, #0290be 0%, #017ea7 100%)",
           border: "1px solid #015f80",
           textDecoration: "none",
         }}
       >
-        Continue to Payroc Agreement &rarr;
+        Continue to merchant agreement &rarr;
       </a>
 
       <p className="text-xs text-[#878787] mt-4">

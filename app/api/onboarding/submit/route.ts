@@ -28,6 +28,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import * as v from "@/lib/onboarding/validation";
+import { VALID_MCC_CODES } from "@/lib/onboarding/mcc-codes";
+import { buildApplicationNotificationEmail } from "@/lib/onboarding/email-template";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -114,20 +116,20 @@ export async function POST(req: Request) {
     "250-500",
     "500+",
   ];
-  const validMccs = ["7230", "7298", "7297", "5977"];
   if (!validVolumes.includes(body.monthlyVolume))
     errors.monthlyVolume = "Invalid";
   if (!validTickets.includes(body.averageTicket))
     errors.averageTicket = "Invalid";
-  if (!validMccs.includes(body.mccCode)) errors.mccCode = "Invalid";
+  if (!VALID_MCC_CODES.includes(body.mccCode)) errors.mccCode = "Invalid";
   if (!body.agreementAccepted) errors.agreementAccepted = "Required";
 
   if (Object.keys(errors).length > 0) {
     return NextResponse.json({ errors }, { status: 400 });
   }
 
+  let createdApp;
   try {
-    await prisma.merchantApplication.create({
+    createdApp = await prisma.merchantApplication.create({
       data: {
         userId: user.id,
         legalBusinessName: body.legalBusinessName.trim(),
@@ -178,20 +180,10 @@ export async function POST(req: Request) {
           from: "SalonTransact <noreply@salontransact.com>",
           to: "ceo@36west.org",
           subject: `New merchant application: ${body.legalBusinessName}`,
-          html: `
-            <h2>New merchant application submitted</h2>
-            <p><strong>Business:</strong> ${body.legalBusinessName}${body.dba ? ` (DBA: ${body.dba})` : ""}</p>
-            <p><strong>Type:</strong> ${body.businessType}</p>
-            <p><strong>Owner:</strong> ${body.ownerFullName} &lt;${body.ownerEmail}&gt;</p>
-            <p><strong>Phone:</strong> ${body.ownerPhone}</p>
-            <p><strong>Address:</strong> ${body.addressStreet}, ${body.addressCity}, ${body.addressState} ${body.addressZip}</p>
-            <p><strong>Monthly volume:</strong> $${body.monthlyVolume}</p>
-            <p><strong>Avg ticket:</strong> $${body.averageTicket}</p>
-            <p><strong>MCC:</strong> ${body.mccCode}</p>
-            <hr>
-            <p>Banking and EIN are stored in the MerchantApplication table. Review in master portal.</p>
-            <p>User ID: ${user.id} | Email: ${user.email}</p>
-          `,
+          html: buildApplicationNotificationEmail({
+            application: createdApp,
+            applicantEmail: user.email ?? "(unknown)",
+          }),
         }),
       });
       if (!res.ok) {
