@@ -36,3 +36,23 @@ export async function reverseRefund(
 ): Promise<PayrocRefund> {
   return payrocRequest("POST", `/refunds/${refundId}/reverse`, {});
 }
+
+export async function createUnreferencedRefund(request: {
+  amount: number;
+  currency?: "USD";
+  reason?: string;
+  card?: {
+    cardNumber: string;
+    expiryMonth: string;
+    expiryYear: string;
+    cvv?: string;
+    cardholderName?: string;
+  };
+  secureTokenId?: string;
+}): Promise<PayrocRefund> {
+  return payrocRequest<PayrocRefund>("POST", "/refunds", {
+    processingTerminalId: process.env.PAYROC_TERMINAL_ID,
+    currency: "USD",
+    ...request,
+  });
+}

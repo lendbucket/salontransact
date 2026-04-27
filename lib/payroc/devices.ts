@@ -38,3 +38,12 @@ export async function sendRefundInstruction(
     { paymentId, amount }
   )
 }
+
+export async function cancelPaymentInstruction(
+  instructionId: string
+): Promise<void> {
+  return payrocRequest<void>(
+    'DELETE',
+    `/payment-instructions/${instructionId}`
+  )
+}

@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
+import { PayrocApiError } from "./errors";
+import type { PayrocApiErrorBody } from "./types";
 
 interface TokenCache {
   token: string;
@@ -111,8 +113,17 @@ export async function payrocRequest<T>(
   });
 
   if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Payroc API error: ${response.status} ${path} ${error}`);
+    const errorText = await response.text();
+    let errorBody: PayrocApiErrorBody | string | null = errorText || null;
+    try {
+      const parsed = JSON.parse(errorText);
+      if (parsed && typeof parsed === "object") {
+        errorBody = parsed as PayrocApiErrorBody;
+      }
+    } catch {
+      // body is not JSON, keep as string
+    }
+    throw new PayrocApiError(response.status, path, errorBody);
   }
 
   if (response.status === 204) {

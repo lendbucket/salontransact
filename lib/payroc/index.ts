@@ -9,3 +9,4 @@ export * from "./refunds";
 export * from "./cards";
 export * from "./authorizations";
 export * from "./types";
+export * from "./errors";

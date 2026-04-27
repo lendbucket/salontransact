@@ -150,7 +150,7 @@ export interface PayrocRefundRequest {
   reason?: string
 }
 
-export interface PayrocApiError {
+export interface PayrocApiErrorBody {
   code: string
   message: string
   details?: string
