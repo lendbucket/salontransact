@@ -1,55 +1,35 @@
-# Payroc Webhook Registration
+# Payroc Webhook Subscriptions
 
-## Active Subscriptions
+This document tracks active webhook subscriptions registered with Payroc.
 
-### Subscription 3776 (UAT)
+## UAT Environment
 
-- **ID:** 3776
-- **Environment:** UAT (`api.uat.payroc.com`)
-- **Registered:** 2026-04-27
-- **Receiver URL:** `https://portal.salontransact.com/api/webhooks/payroc`
-- **Support email:** ceo@36west.org
-- **Event types:**
-  - `processingAccount.status.changed`
-  - `terminalOrder.status.changed`
+| Field | Value |
+|---|---|
+| Subscription ID | `3776` |
+| Status | `registered` |
+| Registered | 2026-04-27 |
+| Endpoint | `https://api.uat.payroc.com/v1/event-subscriptions` |
+| Receiver URI | `https://portal.salontransact.com/api/webhooks/payroc` |
+| Support email | `ceo@36west.org` |
+| Event types | `processingAccount.status.changed`, `terminalOrder.status.changed` |
 
-### Secret
+### Managing this subscription
 
-The `Payroc-Secret` header value is stored in Vercel as `PAYROC_WEBHOOK_SECRET`. The receiver at `app/api/webhooks/payroc/route.ts` validates it using `crypto.timingSafeEqual`.
+- **Update:** `PATCH https://api.uat.payroc.com/v1/event-subscriptions/3776`
+- **Delete:** `DELETE https://api.uat.payroc.com/v1/event-subscriptions/3776`
+- **Retrieve:** `GET https://api.uat.payroc.com/v1/event-subscriptions/3776`
 
-Do **not** commit the secret to the repo. If rotated, update both:
-1. Vercel env var `PAYROC_WEBHOOK_SECRET`
-2. Payroc subscription (update via API or delete + recreate)
+Both calls need a fresh bearer token (auth via `PAYROC_API_KEY` against `https://identity.uat.payroc.com/authorize`).
 
-## Managing Subscriptions
+## Production Environment
 
-### List subscriptions
+Not yet registered. After UAT certification (per Solution Design phase 1.3), register an equivalent subscription against `https://api.payroc.com/v1/event-subscriptions` with a fresh secret.
 
-```bash
-# Using the Node.js auth flow:
-curl -H "Authorization: Bearer $TOKEN" https://api.uat.payroc.com/v1/event-subscriptions
-```
+## Re-registering
 
-### Delete subscription
+Use `scripts/register-webhook.mjs` for Node-based registration (the working path). The PowerShell version `register-webhook.ps1` exists but auth doesn't work from PowerShell on this machine for unknown reasons.
 
-```bash
-curl -X DELETE -H "Authorization: Bearer $TOKEN" https://api.uat.payroc.com/v1/event-subscriptions/3776
-```
+## Webhook secret rotation
 
-### Register a new subscription
-
-```bash
-npx dotenv-cli -e .env.local -- npm run register-webhook
-```
-
-See `scripts/register-webhook.mjs` for details.
-
-## Production
-
-No production webhook subscription has been registered yet. When ready:
-
-1. Set `PAYROC_EVENTS_URL=https://api.payroc.com/v1/event-subscriptions`
-2. Set `PAYROC_AUTH_URL=https://identity.payroc.com/authorize`
-3. Use the production `PAYROC_API_KEY`
-4. Run `npm run register-webhook`
-5. Record the subscription ID in this file
+The secret stored in Vercel as `PAYROC_WEBHOOK_SECRET` (Sensitive scope) is what Payroc sends in the `payroc-secret` header on every event. Rotating means: generate new secret, update both Vercel and Payroc subscription via PATCH.
