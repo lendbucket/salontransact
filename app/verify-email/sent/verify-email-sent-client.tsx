@@ -1,15 +1,72 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { Mail, Loader2, CheckCircle, LogOut } from "lucide-react";
 import AuthLayout from "@/components/auth/AuthLayout";
 
 export default function VerifyEmailSentClient({ email }: { email: string }) {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
   const [cooldown, setCooldown] = useState(0);
+
+  // Poll for verification status (e.g. user verified in another tab)
+  useEffect(() => {
+    let cancelled = false;
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+
+    const checkStatus = async () => {
+      if (cancelled) return;
+      try {
+        const res = await fetch("/api/auth/verification-status", {
+          cache: "no-store",
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.verified && !cancelled) {
+          router.push("/onboarding");
+          router.refresh();
+        }
+      } catch {
+        // Silently ignore — next poll will retry
+      }
+    };
+
+    const start = () => {
+      if (intervalId) return;
+      intervalId = setInterval(checkStatus, 5000);
+    };
+
+    const stop = () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
+      }
+    };
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        checkStatus();
+        start();
+      } else {
+        stop();
+      }
+    };
+
+    if (document.visibilityState === "visible") {
+      start();
+    }
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      cancelled = true;
+      stop();
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [router]);
 
   useEffect(() => {
     if (cooldown <= 0) return;
