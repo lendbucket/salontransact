@@ -224,3 +224,62 @@ export interface UpdateSecureTokenRequest {
   customer?: TokenizationCustomer
   mitAgreement?: MitAgreement
 }
+
+// ===== Payroc Cloud (Pay by Cloud) types — Phase 7 =====
+// https://docs.payroc.com/api/schema/payroc-cloud/payment-instructions/submit
+
+export interface PaymentInstructionOrder {
+  orderId: string
+  description?: string
+  amount: number
+  currency: 'USD'
+  dateTime?: string
+}
+
+export interface PaymentInstructionCustomizationOptions {
+  entryMethod?: 'deviceRead' | 'manual'
+  promptForTip?: boolean
+  promptForSignature?: boolean
+}
+
+export interface PaymentInstructionCredentialOnFile {
+  storeCard?: boolean
+  mitAgreement?: 'unscheduled' | 'recurring' | 'installment'
+}
+
+export interface SubmitPaymentInstructionRequest {
+  processingTerminalId: string
+  order: PaymentInstructionOrder
+  autoCapture?: boolean
+  processAsSale?: boolean
+  operator?: string
+  customizationOptions?: PaymentInstructionCustomizationOptions
+  credentialOnFile?: PaymentInstructionCredentialOnFile
+}
+
+export type PaymentInstructionStatus =
+  | 'inProgress'
+  | 'completed'
+  | 'canceled'
+  | 'failure'
+
+export interface PaymentInstructionLink {
+  rel: string
+  method: string
+  href: string
+}
+
+export interface PaymentInstructionResponse {
+  status: PaymentInstructionStatus
+  paymentInstructionId: string
+  errorMessage?: string
+  link?: PaymentInstructionLink
+}
+
+export interface SubmitRefundInstructionRequest {
+  processingTerminalId: string
+  paymentId?: string
+  amount?: number
+  currency?: 'USD'
+  operator?: string
+}
