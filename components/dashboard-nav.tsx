@@ -21,6 +21,11 @@ import {
   Menu,
   ArrowDownCircle,
   Lock,
+  Building2,
+  Smartphone,
+  ClipboardList,
+  ScrollText,
+  BarChart3,
 } from "lucide-react";
 
 type NavLink = {
@@ -29,6 +34,7 @@ type NavLink = {
   icon: typeof LayoutDashboard;
   section: string;
   masterOnly?: boolean;
+  comingSoon?: boolean;
 };
 
 const links: NavLink[] = [
@@ -37,18 +43,25 @@ const links: NavLink[] = [
   { href: "/analytics", label: "Analytics", icon: TrendingUp, section: "Overview" },
   { href: "/transactions", label: "Transactions", icon: ArrowLeftRight, section: "Payments" },
   { href: "/payouts", label: "Payouts", icon: Wallet, section: "Payments" },
-  { href: "/master/disputes", label: "Disputes", icon: AlertCircle, section: "Payments" },
-  { href: "/master/refunds", label: "Refunds", icon: ArrowDownCircle, section: "Payments" },
-  { href: "/master/authorizations", label: "Authorizations", icon: Lock, section: "Payments" },
-  { href: "/master/settlements", label: "Settlements", icon: Wallet, section: "Payments" },
+  { href: "/master/disputes", label: "Disputes", icon: AlertCircle, section: "Payments", masterOnly: true },
+  { href: "/master/refunds", label: "Refunds", icon: ArrowDownCircle, section: "Payments", masterOnly: true },
+  { href: "/master/authorizations", label: "Authorizations", icon: Lock, section: "Payments", masterOnly: true },
+  { href: "/master/settlements", label: "Settlements", icon: Wallet, section: "Payments", masterOnly: true },
   { href: "/api-keys", label: "API Keys", icon: KeyRound, section: "Developers" },
   { href: "/webhooks", label: "Webhooks", icon: Webhook, section: "Developers" },
   { href: "/logs", label: "Logs", icon: FileText, section: "Developers" },
   { href: "/settings", label: "Settings", icon: Settings, section: "Account" },
   { href: "/support", label: "Support", icon: HelpCircle, section: "Account" },
+  // Master Portal
+  { href: "/master/merchants", label: "Merchants", icon: Building2, section: "Master", masterOnly: true },
+  { href: "/master/devices", label: "Devices", icon: Smartphone, section: "Master", masterOnly: true, comingSoon: true },
+  { href: "/master/saved-cards", label: "Saved Cards", icon: CreditCard, section: "Master", masterOnly: true, comingSoon: true },
+  { href: "/master/applications", label: "Applications", icon: ClipboardList, section: "Master", masterOnly: true, comingSoon: true },
+  { href: "/master/audit", label: "Audit Log", icon: ScrollText, section: "Master", masterOnly: true, comingSoon: true },
+  { href: "/master/reporting", label: "Reporting", icon: BarChart3, section: "Master", masterOnly: true, comingSoon: true },
 ];
 
-const sections = ["Overview", "Payments", "Developers", "Account"];
+const sections = ["Overview", "Payments", "Developers", "Account", "Master"];
 
 export function Sidebar({
   businessName,
@@ -124,23 +137,39 @@ export function Sidebar({
       </div>
 
       {/* Search */}
-      <div style={{ margin: "16px 12px 0" }}>
-        <div
+      <div style={{ padding: "0 12px", marginTop: 16 }}>
+        <label
+          htmlFor="sidebar-search"
           style={{
-            height: 32,
+            position: "relative",
             display: "flex",
             alignItems: "center",
-            gap: 8,
-            padding: "0 10px",
+            height: 32,
             borderRadius: 6,
             background: "#F4F5F7",
-            cursor: "pointer",
+            border: "1px solid #E8EAED",
+            paddingLeft: 10,
+            paddingRight: 10,
+            gap: 8,
+            cursor: "text",
           }}
         >
-          <Search size={16} strokeWidth={1.5} color="#878787" />
-          <span style={{ fontSize: 13, fontWeight: 400, color: "#878787", flex: 1 }}>
-            Search...
-          </span>
+          <Search size={14} strokeWidth={1.5} color="#878787" />
+          <input
+            id="sidebar-search"
+            type="search"
+            placeholder="Search..."
+            style={{
+              flex: 1,
+              height: "100%",
+              background: "transparent",
+              border: "none",
+              outline: "none",
+              fontSize: 13,
+              fontWeight: 400,
+              color: "#1A1313",
+            }}
+          />
           <kbd
             style={{
               fontSize: 9,
@@ -154,7 +183,7 @@ export function Sidebar({
           >
             /
           </kbd>
-        </div>
+        </label>
       </div>
 
       {/* Nav sections */}
@@ -181,6 +210,32 @@ export function Sidebar({
               .map((link) => {
                 const Icon = link.icon;
                 const active = pathname === link.href;
+                if (link.comingSoon) {
+                  return (
+                    <span
+                      key={link.href}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 10,
+                        height: 36,
+                        padding: "0 12px",
+                        margin: "0 8px",
+                        borderRadius: 6,
+                        fontSize: 14,
+                        fontWeight: 400,
+                        color: "#878787",
+                        opacity: 0.5,
+                        cursor: "not-allowed",
+                        borderLeft: "3px solid transparent",
+                      }}
+                    >
+                      <Icon size={16} strokeWidth={1.5} />
+                      {link.label}
+                      <span style={{ marginLeft: "auto", fontSize: 10, fontWeight: 600, letterSpacing: "0.05em" }}>SOON</span>
+                    </span>
+                  );
+                }
                 return (
                   <Link
                     key={link.href}

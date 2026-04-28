@@ -703,6 +703,19 @@ textarea,
   }
 }
 
+/* ── Component primitive hover/focus states ── */
+
+.btn-primary-hover:not(:disabled):hover {
+  background: linear-gradient(180deg, #03a0d1 0%, #0290be 100%) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(1, 126, 167, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
+}
+.btn-primary-hover:not(:disabled):active { transform: translateY(0); }
+.btn-secondary-hover:not(:disabled):hover { background: #F4F5F7 !important; }
+.btn-ghost-hover:not(:disabled):hover { background: #F4F5F7 !important; }
+.btn-danger-hover:not(:disabled):hover { background: #FEF2F2 !important; }
+.btn-icon-hover:not(:disabled):hover { background: #F4F5F7 !important; color: #1A1313 !important; }
+
 /* Force-hide desktop sidebar on mobile (belt-and-suspenders against Tailwind v4 hidden class) */
 @media (max-width: 767px) {
   aside.hidden {

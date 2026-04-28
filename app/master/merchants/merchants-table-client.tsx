@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Search, ChevronRight, Building2, Mail, Phone } from "lucide-react";
+import { StatusPill } from "@/components/ui/status-pill";
 import type {
   MerchantSummary,
   MerchantListResponse,
@@ -206,7 +207,7 @@ export function MerchantsTableClient({ initialMerchants }: Props) {
                 </thead>
                 <tbody>
                   {merchants.map((m) => {
-                    const pill = statusPillStyles(m.status);
+                    void 0; // pill replaced by StatusPill primitive
                     return (
                       <tr
                         key={m.id}
@@ -244,19 +245,7 @@ export function MerchantsTableClient({ initialMerchants }: Props) {
                           )}
                         </td>
                         <td className="px-4 py-3">
-                          <span
-                            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium"
-                            style={{
-                              background: pill.bg,
-                              color: pill.text,
-                            }}
-                          >
-                            <span
-                              className="w-1.5 h-1.5 rounded-full"
-                              style={{ background: pill.dot }}
-                            />
-                            {m.status}
-                          </span>
+                          <StatusPill status={m.status} />
                         </td>
                         <td className="px-4 py-3 text-right font-medium text-[#1A1313] font-mono">
                           {fmtMoney(m.totalVolume)}
@@ -297,16 +286,7 @@ export function MerchantsTableClient({ initialMerchants }: Props) {
                       <span className="font-medium text-[#1A1313] truncate">
                         {m.businessName}
                       </span>
-                      <span
-                        className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium flex-shrink-0"
-                        style={{ background: pill.bg, color: pill.text }}
-                      >
-                        <span
-                          className="w-1.5 h-1.5 rounded-full"
-                          style={{ background: pill.dot }}
-                        />
-                        {m.status}
-                      </span>
+                      <StatusPill status={m.status} />
                     </div>
                     <div className="flex items-baseline justify-between gap-2 mb-1">
                       <span className="text-base font-semibold text-[#1A1313] font-mono">

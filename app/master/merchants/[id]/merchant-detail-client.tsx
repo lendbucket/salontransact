@@ -13,6 +13,8 @@ import {
   XCircle,
 } from "lucide-react";
 import type { MerchantDetail } from "../_lib/merchant-types";
+import { StatusPill } from "@/components/ui/status-pill";
+import { Toast } from "@/components/ui/toast";
 
 const SHADOW =
   "0 0 0 1px rgba(0,0,0,0.05), 0 1px 1px rgba(0,0,0,0.05), 0 2px 2px rgba(0,0,0,0.05), 0 4px 4px rgba(0,0,0,0.05), 0 8px 8px rgba(0,0,0,0.05), 0 16px 16px rgba(0,0,0,0.05)";
@@ -117,16 +119,7 @@ export function MerchantDetailClient({ merchant, counts }: Props) {
             <h1 className="text-2xl font-semibold text-[#1A1313]">
               {merchant.businessName}
             </h1>
-            <span
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
-              style={{ background: pill.bg, color: pill.text }}
-            >
-              <span
-                className="w-1.5 h-1.5 rounded-full"
-                style={{ background: pill.dot }}
-              />
-              {status}
-            </span>
+            <StatusPill status={status} />
           </div>
           <p className="text-sm text-[#878787]">
             {merchant.dbaName ? `dba ${merchant.dbaName} \u00B7 ` : ""}
@@ -166,19 +159,8 @@ export function MerchantDetailClient({ merchant, counts }: Props) {
       </div>
 
       {toast && (
-        <div
-          className="mb-4 px-4 py-3 rounded-lg flex items-center gap-2 text-sm"
-          style={{
-            background: toast.kind === "success" ? "#DCFCE7" : "#FEE2E2",
-            color: toast.kind === "success" ? "#15803D" : "#991B1B",
-          }}
-        >
-          {toast.kind === "success" ? (
-            <CheckCircle2 size={16} />
-          ) : (
-            <XCircle size={16} />
-          )}
-          {toast.message}
+        <div className="mb-4">
+          <Toast kind={toast.kind} message={toast.message} />
         </div>
       )}
 
