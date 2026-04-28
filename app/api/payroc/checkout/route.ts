@@ -40,14 +40,33 @@ export async function POST(request: Request) {
       customerEmail,
       orderId,
       saveCard,
+      secureTokenId,
     } = body;
 
     console.log("[PAYMENT-DEBUG] Token:", token?.substring(0, 30) + "...");
     console.log("[PAYMENT-DEBUG] Amount:", amount, "type:", typeof amount);
 
-    if (!token) {
+    if (!token && !secureTokenId) {
       return NextResponse.json(
-        { error: "Payment token is required" },
+        { error: "Either token or secureTokenId is required" },
+        { status: 400 }
+      );
+    }
+    if (token && secureTokenId) {
+      return NextResponse.json(
+        { error: "Provide either token or secureTokenId, not both" },
+        { status: 400 }
+      );
+    }
+    if (secureTokenId && typeof secureTokenId !== "string") {
+      return NextResponse.json(
+        { error: "secureTokenId must be a string" },
+        { status: 400 }
+      );
+    }
+    if (secureTokenId && saveCard === true) {
+      return NextResponse.json(
+        { error: "Cannot saveCard when using an existing secureTokenId" },
         { status: 400 }
       );
     }
@@ -149,6 +168,48 @@ export async function POST(request: Request) {
       }
     }
     // ----- END SAVE CARD FLOW -----
+
+    // ----- SAVED CARD CHARGE FLOW -----
+    let savedCardRowForCharge: { id: string; payrocSecureTokenId: string } | null = null;
+
+    if (secureTokenId) {
+      try {
+        const savedRow = await prisma.savedPaymentMethod.findFirst({
+          where: {
+            id: secureTokenId,
+            merchantId: merchant.id,
+            status: "active",
+          },
+          select: {
+            id: true,
+            payrocSecureTokenId: true,
+          },
+        });
+        if (!savedRow) {
+          return NextResponse.json(
+            { error: "Saved card not found or not accessible" },
+            { status: 404 }
+          );
+        }
+        savedCardRowForCharge = savedRow;
+        secureTokenIdForPayment = savedRow.payrocSecureTokenId;
+        console.log(
+          "[CHECKOUT-SAVED-CARD] Resolved saved card",
+          savedRow.id,
+          "→ Payroc token",
+          savedRow.payrocSecureTokenId.slice(0, 12) + "..."
+        );
+      } catch (lookupErr) {
+        const message =
+          lookupErr instanceof Error ? lookupErr.message : "Unknown error";
+        console.error("[CHECKOUT-SAVED-CARD] Lookup failed:", message);
+        return NextResponse.json(
+          { error: "Failed to resolve saved card" },
+          { status: 500 }
+        );
+      }
+    }
+    // ----- END SAVED CARD CHARGE FLOW -----
 
     const finalOrderId =
       orderId || crypto.randomUUID().slice(0, 8).toUpperCase();
@@ -298,6 +359,21 @@ export async function POST(request: Request) {
         });
       } catch (dbErr) {
         console.error("[CHECKOUT] DB save failed (non-fatal):", dbErr);
+      }
+
+      // Update lastUsedAt on the saved card row when charging via secureTokenId
+      if (savedCardRowForCharge) {
+        try {
+          await prisma.savedPaymentMethod.update({
+            where: { id: savedCardRowForCharge.id },
+            data: { lastUsedAt: new Date() },
+          });
+        } catch (touchErr) {
+          console.error(
+            "[CHECKOUT-SAVED-CARD] lastUsedAt update failed (non-fatal):",
+            touchErr
+          );
+        }
       }
 
       return NextResponse.json({
