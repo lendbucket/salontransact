@@ -4,17 +4,22 @@
  *
  * Run with:
  *   npx vercel env pull .env.local --environment production
- *   $env:DIRECT_URL = (Get-Content .env.local | Select-String "^DIRECT_URL=" | ForEach-Object { ($_ -replace "^DIRECT_URL=", "").Trim('"') })
- *   $env:DATABASE_URL = (Get-Content .env.local | Select-String "^DATABASE_URL=" | ForEach-Object { ($_ -replace "^DATABASE_URL=", "").Trim('"') })
+ *   export DIRECT_URL=$(grep '^DIRECT_URL=' .env.local | sed 's/^DIRECT_URL=//' | tr -d '"')
+ *   export DATABASE_URL=$(grep '^DATABASE_URL=' .env.local | sed 's/^DATABASE_URL=//' | tr -d '"')
  *   npx tsx prisma/seed-counter-backfill.ts
- *   Remove-Item .env.local
+ *   rm .env.local
  *
  * Safe to re-run — it OVERWRITES counters with the SUM/COUNT of actual succeeded
  * transactions, not increments. So even if you run it twice, the values will be correct.
  */
 import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 
-const prisma = new PrismaClient();
+const connectionString =
+  process.env.DATABASE_URL || process.env.DIRECT_URL;
+
+const adapter = new PrismaPg({ connectionString });
+const prisma = new PrismaClient({ adapter });
 
 async function main() {
   const merchants = await prisma.merchant.findMany({
