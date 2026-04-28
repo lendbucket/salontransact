@@ -107,7 +107,9 @@ export async function POST(request: Request) {
           mitAgreement: "unscheduled",
           operator: (merchant.businessName || "SalonTransact").slice(0, 50),
         });
-        secureTokenIdForPayment = secureToken.secureTokenId;
+        // secureTokenIdForPayment holds the 12-19 digit token used in payment paymentMethod.token,
+        // NOT the MREF_ secureTokenId used for token management
+        secureTokenIdForPayment = secureToken.token;
         console.log(
           "[CHECKOUT-SAVE] Secure Token created:",
           secureToken.secureTokenId
@@ -134,6 +136,7 @@ export async function POST(request: Request) {
               merchantId: merchant.id,
               customerEmail: trimmedEmail,
               payrocSecureTokenId: secureToken.secureTokenId,
+              payrocToken: secureToken.token,
               cardScheme: null,
               last4: extractedLast4,
               expiryMonth,
@@ -145,7 +148,12 @@ export async function POST(request: Request) {
             },
           });
           savedCardRowId = row.id;
-          console.log("[CHECKOUT-SAVE] SavedPaymentMethod row created:", row.id);
+          console.log(
+            "[CHECKOUT-SAVE] SavedPaymentMethod row created:",
+            row.id,
+            "payrocToken (first 8):",
+            secureToken.token?.slice(0, 8)
+          );
         } catch (dbErr) {
           console.error(
             "[CHECKOUT-SAVE] SavedPaymentMethod DB save failed (non-fatal):",
@@ -201,6 +209,7 @@ export async function POST(request: Request) {
           select: {
             id: true,
             payrocSecureTokenId: true,
+            payrocToken: true,
           },
         });
         if (!savedRow) {
@@ -209,13 +218,25 @@ export async function POST(request: Request) {
             { status: 404 }
           );
         }
-        savedCardRowForCharge = savedRow;
-        secureTokenIdForPayment = savedRow.payrocSecureTokenId;
+        if (!savedRow.payrocToken) {
+          return NextResponse.json(
+            {
+              error:
+                "Saved card is missing payment token (created before payrocToken column was added). Save the card again.",
+            },
+            { status: 409 }
+          );
+        }
+        savedCardRowForCharge = {
+          id: savedRow.id,
+          payrocSecureTokenId: savedRow.payrocSecureTokenId,
+        };
+        secureTokenIdForPayment = savedRow.payrocToken;
         console.log(
           "[CHECKOUT-SAVED-CARD] Resolved saved card",
           savedRow.id,
-          "→ Payroc token",
-          savedRow.payrocSecureTokenId.slice(0, 12) + "..."
+          "→ payment token (first 8):",
+          savedRow.payrocToken.slice(0, 8)
         );
       } catch (lookupErr) {
         const message =

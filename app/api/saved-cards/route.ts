@@ -253,6 +253,7 @@ export async function POST(request: Request) {
         merchantId: resolved.merchantId,
         customerEmail,
         payrocSecureTokenId: payrocResponse.secureTokenId,
+        payrocToken: payrocResponse.token,
         last4,
         expiryMonth,
         expiryYear,

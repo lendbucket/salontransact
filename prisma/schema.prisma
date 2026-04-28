@@ -231,6 +231,7 @@ model SavedPaymentMethod {
   merchantId          String
   customerEmail       String
   payrocSecureTokenId String    @unique
+  payrocToken         String?
   cardScheme          String?
   last4               String?
   expiryMonth         String?
