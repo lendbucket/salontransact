@@ -149,10 +149,16 @@ model ApiKey {
   merchantId String
   name       String
   key        String    @unique
+  keyPrefix  String?
+  keyHash    String?
   lastUsed   DateTime?
   active     Boolean   @default(true)
   createdAt  DateTime  @default(now())
   merchant   Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@index([merchantId])
+  @@index([keyPrefix])
+  @@index([active])
 }
 
 model Webhook {
