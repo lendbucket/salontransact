@@ -194,7 +194,14 @@ export function Sidebar({
 
       {/* Nav sections */}
       <nav style={{ flex: 1, display: "flex", flexDirection: "column", gap: 2, marginTop: 8 }}>
-        {sections.map((section) => (
+        {sections.map((section) => {
+          const visibleLinks = links
+            .filter((l) => l.section === section)
+            .filter((l) => !l.masterOnly || role === "master portal");
+
+          if (visibleLinks.length === 0) return null;
+
+          return (
           <div key={section}>
             <p
               style={{
@@ -210,10 +217,7 @@ export function Sidebar({
             >
               {section}
             </p>
-            {links
-              .filter((l) => l.section === section)
-              .filter((l) => !l.masterOnly || role === "master portal")
-              .map((link) => {
+            {visibleLinks.map((link) => {
                 const Icon = link.icon;
                 const active = pathname === link.href;
                 if (link.comingSoon) {
@@ -278,7 +282,8 @@ export function Sidebar({
                 );
               })}
           </div>
-        ))}
+          );
+        })}
       </nav>
 
       {/* User section */}

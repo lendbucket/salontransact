@@ -373,7 +373,7 @@ export function CardListBody({
                   style={{ borderTop: "1px solid #F4F5F7" }}
                 >
                   <Td mono>
-                    {maskBrand(c.cardScheme)} \u2022\u2022\u2022\u2022
+                    {maskBrand(c.cardScheme)} {"\u2022\u2022\u2022\u2022"}
                     {c.last4 ?? "****"}
                     {c.label && (
                       <div
@@ -470,7 +470,7 @@ export function CardListBody({
                     fontFamily: "monospace",
                   }}
                 >
-                  {maskBrand(c.cardScheme)} \u2022\u2022\u2022\u2022
+                  {maskBrand(c.cardScheme)} {"\u2022\u2022\u2022\u2022"}
                   {c.last4 ?? "****"}
                 </span>
                 {expired && c.status === "active" ? (
@@ -488,7 +488,7 @@ export function CardListBody({
                   marginBottom: 2,
                 }}
               >
-                {c.cardholderName ?? "\u2014"} \u00B7 {c.customerEmail}
+                {c.cardholderName ?? "\u2014"} {"\u00B7"} {c.customerEmail}
               </div>
               {showMerchant && getMerchantName && (
                 <div style={{ fontSize: 12, color: "#017ea7" }}>
@@ -498,7 +498,7 @@ export function CardListBody({
               <div
                 style={{ fontSize: 12, color: "#878787", marginTop: 2 }}
               >
-                Exp {expiryDisplay(c.expiryMonth, c.expiryYear)} \u00B7
+                Exp {expiryDisplay(c.expiryMonth, c.expiryYear)} {"\u00B7"}
                 Used {fmtRelative(c.lastUsedAt)}
               </div>
               {c.status === "active" && (
