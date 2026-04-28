@@ -1,10 +1,21 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Loader2, CheckCircle2, XCircle, Lock, DollarSign, FileText } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, Lock, DollarSign, FileText, CreditCard } from "lucide-react";
 import Link from "next/link";
 
 type Status = "loading" | "ready" | "loadError" | "processing" | "success" | "declined";
+
+interface SavedCardOption {
+  id: string;
+  cardScheme: string | null;
+  last4: string | null;
+  expiryMonth: string | null;
+  expiryYear: string | null;
+  cardholderName: string | null;
+  label: string | null;
+  lastUsedAt: string | null;
+}
 
 const CARD = "bg-white border border-[#E8EAED] rounded-xl p-6 shadow-[0_0_0_1px_rgba(0,0,0,0.05),0_1px_1px_rgba(0,0,0,0.05),0_2px_2px_rgba(0,0,0,0.05),0_4px_4px_rgba(0,0,0,0.05),0_8px_8px_rgba(0,0,0,0.05),0_16px_16px_rgba(0,0,0,0.05)]";
 
@@ -19,6 +30,9 @@ export function CheckoutForm() {
   const [customerEmail, setCustomerEmail] = useState("");
   const [saveCard, setSaveCard] = useState(false);
   const [savedCardConfirmed, setSavedCardConfirmed] = useState(false);
+  const [savedCards, setSavedCards] = useState<SavedCardOption[]>([]);
+  const [selectedSavedCardId, setSelectedSavedCardId] = useState<string | null>(null);
+  const [savedCardsLoading, setSavedCardsLoading] = useState(false);
 
   const initRef = useRef(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -31,6 +45,55 @@ export function CheckoutForm() {
   descriptionRef.current = description;
   customerEmailRef.current = customerEmail;
   saveCardRef.current = saveCard;
+
+  // Fetch saved cards when customerEmail is set + valid format
+  useEffect(() => {
+    const email = customerEmail.trim().toLowerCase();
+    if (!email || email.length < 5 || !email.includes("@")) {
+      setSavedCards([]);
+      setSelectedSavedCardId(null);
+      return;
+    }
+
+    let cancelled = false;
+    setSavedCardsLoading(true);
+
+    (async () => {
+      try {
+        const res = await fetch(
+          `/api/saved-cards?customerEmail=${encodeURIComponent(email)}`,
+          { cache: "no-store" }
+        );
+        if (cancelled) return;
+        if (!res.ok) {
+          setSavedCards([]);
+          return;
+        }
+        const json = await res.json();
+        const cards: SavedCardOption[] = Array.isArray(json.data)
+          ? json.data.map((c: SavedCardOption) => ({
+              id: c.id,
+              cardScheme: c.cardScheme,
+              last4: c.last4,
+              expiryMonth: c.expiryMonth,
+              expiryYear: c.expiryYear,
+              cardholderName: c.cardholderName,
+              label: c.label,
+              lastUsedAt: c.lastUsedAt,
+            }))
+          : [];
+        if (!cancelled) setSavedCards(cards);
+      } catch {
+        if (!cancelled) setSavedCards([]);
+      } finally {
+        if (!cancelled) setSavedCardsLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [customerEmail]);
 
   // ---- SDK init (DO NOT MODIFY) ----
   useEffect(() => {
@@ -242,6 +305,52 @@ export function CheckoutForm() {
     };
   }, []);
 
+  // Charge a selected saved card (bypasses Hosted Fields)
+  async function handleSavedCardCharge() {
+    const amt = parseFloat(amount) || 0;
+    if (amt <= 0) {
+      setError("Enter an amount first");
+      return;
+    }
+    if (!selectedSavedCardId) {
+      setError("No saved card selected");
+      return;
+    }
+
+    setError("");
+    setStatus("processing");
+
+    try {
+      const pr = await fetch("/api/payroc/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: amt,
+          description: description || "Payment",
+          orderId: crypto.randomUUID().slice(0, 8).toUpperCase(),
+          secureTokenId: selectedSavedCardId,
+          customerEmail: customerEmail.trim().toLowerCase() || undefined,
+        }),
+      });
+      const result = await pr.json();
+      console.log("[SAVED-CARD] Payment result:", result);
+
+      if (result.success) {
+        setPaymentId(result.paymentId || "");
+        setApprovalCode(result.approvalCode || "");
+        setLast4(result.last4 || "");
+        setStatus("success");
+        setTimeout(() => window.location.reload(), 3000);
+      } else {
+        setError(result.declineReason || result.error || "Declined");
+        setStatus("declined");
+      }
+    } catch {
+      setError("Network error");
+      setStatus("declined");
+    }
+  }
+
   const parsedAmount = parseFloat(amount) || 0;
 
   // ---- SUCCESS ----
@@ -348,50 +457,176 @@ export function CheckoutForm() {
             </div>
           </div>
 
-          {/* Save card checkbox + customer email */}
+          {/* Customer Email (always visible) */}
           <div className="border-t border-[#F4F5F7] pt-4 mt-2">
-            <label className="flex items-start gap-2.5 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={saveCard}
-                onChange={(e) => setSaveCard(e.target.checked)}
-                className="mt-0.5 cursor-pointer"
-                style={{ accentColor: "#017ea7" }}
-              />
-              <span>
-                <span className="block text-[13px] font-medium text-[#1A1313]">
-                  Save this card for future payments
-                </span>
-                <span className="block text-[12px] text-[#878787] mt-0.5">
-                  We&apos;ll securely save the card so this customer can pay faster next time.
-                </span>
-              </span>
+            <label className="block text-[13px] font-medium text-[#4A4A4A] mb-1">
+              Customer Email <span className="text-[#878787] font-normal">(optional)</span>
             </label>
+            <input
+              type="email"
+              value={customerEmail}
+              onChange={(e) => setCustomerEmail(e.target.value)}
+              placeholder="customer@example.com"
+              className="w-full h-10 bg-[#F4F5F7] border border-[#E8EAED] rounded-lg text-[#1A1313] text-sm px-3 outline-none transition-all duration-150 focus:border-[#017ea7] focus:ring-[3px] focus:ring-[#017ea7]/10 focus:bg-white placeholder:text-[#ABABAB]"
+            />
+            <p className="text-[11px] text-[#878787] mt-1.5">
+              Enter to see saved cards or save this card for future payments.
+            </p>
 
-            {saveCard && (
-              <div className="mt-3">
-                <label className="block text-[13px] font-medium text-[#4A4A4A] mb-1">
-                  Customer Email
-                </label>
-                <input
-                  type="email"
-                  value={customerEmail}
-                  onChange={(e) => setCustomerEmail(e.target.value)}
-                  placeholder="customer@example.com"
-                  required={saveCard}
-                  className="w-full h-10 bg-[#F4F5F7] border border-[#E8EAED] rounded-lg text-[#1A1313] text-sm px-3 outline-none transition-all duration-150 focus:border-[#017ea7] focus:ring-[3px] focus:ring-[#017ea7]/10 focus:bg-white placeholder:text-[#ABABAB]"
-                />
-                <p className="text-[11px] text-[#878787] mt-1.5">
-                  Required to link the saved card to a customer.
+            {/* Saved cards picker */}
+            {savedCardsLoading && (
+              <p className="mt-3 text-[12px] text-[#878787] flex items-center gap-1.5">
+                <Loader2 size={12} strokeWidth={1.5} className="animate-spin" />
+                Looking up saved cards...
+              </p>
+            )}
+            {!savedCardsLoading && savedCards.length > 0 && (
+              <div className="mt-3 space-y-2">
+                <p className="text-[12px] font-medium text-[#4A4A4A]">
+                  Saved cards for this customer:
                 </p>
+                {savedCards.map((c) => {
+                  const isSelected = selectedSavedCardId === c.id;
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() =>
+                        setSelectedSavedCardId(isSelected ? null : c.id)
+                      }
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-all duration-150 cursor-pointer text-left"
+                      style={{
+                        background: isSelected ? "#EFF8FB" : "#FFFFFF",
+                        borderColor: isSelected ? "#017ea7" : "#E8EAED",
+                      }}
+                    >
+                      <div
+                        className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0"
+                        style={{ background: isSelected ? "#017ea7" : "#F4F5F7" }}
+                      >
+                        <CreditCard
+                          size={14}
+                          strokeWidth={1.5}
+                          color={isSelected ? "#fff" : "#4A4A4A"}
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[13px] font-medium text-[#1A1313]">
+                            {c.cardScheme || "Card"} ····{c.last4 || "----"}
+                          </span>
+                          {c.expiryMonth && c.expiryYear && (
+                            <span className="text-[11px] text-[#878787]">
+                              {c.expiryMonth}/{c.expiryYear.slice(-2)}
+                            </span>
+                          )}
+                        </div>
+                        {c.cardholderName && (
+                          <div className="text-[11px] text-[#878787]">
+                            {c.cardholderName}
+                          </div>
+                        )}
+                      </div>
+                      {isSelected && (
+                        <CheckCircle2
+                          size={16}
+                          strokeWidth={1.5}
+                          className="text-[#017ea7] flex-shrink-0"
+                        />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Save checkbox — only when no saved card is selected */}
+            {!selectedSavedCardId && (
+              <div className="mt-3 pt-3 border-t border-[#F4F5F7]">
+                <label className="flex items-start gap-2.5 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={saveCard}
+                    onChange={(e) => setSaveCard(e.target.checked)}
+                    className="mt-0.5 cursor-pointer"
+                    style={{ accentColor: "#017ea7" }}
+                  />
+                  <span>
+                    <span className="block text-[13px] font-medium text-[#1A1313]">
+                      Save this card for future payments
+                    </span>
+                    <span className="block text-[12px] text-[#878787] mt-0.5">
+                      We&apos;ll securely save the card so this customer can pay faster next time.
+                    </span>
+                  </span>
+                </label>
               </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* CARD INFORMATION */}
-      <div className={CARD}>
+      {/* SAVED CARD CHARGE BUTTON (shown when saved card is selected) */}
+      {selectedSavedCardId && (
+        <div className={CARD}>
+          <div className="flex items-center gap-2 mb-4">
+            <CreditCard size={16} strokeWidth={1.5} className="text-[#017ea7]" />
+            <span className="text-base font-semibold text-[#1A1313]">Saved Card Selected</span>
+          </div>
+          <div className="h-px bg-[#F4F5F7] mb-5" />
+          {(() => {
+            const sel = savedCards.find((c) => c.id === selectedSavedCardId);
+            if (!sel) return null;
+            return (
+              <div className="mb-4 flex items-center gap-3 p-3 rounded-lg bg-[#F9FAFB] border border-[#E8EAED]">
+                <div className="w-9 h-9 rounded-md bg-[#017ea7] flex items-center justify-center">
+                  <CreditCard size={16} strokeWidth={1.5} color="#fff" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-[#1A1313]">
+                    {sel.cardScheme || "Card"} ····{sel.last4 || "----"}
+                  </p>
+                  {sel.cardholderName && (
+                    <p className="text-xs text-[#878787]">{sel.cardholderName}</p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedSavedCardId(null)}
+                  className="text-[12px] text-[#878787] hover:text-[#1A1313] transition-colors cursor-pointer"
+                >
+                  Change
+                </button>
+              </div>
+            );
+          })()}
+          <button
+            type="button"
+            onClick={handleSavedCardCharge}
+            disabled={parsedAmount <= 0 || status === "processing"}
+            className="w-full h-[52px] text-white text-base font-medium rounded-[10px] border border-[#015f80] cursor-pointer hover:-translate-y-px active:translate-y-0 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+            style={{
+              background: parsedAmount > 0
+                ? "linear-gradient(180deg, #0290be 0%, #017ea7 100%)"
+                : "#878787",
+              boxShadow: "0 1px 2px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.12)",
+            }}
+          >
+            {status === "processing"
+              ? "Processing..."
+              : `Charge $${parsedAmount.toFixed(2)}`}
+          </button>
+          {error && (
+            <p className="text-[13px] text-[#ef4444] mt-3">{error}</p>
+          )}
+          <p className="flex items-center gap-1.5 text-[11px] text-[#878787] mt-4">
+            <Lock size={10} strokeWidth={1.5} /> 256-bit encrypted · Powered by SalonTransact
+          </p>
+        </div>
+      )}
+
+      {/* CARD INFORMATION — Hidden via display:none when saved card selected, so SDK keeps DOM refs */}
+      <div className={CARD} style={{ display: selectedSavedCardId ? "none" : undefined }}>
         <div className="flex items-center gap-2 mb-4">
           <Lock size={16} strokeWidth={1.5} className="text-[#017ea7]" />
           <span className="text-base font-semibold text-[#1A1313]">Card Information</span>
