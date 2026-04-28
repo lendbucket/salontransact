@@ -44,6 +44,7 @@ const links: NavLink[] = [
   { href: "/analytics", label: "Analytics", icon: TrendingUp, section: "Overview" },
   // Payments
   { href: "/transactions", label: "Transactions", icon: ArrowLeftRight, section: "Payments" },
+  { href: "/saved-cards", label: "Saved Cards", icon: CreditCard, section: "Payments" },
   { href: "/payouts", label: "Payouts", icon: Wallet, section: "Payments" },
   // Developers
   { href: "/api-keys", label: "API Keys", icon: KeyRound, section: "Developers" },
@@ -60,7 +61,7 @@ const links: NavLink[] = [
   { href: "/master/refunds", label: "Refunds", icon: ArrowDownCircle, section: "Master", masterOnly: true },
   { href: "/master/authorizations", label: "Authorizations", icon: Lock, section: "Master", masterOnly: true },
   { href: "/master/settlements", label: "Settlements", icon: Wallet, section: "Master", masterOnly: true },
-  { href: "/master/saved-cards", label: "Saved Cards", icon: CreditCard, section: "Master", masterOnly: true, comingSoon: true },
+  { href: "/master/saved-cards", label: "Saved Cards", icon: CreditCard, section: "Master", masterOnly: true },
   { href: "/master/applications", label: "Applications", icon: ClipboardList, section: "Master", masterOnly: true, comingSoon: true },
   { href: "/master/audit", label: "Audit Log", icon: ScrollText, section: "Master", masterOnly: true, comingSoon: true },
   { href: "/master/reporting", label: "Reporting", icon: BarChart3, section: "Master", masterOnly: true, comingSoon: true },

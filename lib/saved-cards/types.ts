@@ -22,3 +22,21 @@ export interface SavedCardListResponse {
   data: SavedCardPublic[];
   count: number;
 }
+
+export interface AllCardsListResponse {
+  data: SavedCardPublic[];
+  count: number;
+  uniqueCustomers: number;
+}
+
+export interface MasterSavedCardRow extends SavedCardPublic {
+  merchantId: string;
+  merchantBusinessName: string;
+}
+
+export interface MasterSavedCardListResponse {
+  data: MasterSavedCardRow[];
+  count: number;
+  merchantsRepresented: number;
+  uniqueCustomers: number;
+}
