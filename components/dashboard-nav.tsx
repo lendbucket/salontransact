@@ -26,6 +26,7 @@ import {
   ClipboardList,
   ScrollText,
   BarChart3,
+  Bell,
 } from "lucide-react";
 
 type NavLink = {
@@ -51,6 +52,7 @@ const links: NavLink[] = [
   { href: "/webhooks", label: "Webhooks", icon: Webhook, section: "Developers" },
   { href: "/logs", label: "Logs", icon: FileText, section: "Developers" },
   // Account
+  { href: "/notifications", label: "Notifications", icon: Bell, section: "Account" },
   { href: "/settings", label: "Settings", icon: Settings, section: "Account" },
   { href: "/support", label: "Support", icon: HelpCircle, section: "Account" },
   // Master — active first, then coming soon
@@ -66,6 +68,7 @@ const links: NavLink[] = [
   { href: "/master/api-keys", label: "API Keys", icon: KeyRound, section: "Master", masterOnly: true },
   { href: "/master/webhooks", label: "Webhooks", icon: Webhook, section: "Master", masterOnly: true },
   { href: "/master/applications", label: "Applications", icon: ClipboardList, section: "Master", masterOnly: true, comingSoon: true },
+  { href: "/master/notifications", label: "Notifications", icon: Bell, section: "Master", masterOnly: true },
   { href: "/master/audit", label: "Audit Log", icon: ScrollText, section: "Master", masterOnly: true },
   { href: "/master/reporting", label: "Reporting", icon: BarChart3, section: "Master", masterOnly: true, comingSoon: true },
 ];

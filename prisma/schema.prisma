@@ -22,6 +22,7 @@ model User {
   sessions               Session[]
   merchant               Merchant?
   merchantApplication    MerchantApplication?
+  notifications          Notification[]
 }
 
 model Account {
@@ -404,4 +405,24 @@ model Batch {
   @@index([status])
   @@index([closedAt])
   @@index([payrocBatchId])
+}
+
+model Notification {
+  id          String    @id @default(cuid())
+  userId      String
+  merchantId  String?
+  category    String
+  severity    String
+  title       String
+  message     String
+  link        String?
+  read        Boolean   @default(false)
+  readAt      DateTime?
+  createdAt   DateTime  @default(now())
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+  @@index([userId, createdAt])
+  @@index([merchantId])
+  @@index([category])
 }

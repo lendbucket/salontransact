@@ -5,7 +5,8 @@ import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
-import { Bell, ChevronDown, Settings, User, LogOut } from "lucide-react";
+import { ChevronDown, Settings, User, LogOut } from "lucide-react";
+import { NotificationBell } from "./notification-bell";
 
 const PAGE_TITLES: Record<string, string> = {
   "/dashboard": "Dashboard",
@@ -86,23 +87,7 @@ export function Topbar() {
       {/* Right: bell + divider + avatar + dropdown */}
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
         {/* Bell */}
-        <button
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: 6,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            background: "none",
-            border: "none",
-            color: "#878787",
-            cursor: "pointer",
-          }}
-          aria-label="Notifications"
-        >
-          <Bell size={16} strokeWidth={1.5} />
-        </button>
+        <NotificationBell fullPagePath={pathname.startsWith("/master") ? "/master/notifications" : "/notifications"} />
 
         {/* Divider */}
         <div
@@ -298,23 +283,7 @@ export function AdminTopbar() {
 
       {/* Right */}
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-        <button
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: 6,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            background: "none",
-            border: "none",
-            color: "#878787",
-            cursor: "pointer",
-          }}
-          aria-label="Notifications"
-        >
-          <Bell size={16} strokeWidth={1.5} />
-        </button>
+        <NotificationBell fullPagePath="/admin/notifications" />
         <div style={{ width: 1, height: 20, background: "#E8EAED" }} />
         <div style={{ position: "relative" }}>
           <button
