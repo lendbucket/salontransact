@@ -21,3 +21,24 @@ export async function requireMerchant() {
 
   return { session, merchant };
 }
+
+/**
+ * Require a master portal user. Returns the session and userId.
+ * Redirects to /login if not authenticated or not a master.
+ */
+export async function requireMaster() {
+  const session = await getServerSession(authOptions);
+  const user = session?.user as
+    | { id?: string; email?: string | null; role?: string }
+    | undefined;
+
+  if (!session?.user || !user?.id) {
+    redirect("/login");
+  }
+
+  if (user.role !== "master portal") {
+    redirect("/dashboard");
+  }
+
+  return { session, userId: user.id, userEmail: user.email ?? null };
+}
