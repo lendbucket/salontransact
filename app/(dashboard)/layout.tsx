@@ -33,7 +33,7 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex min-h-screen bg-background">
-      <Sidebar businessName={merchant.businessName} plan={merchant.plan} />
+      <Sidebar businessName={merchant.businessName} plan={merchant.plan} role={role} />
       <div className="flex-1 flex flex-col">
         <Topbar />
         <main className="flex-1 pb-20 md:pb-0">{children}</main>

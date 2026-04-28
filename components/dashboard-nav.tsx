@@ -38,23 +38,27 @@ type NavLink = {
 };
 
 const links: NavLink[] = [
+  // Overview
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, section: "Overview" },
   { href: "/checkout", label: "New Payment", icon: CreditCard, section: "Overview" },
   { href: "/analytics", label: "Analytics", icon: TrendingUp, section: "Overview" },
+  // Payments
   { href: "/transactions", label: "Transactions", icon: ArrowLeftRight, section: "Payments" },
   { href: "/payouts", label: "Payouts", icon: Wallet, section: "Payments" },
-  { href: "/master/disputes", label: "Disputes", icon: AlertCircle, section: "Payments", masterOnly: true },
-  { href: "/master/refunds", label: "Refunds", icon: ArrowDownCircle, section: "Payments", masterOnly: true },
-  { href: "/master/authorizations", label: "Authorizations", icon: Lock, section: "Payments", masterOnly: true },
-  { href: "/master/settlements", label: "Settlements", icon: Wallet, section: "Payments", masterOnly: true },
+  // Developers
   { href: "/api-keys", label: "API Keys", icon: KeyRound, section: "Developers" },
   { href: "/webhooks", label: "Webhooks", icon: Webhook, section: "Developers" },
   { href: "/logs", label: "Logs", icon: FileText, section: "Developers" },
+  // Account
   { href: "/settings", label: "Settings", icon: Settings, section: "Account" },
   { href: "/support", label: "Support", icon: HelpCircle, section: "Account" },
-  // Master Portal
+  // Master — active first, then coming soon
   { href: "/master/merchants", label: "Merchants", icon: Building2, section: "Master", masterOnly: true },
   { href: "/master/devices", label: "Devices", icon: Smartphone, section: "Master", masterOnly: true },
+  { href: "/master/disputes", label: "Disputes", icon: AlertCircle, section: "Master", masterOnly: true },
+  { href: "/master/refunds", label: "Refunds", icon: ArrowDownCircle, section: "Master", masterOnly: true },
+  { href: "/master/authorizations", label: "Authorizations", icon: Lock, section: "Master", masterOnly: true },
+  { href: "/master/settlements", label: "Settlements", icon: Wallet, section: "Master", masterOnly: true },
   { href: "/master/saved-cards", label: "Saved Cards", icon: CreditCard, section: "Master", masterOnly: true, comingSoon: true },
   { href: "/master/applications", label: "Applications", icon: ClipboardList, section: "Master", masterOnly: true, comingSoon: true },
   { href: "/master/audit", label: "Audit Log", icon: ScrollText, section: "Master", masterOnly: true, comingSoon: true },
