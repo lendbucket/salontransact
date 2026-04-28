@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
-import { listBatches } from "@/lib/payroc/transactions";
+import { payrocRequest } from "@/lib/payroc/client";
+import type { PayrocBatch } from "@/lib/settlements/types";
 import type { SyncResult } from "./types";
 
 export async function syncPayrocBatchesForMerchant(
@@ -20,20 +21,30 @@ export async function syncPayrocBatchesForMerchant(
     startDate.setDate(startDate.getDate() - daysBack);
     const fmt = (d: Date) => d.toISOString().slice(0, 10);
 
-    let batches: Array<Record<string, unknown>> = [];
-    try {
-      const resp = await listBatches({
-        startDate: fmt(startDate),
-        endDate: fmt(endDate),
-      });
-      batches = ((resp as { batches?: unknown }).batches ?? []) as Array<
-        Record<string, unknown>
-      >;
-    } catch (e) {
-      result.errors.push(
-        `Failed to fetch Payroc batches: ${e instanceof Error ? e.message : "unknown"}`
-      );
-      return result;
+    // Fetch Payroc batches one day at a time. Payroc UAT /v1/batches rejects
+    // startDate/endDate (returns HTTP 400 "Unknown query parameter"). The only
+    // working format is ?date=YYYY-MM-DD&limit=N per the working
+    // /api/settlements/batches route.
+    const batches: PayrocBatch[] = [];
+
+    for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+      const dateStr = fmt(d);
+      try {
+        const resp = await payrocRequest<{
+          limit: number;
+          count: number;
+          hasMore: boolean;
+          data: PayrocBatch[];
+        }>("GET", `/batches?date=${dateStr}&limit=100`);
+        if (resp && Array.isArray(resp.data)) {
+          batches.push(...resp.data);
+        }
+      } catch (e) {
+        // One day's failure shouldn't kill the whole sync — record and continue
+        result.errors.push(
+          `Failed to fetch batches for ${dateStr}: ${e instanceof Error ? e.message : "unknown"}`
+        );
+      }
     }
 
     for (const payrocBatch of batches) {
