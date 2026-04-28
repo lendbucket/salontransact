@@ -433,3 +433,26 @@ model Notification {
   @@index([category])
   @@index([auditLogId])
 }
+
+model MerchantInvite {
+  id             String    @id @default(cuid())
+  token          String    @unique @default(cuid())
+  email          String
+  businessName   String
+  note           String?
+  invitedById    String
+  invitedByEmail String
+  status         String    @default("pending")
+  acceptedById   String?
+  acceptedAt     DateTime?
+  applicationId  String?
+  expiresAt      DateTime
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([token])
+  @@index([status])
+  @@index([invitedById])
+  @@index([email])
+  @@index([expiresAt])
+}

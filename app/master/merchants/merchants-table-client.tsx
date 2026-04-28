@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Search, ChevronRight, Building2, Mail, Phone, UserPlus, Copy } from "lucide-react";
+import { InvitesTab } from "./invites-tab";
 import { StatusPill } from "@/components/ui/status-pill";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,6 +52,7 @@ interface Props {
 }
 
 export function MerchantsTableClient({ initialMerchants }: Props) {
+  const [tab, setTab] = useState<"active" | "invites">("active");
   const [merchants, setMerchants] =
     useState<MerchantSummary[]>(initialMerchants);
   const [loading, setLoading] = useState(false);
@@ -158,6 +160,44 @@ export function MerchantsTableClient({ initialMerchants }: Props) {
 
   return (
     <>
+      {/* Tab switcher */}
+      <div style={{ display: "flex", gap: 4, padding: 4, background: "#F4F5F7", borderRadius: 8, marginBottom: 16, width: "fit-content" }}>
+        <button
+          onClick={() => setTab("active")}
+          style={{
+            padding: "6px 16px",
+            fontSize: 13,
+            fontWeight: 500,
+            borderRadius: 6,
+            border: "none",
+            cursor: "pointer",
+            background: tab === "active" ? "#FFFFFF" : "transparent",
+            color: tab === "active" ? "#1A1313" : "#878787",
+            boxShadow: tab === "active" ? "0 1px 2px rgba(0,0,0,0.05)" : "none",
+          }}
+        >
+          Active Merchants
+        </button>
+        <button
+          onClick={() => setTab("invites")}
+          style={{
+            padding: "6px 16px",
+            fontSize: 13,
+            fontWeight: 500,
+            borderRadius: 6,
+            border: "none",
+            cursor: "pointer",
+            background: tab === "invites" ? "#FFFFFF" : "transparent",
+            color: tab === "invites" ? "#1A1313" : "#878787",
+            boxShadow: tab === "invites" ? "0 1px 2px rgba(0,0,0,0.05)" : "none",
+          }}
+        >
+          Invites
+        </button>
+      </div>
+
+      {tab === "invites" ? <InvitesTab /> : (
+      <>
       {/* Stats row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <StatTile label="Total Merchants" value={stats.total.toString()} />
@@ -379,6 +419,8 @@ export function MerchantsTableClient({ initialMerchants }: Props) {
           </>
         )}
       </div>
+      </>
+      )}
 
       {toast && (
         <div style={{ position: "fixed", top: 80, right: 24, zIndex: 100, minWidth: 280 }}>
