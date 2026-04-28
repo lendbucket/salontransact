@@ -374,30 +374,43 @@ export async function POST(request: Request) {
 
       let dbSaveError: string | null = null;
       try {
-        await prisma.transaction.create({
-          data: {
-            merchantId: merchant.id,
-            amount: amountDollars,
-            currency: "usd",
-            status: "succeeded",
-            description: description ?? null,
-            customerEmail: customerEmail ?? null,
-            customerName:
-              [customerFirstName, customerLastName]
-                .filter(Boolean)
-                .join(" ") || null,
-            fee: 0,
-            net: amountDollars,
-            metadata: {
-              payrocPaymentId: paymentId,
-              orderId: finalOrderId,
-              approvalCode,
-              last4,
-              cardBrand: cardScheme,
+        await prisma.$transaction([
+          prisma.transaction.create({
+            data: {
+              merchantId: merchant.id,
+              amount: amountDollars,
+              currency: "usd",
+              status: "succeeded",
+              description: description ?? null,
+              customerEmail: customerEmail ?? null,
+              customerName:
+                [customerFirstName, customerLastName]
+                  .filter(Boolean)
+                  .join(" ") || null,
+              fee: 0,
+              net: amountDollars,
+              metadata: {
+                payrocPaymentId: paymentId,
+                orderId: finalOrderId,
+                approvalCode,
+                last4,
+                cardBrand: cardScheme,
+              },
             },
-          },
-        });
-        console.log("[CHECKOUT] Transaction row created in local DB");
+          }),
+          prisma.merchant.update({
+            where: { id: merchant.id },
+            data: {
+              totalTransactions: { increment: 1 },
+              totalVolume: { increment: amountDollars },
+            },
+          }),
+        ]);
+        console.log(
+          "[CHECKOUT] Transaction saved + merchant counters incremented (amount:",
+          amountDollars,
+          ")"
+        );
       } catch (dbErr) {
         dbSaveError =
           dbErr instanceof Error
