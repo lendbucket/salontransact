@@ -14,6 +14,7 @@ import {
   Smartphone,
 } from "lucide-react";
 import { DevicesSection } from "./devices-section";
+import { NotificationsSection } from "./notifications-section";
 
 type TabId = "business" | "payments" | "devices" | "team" | "security" | "notifications";
 
@@ -453,111 +454,5 @@ function SecurityTab() {
 
 /* ---- Notifications Tab ---- */
 function NotificationsTab() {
-  const [prefs, setPrefs] = useState({
-    paymentReceived: true,
-    payoutProcessed: true,
-    disputeOpened: true,
-    lowBalance: false,
-  });
-  const [saved, setSaved] = useState(false);
-
-  function Toggle({
-    label,
-    checked,
-    onChange,
-  }: {
-    label: string;
-    checked: boolean;
-    onChange: () => void;
-  }) {
-    return (
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "12px 0",
-          borderBottom: "1px solid #F4F5F7",
-        }}
-      >
-        <span style={{ fontSize: 14, color: "#1A1313" }}>{label}</span>
-        <button
-          type="button"
-          onClick={onChange}
-          style={{
-            width: 44,
-            height: 24,
-            borderRadius: 12,
-            border: "none",
-            background: checked ? "#017ea7" : "#E8EAED",
-            cursor: "pointer",
-            position: "relative",
-            transition: "background 150ms ease",
-          }}
-        >
-          <div
-            style={{
-              width: 18,
-              height: 18,
-              borderRadius: "50%",
-              background: "#FFFFFF",
-              position: "absolute",
-              top: 3,
-              left: checked ? 23 : 3,
-              transition: "left 150ms ease",
-              boxShadow: "0 1px 2px rgba(0,0,0,0.15)",
-            }}
-          />
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="card" style={{ padding: 24 }}>
-      <h3 style={{ marginBottom: 16 }}>Email Notifications</h3>
-      <div style={{ maxWidth: 480 }}>
-        <Toggle
-          label="Payment received"
-          checked={prefs.paymentReceived}
-          onChange={() =>
-            setPrefs({ ...prefs, paymentReceived: !prefs.paymentReceived })
-          }
-        />
-        <Toggle
-          label="Payout processed"
-          checked={prefs.payoutProcessed}
-          onChange={() =>
-            setPrefs({ ...prefs, payoutProcessed: !prefs.payoutProcessed })
-          }
-        />
-        <Toggle
-          label="Dispute opened"
-          checked={prefs.disputeOpened}
-          onChange={() =>
-            setPrefs({ ...prefs, disputeOpened: !prefs.disputeOpened })
-          }
-        />
-        <Toggle
-          label="Low balance alert"
-          checked={prefs.lowBalance}
-          onChange={() =>
-            setPrefs({ ...prefs, lowBalance: !prefs.lowBalance })
-          }
-        />
-        <button
-          onClick={() => {
-            setSaved(true);
-            setTimeout(() => setSaved(false), 2000);
-          }}
-          className="inline-flex items-center gap-2 px-4 h-9 bg-[#017ea7] hover:bg-[#0290be] text-white text-sm font-medium rounded-lg border border-[#015f80] transition-all duration-150 cursor-pointer mt-4"
-        >
-          {saved ? (
-            <CheckCircle size={14} strokeWidth={1.5} />
-          ) : null}
-          {saved ? "Saved" : "Save Preferences"}
-        </button>
-      </div>
-    </div>
-  );
+  return <NotificationsSection />;
 }

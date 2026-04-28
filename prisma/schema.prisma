@@ -15,8 +15,10 @@ model User {
   image                  String?
   password               String?
   role                   String    @default("merchant")
-  approvalStatus         String    @default("pending")
-  createdAt              DateTime  @default(now())
+  approvalStatus               String    @default("pending")
+  notificationDigestFrequency  String    @default("off")
+  notificationLastDigestSentAt DateTime?
+  createdAt                    DateTime  @default(now())
   updatedAt              DateTime  @updatedAt
   accounts               Account[]
   sessions               Session[]
