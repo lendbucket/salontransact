@@ -283,3 +283,92 @@ export interface SubmitRefundInstructionRequest {
   currency?: 'USD'
   operator?: string
 }
+
+// ===== Card features types (Phase 6) =====
+// Per https://docs.payroc.com/api/schema/payment-features/cards/verify-card
+// Per https://docs.payroc.com/api/schema/payment-features/cards/lookup-bin
+
+export interface BinLookupCardBinPayload {
+  type: 'cardBin'
+  cardBin: string
+}
+
+export interface BinLookupSecureTokenPayload {
+  type: 'secureToken'
+  secureToken: string
+}
+
+export interface BinLookupDigitalWalletPayload {
+  type: 'digitalWallet'
+  digitalWallet: {
+    type: string
+    token: string
+  }
+}
+
+export type VerifyCardSource = TokenizationCardPayload
+
+export type BinLookupSource =
+  | TokenizationCardPayload
+  | BinLookupCardBinPayload
+  | BinLookupSecureTokenPayload
+  | BinLookupDigitalWalletPayload
+
+export interface VerifyCardCustomer {
+  firstName?: string
+  lastName?: string
+  emailAddress?: string
+  phoneNumber?: string
+}
+
+export interface VerifyCardRequest {
+  processingTerminalId: string
+  card: VerifyCardSource
+  operator?: string
+  customer?: VerifyCardCustomer
+}
+
+export interface VerifyCardResponseCard {
+  type?: string
+  entryMethod?: string
+  cardNumber?: string
+  expiryDate?: string
+  cardholderName?: string
+}
+
+export interface VerifyCardTransactionResult {
+  status: string
+  responseCode: string
+  responseMessage: string
+  processorResponseCode?: string
+}
+
+export interface VerifyCardResponse {
+  processingTerminalId: string
+  verified: boolean
+  operator?: string
+  card?: VerifyCardResponseCard
+  transactionResult: VerifyCardTransactionResult
+}
+
+export interface BinLookupRequest {
+  card: BinLookupSource
+  processingTerminalId?: string
+  amount?: number
+  currency?: string
+}
+
+export interface BinLookupSurcharging {
+  amount?: number
+  currency?: string
+  description?: string
+}
+
+export interface BinLookupResponse {
+  type: string
+  cardNumber: string
+  country: string
+  currency: string
+  debit: boolean
+  surcharging?: BinLookupSurcharging
+}
