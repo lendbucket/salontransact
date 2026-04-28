@@ -16,14 +16,21 @@ export function CheckoutForm() {
   const [paymentId, setPaymentId] = useState("");
   const [approvalCode, setApprovalCode] = useState("");
   const [last4, setLast4] = useState("");
+  const [customerEmail, setCustomerEmail] = useState("");
+  const [saveCard, setSaveCard] = useState(false);
+  const [savedCardConfirmed, setSavedCardConfirmed] = useState(false);
 
   const initRef = useRef(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const cardFormRef = useRef<any>(null);
   const amountRef = useRef("");
   const descriptionRef = useRef("");
+  const customerEmailRef = useRef("");
+  const saveCardRef = useRef(false);
   amountRef.current = amount;
   descriptionRef.current = description;
+  customerEmailRef.current = customerEmail;
+  saveCardRef.current = saveCard;
 
   // ---- SDK init (DO NOT MODIFY) ----
   useEffect(() => {
@@ -164,6 +171,12 @@ export function CheckoutForm() {
                 amount: amt,
                 description: descriptionRef.current || "Payment",
                 orderId: crypto.randomUUID().slice(0, 8).toUpperCase(),
+                ...(saveCardRef.current && customerEmailRef.current
+                  ? {
+                      saveCard: true,
+                      customerEmail: customerEmailRef.current,
+                    }
+                  : {}),
               }),
             });
             const result = await pr.json();
@@ -173,6 +186,7 @@ export function CheckoutForm() {
               setPaymentId(result.paymentId || "");
               setApprovalCode(result.approvalCode || "");
               setLast4(result.last4 || "");
+              setSavedCardConfirmed(Boolean(result.savedCardId));
               setStatus("success");
               // Session token is single-use — reload after 3s for fresh session
               setTimeout(() => window.location.reload(), 3000);
@@ -244,6 +258,9 @@ export function CheckoutForm() {
           <h2 className="text-2xl font-semibold text-[#1A1313] mb-2">Payment Approved</h2>
           <p className="text-[32px] font-semibold text-[#15803D] mb-1">${parsedAmount.toFixed(2)}</p>
           {last4 && <p className="text-sm text-[#878787]">Card ending in ····{last4}</p>}
+          {savedCardConfirmed && (
+            <p className="text-xs text-[#22c55e] mt-1">Card saved for future payments</p>
+          )}
           {approvalCode && <p className="text-xs text-[#878787] font-mono mt-1">Approval: {approvalCode}</p>}
           {paymentId && <p className="text-xs text-[#ABABAB] font-mono">ID: {paymentId}</p>}
           <div className="flex flex-col gap-3 w-full mt-8">
@@ -329,6 +346,46 @@ export function CheckoutForm() {
                 className="w-full h-10 bg-[#F4F5F7] border border-[#E8EAED] rounded-lg text-[#1A1313] text-sm pl-9 pr-3 outline-none transition-all duration-150 focus:border-[#017ea7] focus:ring-[3px] focus:ring-[#017ea7]/10 focus:bg-white placeholder:text-[#ABABAB]"
               />
             </div>
+          </div>
+
+          {/* Save card checkbox + customer email */}
+          <div className="border-t border-[#F4F5F7] pt-4 mt-2">
+            <label className="flex items-start gap-2.5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={saveCard}
+                onChange={(e) => setSaveCard(e.target.checked)}
+                className="mt-0.5 cursor-pointer"
+                style={{ accentColor: "#017ea7" }}
+              />
+              <span>
+                <span className="block text-[13px] font-medium text-[#1A1313]">
+                  Save this card for future payments
+                </span>
+                <span className="block text-[12px] text-[#878787] mt-0.5">
+                  We&apos;ll securely save the card so this customer can pay faster next time.
+                </span>
+              </span>
+            </label>
+
+            {saveCard && (
+              <div className="mt-3">
+                <label className="block text-[13px] font-medium text-[#4A4A4A] mb-1">
+                  Customer Email
+                </label>
+                <input
+                  type="email"
+                  value={customerEmail}
+                  onChange={(e) => setCustomerEmail(e.target.value)}
+                  placeholder="customer@example.com"
+                  required={saveCard}
+                  className="w-full h-10 bg-[#F4F5F7] border border-[#E8EAED] rounded-lg text-[#1A1313] text-sm px-3 outline-none transition-all duration-150 focus:border-[#017ea7] focus:ring-[3px] focus:ring-[#017ea7]/10 focus:bg-white placeholder:text-[#ABABAB]"
+                />
+                <p className="text-[11px] text-[#878787] mt-1.5">
+                  Required to link the saved card to a customer.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>
