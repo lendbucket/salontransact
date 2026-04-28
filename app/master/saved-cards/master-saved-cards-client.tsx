@@ -72,6 +72,12 @@ export function MasterSavedCardsClient({
     refetch();
   }, [refetch]);
 
+  useEffect(() => {
+    function handleFocus() { refetch(); }
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [refetch]);
+
   async function handleRevoke(card: SavedCardPublic) {
     const mc = card as MasterSavedCardRow;
     if (

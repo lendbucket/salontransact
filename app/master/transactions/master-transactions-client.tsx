@@ -84,6 +84,12 @@ export function MasterTransactionsClient({
     refetch();
   }, [refetch]);
 
+  useEffect(() => {
+    function handleFocus() { refetch(); }
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [refetch]);
+
   const stats = useMemo(() => {
     const total = transactions.length;
     const succeeded = transactions.filter(

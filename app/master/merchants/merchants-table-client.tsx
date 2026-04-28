@@ -82,6 +82,12 @@ export function MerchantsTableClient({ initialMerchants }: Props) {
     refetch();
   }, [refetch]);
 
+  useEffect(() => {
+    function handleFocus() { refetch(); }
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [refetch]);
+
   const stats = useMemo(() => {
     const total = merchants.length;
     const active = merchants.filter((m) => m.status === "active").length;

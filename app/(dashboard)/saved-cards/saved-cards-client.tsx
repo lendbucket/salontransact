@@ -102,6 +102,12 @@ export function SavedCardsClient({ initialCards }: Props) {
     refetch();
   }, [refetch]);
 
+  useEffect(() => {
+    function handleFocus() { refetch(); }
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [refetch]);
+
   async function handleRevoke(card: SavedCardPublic) {
     if (
       !confirm(

@@ -222,6 +222,12 @@ export function MasterDevicesClient({
     };
   }, []);
 
+  useEffect(() => {
+    function handleFocus() { reload(); }
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [reload]);
+
   async function handlePair() {
     if (!pairSerial.trim()) {
       setPairError("Serial number required");
