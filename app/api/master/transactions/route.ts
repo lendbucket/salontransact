@@ -46,13 +46,24 @@ export async function GET(request: Request) {
     where.status = statusParam;
   }
   if (q.length > 0) {
-    where.OR = [
+    const orClauses: Array<Record<string, unknown>> = [
       { description: { contains: q, mode: "insensitive" } },
       { customerEmail: { contains: q, mode: "insensitive" } },
       { customerName: { contains: q, mode: "insensitive" } },
       { stripePaymentId: { contains: q } },
       { id: { contains: q } },
+      { merchant: { businessName: { contains: q, mode: "insensitive" } } },
     ];
+
+    const cleanedQ = q.replace(/[$,]/g, "").trim();
+    const numericValue = parseFloat(cleanedQ);
+    if (Number.isFinite(numericValue) && cleanedQ.length > 0) {
+      orClauses.push({
+        amount: { gte: numericValue - 0.005, lte: numericValue + 0.005 },
+      });
+    }
+
+    where.OR = orClauses;
   }
 
   const rows = await prisma.transaction.findMany({

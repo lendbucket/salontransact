@@ -106,17 +106,28 @@ export async function payrocRequest<T>(
     headers["Idempotency-Key"] = crypto.randomUUID();
   }
 
+  const bodyJson = body ? JSON.stringify(body) : undefined;
+  const cid = Math.random().toString(36).slice(2, 10);
+
+  console.log(`[PAYROC-REQ] ${cid} ${method} ${path}`);
+  if (bodyJson) {
+    console.log(`[PAYROC-REQ] ${cid} body: ${bodyJson.substring(0, 2000)}`);
+  }
+
   const response = await fetch(`${baseUrl}${path}`, {
     method,
     headers,
-    body: body ? JSON.stringify(body) : undefined,
+    body: bodyJson,
   });
 
+  const responseText = await response.text();
+  console.log(`[PAYROC-RESP] ${cid} status=${response.status}`);
+  console.log(`[PAYROC-RESP] ${cid} body: ${responseText.substring(0, 2000)}`);
+
   if (!response.ok) {
-    const errorText = await response.text();
-    let errorBody: PayrocApiErrorBody | string | null = errorText || null;
+    let errorBody: PayrocApiErrorBody | string | null = responseText || null;
     try {
-      const parsed = JSON.parse(errorText);
+      const parsed = JSON.parse(responseText);
       if (parsed && typeof parsed === "object") {
         errorBody = parsed as PayrocApiErrorBody;
       }
@@ -126,11 +137,11 @@ export async function payrocRequest<T>(
     throw new PayrocApiError(response.status, path, errorBody);
   }
 
-  if (response.status === 204) {
+  if (response.status === 204 || responseText.length === 0) {
     return {} as T;
   }
 
-  return response.json();
+  return JSON.parse(responseText);
 }
 
 export async function getHostedFieldsSessionToken(
