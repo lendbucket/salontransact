@@ -6,6 +6,7 @@ import type {
   MerchantDetail,
   MerchantPatchRequest,
 } from "@/app/master/merchants/_lib/merchant-types";
+import { writeAuditLog } from "@/lib/audit/log";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -131,6 +132,11 @@ export async function PATCH(
   }
 
   try {
+    const prior = await prisma.merchant.findUnique({
+      where: { id },
+      select: { status: true, plan: true },
+    });
+
     const updated = await prisma.merchant.update({
       where: { id },
       data,
@@ -139,6 +145,30 @@ export async function PATCH(
       `[MASTER-MERCHANT-UPDATE] ${user.email} changed merchant ${id}:`,
       JSON.stringify(data)
     );
+
+    // Audit log
+    let auditAction = "merchant.update";
+    const auditMeta: Record<string, unknown> = {};
+    if (body.status !== undefined && body.status !== prior?.status) {
+      if (body.status === "suspended") auditAction = "merchant.suspend";
+      else if (body.status === "active" && prior?.status === "suspended") auditAction = "merchant.reactivate";
+      auditMeta.previousStatus = prior?.status;
+      auditMeta.newStatus = body.status;
+    }
+    if (body.plan !== undefined && body.plan !== prior?.plan) {
+      if (auditAction === "merchant.update") auditAction = "merchant.plan_change";
+      auditMeta.previousPlan = prior?.plan;
+      auditMeta.newPlan = body.plan;
+    }
+    await writeAuditLog({
+      actor: { id: user.id, email: user.email ?? "", role: user.role ?? "" },
+      action: auditAction,
+      targetType: "Merchant",
+      targetId: id,
+      merchantId: id,
+      metadata: Object.keys(auditMeta).length > 0 ? auditMeta : null,
+    });
+
     return NextResponse.json({
       id: updated.id,
       status: updated.status,

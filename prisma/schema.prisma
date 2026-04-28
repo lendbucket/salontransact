@@ -347,3 +347,22 @@ model MerchantApplication {
   @@index([userId])
   @@index([status])
 }
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  actorId     String
+  actorEmail  String
+  actorRole   String
+  action      String
+  targetType  String
+  targetId    String
+  merchantId  String?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  @@index([actorId])
+  @@index([merchantId])
+  @@index([targetType, targetId])
+  @@index([action])
+  @@index([createdAt])
+}

@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { deleteSecureToken } from "@/lib/payroc/tokens";
+import { writeAuditLog } from "@/lib/audit/log";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -91,6 +92,15 @@ export async function DELETE(
   await prisma.savedPaymentMethod.update({
     where: { id: row.id },
     data: { status: "deleted" },
+  });
+
+  await writeAuditLog({
+    actor: { id: user.id, email: user.email ?? "", role: user.role ?? "" },
+    action: "saved_card.revoke",
+    targetType: "SavedPaymentMethod",
+    targetId: row.id,
+    merchantId: row.merchantId,
+    metadata: { payrocSecureTokenId: row.payrocSecureTokenId },
   });
 
   return NextResponse.json({ ok: true });

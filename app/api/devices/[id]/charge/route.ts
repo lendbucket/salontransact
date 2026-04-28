@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { sendPaymentInstruction } from "@/lib/payroc/devices";
 import { persistDeviceCharge } from "@/lib/devices/persistence";
+import { writeAuditLog } from "@/lib/audit/log";
 import type {
   PaymentInstructionOrder,
   PaymentInstructionCustomizationOptions,
@@ -227,6 +228,20 @@ export async function POST(
     // Non-fatal — unique constraint means we already mapped this instruction
     console.log("[DEVICE-CHARGE] Mapping write skipped (likely duplicate):", mapErr instanceof Error ? mapErr.message : "");
   }
+
+  // Audit log
+  await writeAuditLog({
+    actor: { id: user.id, email: user.email ?? "", role: user.role ?? "" },
+    action: "device.charge.initiated",
+    targetType: "Device",
+    targetId: device.id,
+    merchantId: device.merchantId,
+    metadata: {
+      paymentInstructionId: result.paymentInstructionId,
+      amountCents: body.amount,
+      description: description || null,
+    },
+  });
 
   // Synchronous completion: rare but possible
   if (result.status === "completed" && result.paymentInstructionId) {
