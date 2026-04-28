@@ -246,7 +246,7 @@ export async function POST(request: Request) {
       paymentMethod: secureTokenIdForPayment
         ? {
             type: "secureToken",
-            secureToken: secureTokenIdForPayment,
+            token: secureTokenIdForPayment,
           }
         : {
             type: "singleUseToken",
