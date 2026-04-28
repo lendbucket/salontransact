@@ -123,10 +123,14 @@ export async function POST(
     orderId = generateOrderId();
   }
 
+  // NOTE Phase 8: Payroc Pay-by-Cloud customizationOptions only documents
+  // entryMethod. Sending promptForTip or promptForSignature causes a 400.
+  // Tip + signature prompts are configured per-terminal in Self-Care Portal.
+  // Question in flight to Matt/Chris (Payroc) — email 2026-04-27.
+  // Until then, accept from UI but DO NOT forward to Payroc.
   const customizationOptions: PaymentInstructionCustomizationOptions = {};
-  if (body.promptForTip === true) customizationOptions.promptForTip = true;
-  if (body.promptForSignature === true)
-    customizationOptions.promptForSignature = true;
+  // Future: if (body.promptForTip === true) customizationOptions.promptForTip = true;
+  // Future: if (body.promptForSignature === true) customizationOptions.promptForSignature = true;
 
   const order: PaymentInstructionOrder = {
     orderId,
