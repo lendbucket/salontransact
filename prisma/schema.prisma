@@ -162,15 +162,21 @@ model ApiKey {
 }
 
 model Webhook {
-  id         String    @id @default(cuid())
-  merchantId String
-  url        String
-  events     String[]
-  active     Boolean   @default(true)
-  secret     String
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  merchant   Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  id              String    @id @default(cuid())
+  merchantId      String
+  url             String
+  events          String[]
+  active          Boolean   @default(true)
+  secret          String
+  description     String?
+  lastTriggeredAt DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  merchant        Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@index([merchantId])
+  @@index([active])
+  @@index([createdAt])
 }
 
 model Invite {
