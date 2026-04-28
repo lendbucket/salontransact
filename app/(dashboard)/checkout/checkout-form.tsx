@@ -137,19 +137,23 @@ export function CheckoutForm() {
             card: {
               cardholderName: {
                 target: ".hf-cardholder",
+                errorTarget: ".hf-cardholder-error",
                 placeholder: "Cardholder Name",
               },
               cardNumber: {
                 target: ".hf-cardnumber",
+                errorTarget: ".hf-cardnumber-error",
                 placeholder: "Card Number",
               },
               expiryDate: {
                 target: ".hf-expiry",
+                errorTarget: ".hf-expiry-error",
                 placeholder: "MM/YY",
               },
               cvv: {
                 target: ".hf-cvv",
                 wrapperTarget: ".hf-cvv-wrapper",
+                errorTarget: ".hf-cvv-error",
                 placeholder: "CVV",
               },
               submit: {
@@ -272,7 +276,27 @@ export function CheckoutForm() {
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         cardForm.on("error", (evt: any) => {
-          console.error("[HF] error:", evt);
+          console.error("[HF] error event:", JSON.stringify(evt));
+          const errType = evt?.type;
+          const errMessage = evt?.message;
+          const errField = evt?.field;
+          if (errType === "submission" || errType === "field") {
+            const userMessage =
+              errMessage && errMessage.length > 0
+                ? errMessage
+                : errField
+                  ? `Please check the ${errField} field and try again.`
+                  : "Card submission failed. Please refresh and try again.";
+            setError(userMessage);
+            setStatus("ready");
+          } else if (errType === "init") {
+            setError("Payment fields failed to load. Please refresh.");
+            setStatus("loadError");
+          } else if (errType === "config") {
+            console.error("[HF] CONFIG ERROR — this is a code bug:", errMessage);
+            setError("Payment system configuration error. Please refresh.");
+            setStatus("loadError");
+          }
         });
 
         cardForm.on("ready", () => console.log("[HF] Fields ready"));
@@ -656,19 +680,23 @@ export function CheckoutForm() {
             <div>
               <label className="block text-[13px] font-medium text-[#4A4A4A] mb-1">Name on Card</label>
               <div className="hf-cardholder" style={{ minHeight: 44, background: "#F4F5F7", border: "1px solid #E8EAED", borderRadius: 8, overflow: "hidden" }} />
+              <div className="hf-cardholder-error" style={{ fontSize: 12, color: "#ef4444", marginTop: 4, minHeight: 0 }} />
             </div>
             <div>
               <label className="block text-[13px] font-medium text-[#4A4A4A] mb-1">Card Number</label>
               <div className="hf-cardnumber" style={{ minHeight: 44, background: "#F4F5F7", border: "1px solid #E8EAED", borderRadius: 8, overflow: "hidden" }} />
+              <div className="hf-cardnumber-error" style={{ fontSize: 12, color: "#ef4444", marginTop: 4, minHeight: 0 }} />
             </div>
             <div className="flex gap-3">
               <div className="flex-1">
                 <label className="block text-[13px] font-medium text-[#4A4A4A] mb-1">Expiry</label>
                 <div className="hf-expiry" style={{ minHeight: 44, background: "#F4F5F7", border: "1px solid #E8EAED", borderRadius: 8, overflow: "hidden" }} />
+                <div className="hf-expiry-error" style={{ fontSize: 12, color: "#ef4444", marginTop: 4, minHeight: 0 }} />
               </div>
               <div className="hf-cvv-wrapper flex-1">
                 <label className="block text-[13px] font-medium text-[#4A4A4A] mb-1">CVV</label>
                 <div className="hf-cvv" style={{ minHeight: 44, background: "#F4F5F7", border: "1px solid #E8EAED", borderRadius: 8, overflow: "hidden" }} />
+                <div className="hf-cvv-error" style={{ fontSize: 12, color: "#ef4444", marginTop: 4, minHeight: 0 }} />
               </div>
             </div>
             {/* SDK submit button */}
