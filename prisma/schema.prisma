@@ -103,6 +103,7 @@ model Merchant {
   webhooks              Webhook[]
   savedPaymentMethods   SavedPaymentMethod[]
   devices               Device[]
+  batches               Batch[]
 }
 
 model Transaction {
@@ -136,7 +137,11 @@ model Payout {
   description    String?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
+  batchId        String?
+  batch          Batch?    @relation(fields: [batchId], references: [id])
   merchant       Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@index([batchId])
 }
 
 model ApiKey {
@@ -365,4 +370,26 @@ model AuditLog {
   @@index([targetType, targetId])
   @@index([action])
   @@index([createdAt])
+}
+
+model Batch {
+  id                  String    @id @default(cuid())
+  payrocBatchId       String    @unique
+  merchantId          String
+  totalAmount         Float
+  totalFeesCustomer   Float     @default(0)
+  transactionCount    Int       @default(0)
+  status              String
+  openedAt            DateTime
+  closedAt            DateTime?
+  settledAt           DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  merchant            Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  payouts             Payout[]
+
+  @@index([merchantId])
+  @@index([status])
+  @@index([closedAt])
+  @@index([payrocBatchId])
 }

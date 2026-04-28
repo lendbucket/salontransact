@@ -65,6 +65,7 @@ export default withAuth(
           path.startsWith('/api/auth') ||
           path.startsWith('/api/invite') ||
           path.startsWith('/api/webhooks/payroc') ||
+          path.startsWith('/api/cron') ||
           path === '/'
         ) return true
         return !!token
