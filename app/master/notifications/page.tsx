@@ -27,6 +27,8 @@ export default async function MasterNotificationsPage() {
     title: r.title,
     message: r.message,
     link: r.link,
+    metadata: (r.metadata as Record<string, unknown> | null) ?? null,
+    auditLogId: r.auditLogId,
     read: r.read,
     readAt: r.readAt ? r.readAt.toISOString() : null,
     createdAt: r.createdAt.toISOString(),

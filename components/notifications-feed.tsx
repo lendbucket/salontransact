@@ -181,11 +181,14 @@ export function NotificationsFeed({ initialNotifications }: Props) {
                   padding: "14px 16px",
                   borderBottom: "1px solid #F4F5F7",
                   background: n.read ? "transparent" : "#FAFCFF",
-                  cursor: n.link ? "pointer" : "default",
+                  cursor: "pointer",
                 }}
                 onClick={() => {
                   if (!n.read) markRead(n.id);
-                  if (n.link) window.location.href = n.link;
+                  const isMaster = window.location.pathname.startsWith("/master");
+                  window.location.href = isMaster
+                    ? `/master/notifications/${n.id}`
+                    : `/notifications/${n.id}`;
                 }}
               >
                 <div

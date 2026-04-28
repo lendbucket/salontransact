@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import type {
   NotificationCategory,
@@ -12,6 +13,8 @@ export interface CreateNotificationArgs {
   title: string;
   message: string;
   link?: string | null;
+  metadata?: Record<string, unknown> | null;
+  auditLogId?: string | null;
 }
 
 /**
@@ -28,6 +31,8 @@ export async function createNotification(args: CreateNotificationArgs) {
       title: args.title,
       message: args.message,
       link: args.link ?? null,
+      metadata: args.metadata ? (args.metadata as Prisma.InputJsonValue) : Prisma.JsonNull,
+      auditLogId: args.auditLogId ?? null,
     },
   });
 }
@@ -53,6 +58,8 @@ export async function notifyAllMasters(
       title: args.title,
       message: args.message,
       link: args.link ?? null,
+      metadata: args.metadata ? (args.metadata as Prisma.InputJsonValue) : Prisma.JsonNull,
+      auditLogId: args.auditLogId ?? null,
     })),
   });
   return masters.length;
@@ -80,6 +87,8 @@ export async function notifyMerchantOwner(
       title: args.title,
       message: args.message,
       link: args.link ?? null,
+      metadata: args.metadata ? (args.metadata as Prisma.InputJsonValue) : Prisma.JsonNull,
+      auditLogId: args.auditLogId ?? null,
     },
   });
   return true;

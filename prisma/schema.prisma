@@ -379,6 +379,7 @@ model AuditLog {
   merchantId  String?
   metadata    Json?
   createdAt   DateTime @default(now())
+  notifications Notification[]
 
   @@index([actorId])
   @@index([merchantId])
@@ -418,13 +419,17 @@ model Notification {
   title       String
   message     String
   link        String?
+  metadata    Json?
+  auditLogId  String?
   read        Boolean   @default(false)
   readAt      DateTime?
   createdAt   DateTime  @default(now())
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  auditLog    AuditLog? @relation(fields: [auditLogId], references: [id], onDelete: SetNull)
 
   @@index([userId, read])
   @@index([userId, createdAt])
   @@index([merchantId])
   @@index([category])
+  @@index([auditLogId])
 }

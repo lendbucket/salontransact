@@ -18,6 +18,8 @@ export interface NotificationPublic {
   title: string;
   message: string;
   link: string | null;
+  metadata: Record<string, unknown> | null;
+  auditLogId: string | null;
   read: boolean;
   readAt: string | null;
   createdAt: string;
@@ -31,4 +33,21 @@ export interface NotificationListResponse {
 
 export interface NotificationCountResponse {
   unreadCount: number;
+}
+
+export interface AuditLogPreview {
+  id: string;
+  actorEmail: string;
+  actorRole: string;
+  action: string;
+  targetType: string;
+  targetId: string;
+  merchantId: string | null;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+}
+
+export interface NotificationDetailResponse {
+  notification: NotificationPublic;
+  auditLog: AuditLogPreview | null;
 }

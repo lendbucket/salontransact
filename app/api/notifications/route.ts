@@ -21,6 +21,8 @@ function rowToPublic(row: {
   title: string;
   message: string;
   link: string | null;
+  metadata: unknown;
+  auditLogId: string | null;
   read: boolean;
   readAt: Date | null;
   createdAt: Date;
@@ -34,6 +36,8 @@ function rowToPublic(row: {
     title: row.title,
     message: row.message,
     link: row.link,
+    metadata: (row.metadata as Record<string, unknown> | null) ?? null,
+    auditLogId: row.auditLogId,
     read: row.read,
     readAt: row.readAt ? row.readAt.toISOString() : null,
     createdAt: row.createdAt.toISOString(),

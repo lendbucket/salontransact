@@ -214,9 +214,10 @@ export function NotificationBell({ fullPagePath }: Props) {
                   key={n.id}
                   onClick={() => {
                     if (!n.read) markRead(n.id);
-                    if (n.link) {
-                      window.location.href = n.link;
-                    }
+                    const isMaster = window.location.pathname.startsWith("/master");
+                    window.location.href = isMaster
+                      ? `/master/notifications/${n.id}`
+                      : `/notifications/${n.id}`;
                   }}
                   style={{
                     width: "100%",
@@ -225,7 +226,7 @@ export function NotificationBell({ fullPagePath }: Props) {
                     borderBottom: "1px solid #F4F5F7",
                     background: n.read ? "transparent" : "#F0F9FF",
                     border: "none",
-                    cursor: n.link || !n.read ? "pointer" : "default",
+                    cursor: "pointer",
                     display: "flex",
                     gap: 10,
                   }}
