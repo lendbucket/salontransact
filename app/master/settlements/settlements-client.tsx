@@ -2,40 +2,20 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Wallet, ArrowLeft, RefreshCw } from "lucide-react";
+import { StatusPill } from "@/components/ui/status-pill";
+import { formatToday, fmtMoneyCents, fmtDateLocale } from "@/lib/format";
 import type {
   PayrocBatch,
   PayrocSettlementTransaction,
 } from "@/lib/settlements/types";
-
 const SHADOW =
   "0 0 0 1px rgba(0,0,0,0.05), 0 1px 1px rgba(0,0,0,0.05), 0 2px 2px rgba(0,0,0,0.05), 0 4px 4px rgba(0,0,0,0.05), 0 8px 8px rgba(0,0,0,0.05), 0 16px 16px rgba(0,0,0,0.05)";
 
-function formatToday(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
-function fmtMoney(cents: number | undefined): string {
-  if (typeof cents !== "number" || !Number.isFinite(cents)) return "\u2014";
-  return `$${(cents / 100).toFixed(2)}`;
-}
-
-function fmtDate(iso: string | undefined): string {
-  if (!iso) return "\u2014";
-  try {
-    return new Date(iso).toLocaleString();
-  } catch {
-    return iso;
-  }
-}
-
-function statusPillClasses(status: string | undefined): string {
+function settlementStatusForPill(status: string | undefined): string {
   const s = (status ?? "").toLowerCase();
-  if (["closed", "funded", "settled", "complete"].includes(s))
-    return "bg-[#DCFCE7] text-[#15803D]";
-  if (["open", "pending", "processing"].includes(s))
-    return "bg-[#FEF3C7] text-[#92400E]";
-  return "bg-[#F4F5F7] text-[#4A4A4A]";
+  if (["closed", "funded", "settled", "complete"].includes(s)) return "active";
+  if (["open", "pending", "processing"].includes(s)) return "pending";
+  return "neutral";
 }
 
 export default function SettlementsClient() {
@@ -206,7 +186,7 @@ export default function SettlementsClient() {
                       {b.date ?? "\u2014"}
                     </td>
                     <td className="px-6 py-3 text-[13px] text-[#4A4A4A]">
-                      {fmtDate(b.closedAt)}
+                      {fmtDateLocale(b.closedAt)}
                     </td>
                     <td className="px-6 py-3 text-[13px] text-[#4A4A4A]">
                       {typeof b.transactionCount === "number"
@@ -214,14 +194,10 @@ export default function SettlementsClient() {
                         : "\u2014"}
                     </td>
                     <td className="px-6 py-3 text-[13px] text-[#1A1313] text-right font-medium">
-                      {fmtMoney(b.totalAmount)}
+                      {fmtMoneyCents(b.totalAmount)}
                     </td>
                     <td className="px-6 py-3">
-                      <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wider ${statusPillClasses(b.status)}`}
-                      >
-                        {b.status ?? "unknown"}
-                      </span>
+                      <StatusPill status={settlementStatusForPill(b.status)} label={b.status ?? "unknown"} />
                     </td>
                   </tr>
                 ))}
@@ -251,7 +227,7 @@ export default function SettlementsClient() {
                 </h2>
                 <p className="text-sm text-[#878787] mt-0.5">
                   {selectedBatch.date ?? "Unknown date"} ·{" "}
-                  {fmtMoney(selectedBatch.totalAmount)} total
+                  {fmtMoneyCents(selectedBatch.totalAmount)} total
                 </p>
               </div>
             </div>
@@ -326,14 +302,10 @@ export default function SettlementsClient() {
                         : "\u2014"}
                     </td>
                     <td className="px-6 py-3 text-[13px] text-[#1A1313] text-right font-medium">
-                      {fmtMoney(t.amount)}
+                      {fmtMoneyCents(t.amount)}
                     </td>
                     <td className="px-6 py-3">
-                      <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wider ${statusPillClasses(t.status)}`}
-                      >
-                        {t.status ?? "unknown"}
-                      </span>
+                      <StatusPill status={settlementStatusForPill(t.status)} label={t.status ?? "unknown"} />
                     </td>
                   </tr>
                 ))}

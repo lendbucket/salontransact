@@ -2,42 +2,21 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { AlertCircle, ArrowLeft, RefreshCw } from "lucide-react";
+import { StatusPill } from "@/components/ui/status-pill";
+import { formatToday, fmtMoneyCents, fmtDateLocale } from "@/lib/format";
 import type {
   PayrocDispute,
   PayrocDisputeStatus,
 } from "@/lib/disputes/types";
-
 const SHADOW =
   "0 0 0 1px rgba(0,0,0,0.05), 0 1px 1px rgba(0,0,0,0.05), 0 2px 2px rgba(0,0,0,0.05), 0 4px 4px rgba(0,0,0,0.05), 0 8px 8px rgba(0,0,0,0.05), 0 16px 16px rgba(0,0,0,0.05)";
 
-function formatToday(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
-function fmtMoney(cents: number | undefined): string {
-  if (typeof cents !== "number" || !Number.isFinite(cents)) return "\u2014";
-  return `$${(cents / 100).toFixed(2)}`;
-}
-
-function fmtDate(iso: string | undefined): string {
-  if (!iso) return "\u2014";
-  try {
-    return new Date(iso).toLocaleString();
-  } catch {
-    return iso;
-  }
-}
-
-function statusPill(status: string | undefined): string {
+function disputeStatusForPill(status: string | undefined): string {
   const s = (status ?? "").toLowerCase();
-  if (["won", "closed", "resolved", "accepted"].includes(s))
-    return "bg-[#DCFCE7] text-[#15803D]";
-  if (["open", "inquiry", "pending", "reviewing"].includes(s))
-    return "bg-[#FEF3C7] text-[#92400E]";
-  if (["lost", "expired", "declined"].includes(s))
-    return "bg-[#FEF2F2] text-[#DC2626]";
-  return "bg-[#F4F5F7] text-[#4A4A4A]";
+  if (["won", "closed", "resolved", "accepted"].includes(s)) return "active";
+  if (["open", "inquiry", "pending", "reviewing"].includes(s)) return "pending";
+  if (["lost", "expired", "declined"].includes(s)) return "failed";
+  return "neutral";
 }
 
 export default function DisputesClient() {
@@ -215,17 +194,13 @@ export default function DisputesClient() {
                       {d.reasonDescription ?? d.reasonCode ?? "\u2014"}
                     </td>
                     <td className="px-6 py-3 text-[13px] text-[#1A1313] text-right font-medium">
-                      {fmtMoney(d.amount)}
+                      {fmtMoneyCents(d.amount)}
                     </td>
                     <td className="px-6 py-3 text-[13px] text-[#4A4A4A]">
-                      {fmtDate(d.responseDeadline)}
+                      {fmtDateLocale(d.responseDeadline)}
                     </td>
                     <td className="px-6 py-3">
-                      <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wider ${statusPill(d.status)}`}
-                      >
-                        {d.status ?? "unknown"}
-                      </span>
+                      <StatusPill status={disputeStatusForPill(d.status)} label={d.status ?? "unknown"} />
                     </td>
                   </tr>
                 ))}
@@ -255,7 +230,7 @@ export default function DisputesClient() {
                 </h2>
                 <p className="text-sm text-[#878787] mt-0.5">
                   {selected.reasonDescription ?? selected.reasonCode ?? "Unknown reason"}{" "}
-                  · {fmtMoney(selected.amount)}
+                  · {fmtMoneyCents(selected.amount)}
                 </p>
               </div>
             </div>
@@ -282,7 +257,7 @@ export default function DisputesClient() {
               },
               {
                 label: "Deadline",
-                value: fmtDate(selected.responseDeadline),
+                value: fmtDateLocale(selected.responseDeadline),
               },
             ].map((item) => (
               <div key={item.label}>
@@ -321,14 +296,10 @@ export default function DisputesClient() {
                     key={i}
                     className="flex items-start gap-3 p-3 bg-[#F9FAFB] rounded-lg border border-[#F4F5F7]"
                   >
-                    <span
-                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wider shrink-0 mt-0.5 ${statusPill(s.status)}`}
-                    >
-                      {s.status}
-                    </span>
+                    <StatusPill status={disputeStatusForPill(s.status)} label={s.status} />
                     <div>
                       <p className="text-[13px] text-[#1A1313]">
-                        {fmtDate(s.dateTime)}
+                        {fmtDateLocale(s.dateTime)}
                       </p>
                       {s.notes && (
                         <p className="text-[12px] text-[#878787] mt-1">

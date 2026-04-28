@@ -2,39 +2,18 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Lock, ArrowLeft, RefreshCw } from "lucide-react";
+import { StatusPill } from "@/components/ui/status-pill";
+import { formatToday, fmtMoneyCents, fmtDateLocale } from "@/lib/format";
 import type { PayrocAuthorization } from "@/lib/authorizations/types";
-
 const SHADOW =
   "0 0 0 1px rgba(0,0,0,0.05), 0 1px 1px rgba(0,0,0,0.05), 0 2px 2px rgba(0,0,0,0.05), 0 4px 4px rgba(0,0,0,0.05), 0 8px 8px rgba(0,0,0,0.05), 0 16px 16px rgba(0,0,0,0.05)";
 
-function formatToday(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
-function fmtMoney(cents: number | undefined): string {
-  if (typeof cents !== "number" || !Number.isFinite(cents)) return "\u2014";
-  return `$${(cents / 100).toFixed(2)}`;
-}
-
-function fmtDate(iso: string | undefined): string {
-  if (!iso) return "\u2014";
-  try {
-    return new Date(iso).toLocaleString();
-  } catch {
-    return iso;
-  }
-}
-
-function statusPill(status: string | undefined): string {
+function authStatusForPill(status: string | undefined): string {
   const s = (status ?? "").toLowerCase();
-  if (["approved", "authorized", "complete", "settled"].includes(s))
-    return "bg-[#DCFCE7] text-[#15803D]";
-  if (["pending", "processing", "open"].includes(s))
-    return "bg-[#FEF3C7] text-[#92400E]";
-  if (["declined", "voided", "expired", "reversed", "failed"].includes(s))
-    return "bg-[#FEF2F2] text-[#DC2626]";
-  return "bg-[#F4F5F7] text-[#4A4A4A]";
+  if (["approved", "authorized", "complete", "settled"].includes(s)) return "active";
+  if (["pending", "processing", "open"].includes(s)) return "pending";
+  if (["declined", "voided", "expired", "reversed", "failed"].includes(s)) return "failed";
+  return "neutral";
 }
 
 export default function AuthorizationsClient() {
@@ -206,7 +185,7 @@ export default function AuthorizationsClient() {
                       {a.paymentId ?? "\u2014"}
                     </td>
                     <td className="px-6 py-3 text-[13px] text-[#1A1313]">
-                      {a.date ?? fmtDate(a.dateTime)}
+                      {a.date ?? fmtDateLocale(a.dateTime)}
                     </td>
                     <td className="px-6 py-3 text-[13px] text-[#4A4A4A]">
                       {a.cardScheme && a.last4
@@ -214,17 +193,13 @@ export default function AuthorizationsClient() {
                         : "\u2014"}
                     </td>
                     <td className="px-6 py-3 text-[13px] text-[#1A1313] text-right font-medium">
-                      {fmtMoney(a.amount)}
+                      {fmtMoneyCents(a.amount)}
                     </td>
                     <td className="px-6 py-3 text-[13px] text-[#4A4A4A] font-mono">
                       {a.responseCode ?? a.approvalCode ?? "\u2014"}
                     </td>
                     <td className="px-6 py-3">
-                      <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wider ${statusPill(a.status)}`}
-                      >
-                        {a.status ?? "unknown"}
-                      </span>
+                      <StatusPill status={authStatusForPill(a.status)} label={a.status ?? "unknown"} />
                     </td>
                   </tr>
                 ))}
@@ -256,7 +231,7 @@ export default function AuthorizationsClient() {
                   {selected.cardScheme && selected.last4
                     ? `${selected.cardScheme} ····${selected.last4}`
                     : "Card authorization"}{" "}
-                  · {fmtMoney(selected.amount)}
+                  · {fmtMoneyCents(selected.amount)}
                 </p>
               </div>
             </div>
@@ -278,7 +253,7 @@ export default function AuthorizationsClient() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-4">
                 {[
                   { label: "Payment ID", value: (detail ?? selected).paymentId ?? "\u2014" },
-                  { label: "Date", value: fmtDate((detail ?? selected).dateTime) || (detail ?? selected).date || "\u2014" },
+                  { label: "Date", value: fmtDateLocale((detail ?? selected).dateTime) || (detail ?? selected).date || "\u2014" },
                   {
                     label: "Card",
                     value:
@@ -286,7 +261,7 @@ export default function AuthorizationsClient() {
                         ? `${(detail ?? selected).cardScheme} \u00B7\u00B7\u00B7\u00B7${(detail ?? selected).last4}`
                         : "\u2014",
                   },
-                  { label: "Amount", value: fmtMoney((detail ?? selected).amount) },
+                  { label: "Amount", value: fmtMoneyCents((detail ?? selected).amount) },
                 ].map((item) => (
                   <div key={item.label}>
                     <p className="text-[10px] font-semibold uppercase tracking-wider text-[#878787] mb-1">
@@ -323,9 +298,8 @@ export default function AuthorizationsClient() {
                   Status
                 </p>
                 <span
-                  className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wider ${statusPill((detail ?? selected).status)}`}
                 >
-                  {(detail ?? selected).status ?? "unknown"}
+                  <StatusPill status={authStatusForPill((detail ?? selected).status)} label={(detail ?? selected).status ?? "unknown"} />
                 </span>
               </div>
 
