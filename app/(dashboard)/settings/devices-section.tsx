@@ -936,16 +936,15 @@ export function DevicesSection() {
                             }}
                           >
                             Instruction: {phase.paymentInstructionId}
-                            {phase.paymentLink && (
+                            {phase.kind === "completed" && (
                               <>
                                 {" · "}
+                                {/* TODO Phase 8: replace with /transactions/[id] detail page once built */}
                                 <a
-                                  href={phase.paymentLink}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
+                                  href="/transactions"
                                   style={{ color: "#017ea7" }}
                                 >
-                                  View payment
+                                  View in Transactions
                                 </a>
                               </>
                             )}
