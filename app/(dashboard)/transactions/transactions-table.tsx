@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { Search, Download, ChevronLeft, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
@@ -160,8 +161,9 @@ export function TransactionsTable({ transactions }: { transactions: Tx[] }) {
                 {paged.map((t) => (
                   <tr
                     key={t.id}
-                    className="border-t"
+                    className="border-t hover:bg-[#F9FAFB] cursor-pointer transition-colors"
                     style={{ borderColor: "#E8EAED" }}
+                    onClick={() => (window.location.href = `/transactions/${t.id}`)}
                   >
                     <td className="py-3 text-muted whitespace-nowrap">
                       {format(new Date(t.createdAt), "MMM d, HH:mm")}
@@ -196,7 +198,9 @@ export function TransactionsTable({ transactions }: { transactions: Tx[] }) {
           {/* Mobile cards */}
           <div className="md:hidden divide-y" style={{ borderColor: "#E8EAED" }}>
             {paged.map((t) => (
-              <TransactionCard key={t.id} transaction={t} />
+              <Link key={t.id} href={`/transactions/${t.id}`} style={{ display: "block", textDecoration: "none", color: "inherit" }}>
+                <TransactionCard transaction={t} />
+              </Link>
             ))}
           </div>
 
