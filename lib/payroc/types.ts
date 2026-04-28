@@ -247,6 +247,16 @@ export interface PaymentInstructionCredentialOnFile {
   mitAgreement?: 'unscheduled' | 'recurring' | 'installment'
 }
 
+export interface PaymentInstructionContactMethod {
+  type: 'phone' | 'email'
+  value: string
+}
+
+export interface PaymentInstructionCustomer {
+  contactMethods?: PaymentInstructionContactMethod[]
+  notificationLanguage?: string
+}
+
 export interface SubmitPaymentInstructionRequest {
   processingTerminalId: string
   order: PaymentInstructionOrder
@@ -255,6 +265,7 @@ export interface SubmitPaymentInstructionRequest {
   operator?: string
   customizationOptions?: PaymentInstructionCustomizationOptions
   credentialOnFile?: PaymentInstructionCredentialOnFile
+  customer?: PaymentInstructionCustomer
 }
 
 export type PaymentInstructionStatus =

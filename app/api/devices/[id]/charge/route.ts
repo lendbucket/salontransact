@@ -20,6 +20,20 @@ interface ChargeBody {
   promptForSignature?: unknown;
   autoCapture?: unknown;
   processAsSale?: unknown;
+  customerPhone?: unknown;
+  customerEmail?: unknown;
+}
+
+function normalizeUsPhone(raw: string): string | null {
+  const digits = raw.replace(/\D/g, "");
+  if (digits.length === 10) return "1" + digits;
+  if (digits.length === 11 && digits.startsWith("1")) return digits;
+  return null;
+}
+
+function isValidEmail(raw: string): boolean {
+  if (raw.length > 200 || raw.length < 5) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw);
 }
 
 function generateOrderId(): string {
@@ -140,6 +154,30 @@ export async function POST(
   };
   if (description) order.description = description;
 
+  // Customer contact methods for SMS/email receipts (per Chris Boutwell, 2026-04-28)
+  let customerPhoneNormalized: string | null = null;
+  if (typeof body.customerPhone === "string" && body.customerPhone.trim().length > 0) {
+    customerPhoneNormalized = normalizeUsPhone(body.customerPhone.trim());
+    if (!customerPhoneNormalized) {
+      return NextResponse.json(
+        { error: "Invalid customerPhone — must be a 10-digit US/CA number or 11 digits starting with 1" },
+        { status: 400 }
+      );
+    }
+  }
+  let customerEmailNormalized: string | null = null;
+  if (typeof body.customerEmail === "string" && body.customerEmail.trim().length > 0) {
+    const trimmed = body.customerEmail.trim().toLowerCase();
+    if (!isValidEmail(trimmed)) {
+      return NextResponse.json({ error: "Invalid customerEmail" }, { status: 400 });
+    }
+    customerEmailNormalized = trimmed;
+  }
+  const contactMethods: Array<{ type: "phone" | "email"; value: string }> = [];
+  if (customerPhoneNormalized) contactMethods.push({ type: "phone", value: customerPhoneNormalized });
+  if (customerEmailNormalized) contactMethods.push({ type: "email", value: customerEmailNormalized });
+  const customer = contactMethods.length > 0 ? { contactMethods } : undefined;
+
   // NOTE: Payroc Cloud does not accept processAsSale on payment instructions.
   // Per Chris Boutwell at Payroc (email 2026-04-28): "Remove processAsSale,
   // or set it to false. It's not compatible with Payroc Cloud."
@@ -154,6 +192,7 @@ export async function POST(
         Object.keys(customizationOptions).length > 0
           ? customizationOptions
           : undefined,
+      customer,
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Unknown error";

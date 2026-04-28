@@ -82,6 +82,8 @@ export function DevicesSection() {
       description: string;
       promptForTip: boolean;
       promptForSignature: boolean;
+      customerPhone: string;
+      customerEmail: string;
     };
   }>({});
 
@@ -136,6 +138,8 @@ export function DevicesSection() {
         description: "Test charge",
         promptForTip: false,
         promptForSignature: false,
+        customerPhone: "",
+        customerEmail: "",
       }
     );
   }
@@ -147,6 +151,8 @@ export function DevicesSection() {
       description: string;
       promptForTip: boolean;
       promptForSignature: boolean;
+      customerPhone: string;
+      customerEmail: string;
     }>
   ) {
     setChargeForm((s) => ({
@@ -245,6 +251,8 @@ export function DevicesSection() {
           description: form.description.trim() || undefined,
           promptForTip: form.promptForTip,
           promptForSignature: form.promptForSignature,
+          customerPhone: form.customerPhone.trim() || undefined,
+          customerEmail: form.customerEmail.trim() || undefined,
         }),
       });
       const json = (await res.json()) as InstructionResponse & {
@@ -801,6 +809,54 @@ export function DevicesSection() {
                               }
                               style={INPUT}
                               maxLength={100}
+                            />
+                          </div>
+                          <div>
+                            <label
+                              style={{
+                                display: "block",
+                                fontSize: 13,
+                                fontWeight: 500,
+                                color: "#4A4A4A",
+                                marginBottom: 6,
+                              }}
+                            >
+                              Phone (SMS receipt)
+                            </label>
+                            <input
+                              type="tel"
+                              placeholder="(555) 555-5555"
+                              value={form.customerPhone}
+                              onChange={(e) =>
+                                setForm(d.id, {
+                                  customerPhone: e.target.value,
+                                })
+                              }
+                              style={INPUT}
+                            />
+                          </div>
+                          <div>
+                            <label
+                              style={{
+                                display: "block",
+                                fontSize: 13,
+                                fontWeight: 500,
+                                color: "#4A4A4A",
+                                marginBottom: 6,
+                              }}
+                            >
+                              Email (receipt)
+                            </label>
+                            <input
+                              type="email"
+                              placeholder="customer@example.com"
+                              value={form.customerEmail}
+                              onChange={(e) =>
+                                setForm(d.id, {
+                                  customerEmail: e.target.value,
+                                })
+                              }
+                              style={INPUT}
                             />
                           </div>
                         </div>

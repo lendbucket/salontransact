@@ -179,6 +179,8 @@ export function MasterDevicesClient({
       description: string;
       promptForTip: boolean;
       promptForSignature: boolean;
+      customerPhone: string;
+      customerEmail: string;
     };
   }>({});
   const [chargePhase, setChargePhase] = useState<{
@@ -298,6 +300,8 @@ export function MasterDevicesClient({
         description: "",
         promptForTip: false,
         promptForSignature: false,
+        customerPhone: "",
+        customerEmail: "",
       }
     );
   }
@@ -309,6 +313,8 @@ export function MasterDevicesClient({
       description: string;
       promptForTip: boolean;
       promptForSignature: boolean;
+      customerPhone: string;
+      customerEmail: string;
     }>
   ) {
     setChargeForm((prev) => ({
@@ -362,7 +368,8 @@ export function MasterDevicesClient({
           promptForTip,
           promptForSignature,
           autoCapture: true,
-          processAsSale: true,
+          customerPhone: getForm(device.id).customerPhone.trim() || undefined,
+          customerEmail: getForm(device.id).customerEmail.trim() || undefined,
         }),
       });
       const json = (await res.json()) as InstructionResponse & {
@@ -594,6 +601,24 @@ export function MasterDevicesClient({
                   }
                   containerClassName="flex-1"
                   style={{ minWidth: 200 }}
+                />
+                <Input
+                  label="Phone (SMS receipt)"
+                  placeholder="(555) 555-5555"
+                  type="tel"
+                  value={form.customerPhone}
+                  onChange={(e) =>
+                    setForm(d.id, { customerPhone: e.target.value })
+                  }
+                />
+                <Input
+                  label="Email (receipt)"
+                  placeholder="customer@example.com"
+                  type="email"
+                  value={form.customerEmail}
+                  onChange={(e) =>
+                    setForm(d.id, { customerEmail: e.target.value })
+                  }
                 />
                 <label
                   style={{
