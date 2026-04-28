@@ -2,8 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Search, ChevronRight, Building2, Mail, Phone } from "lucide-react";
+import { Search, ChevronRight, Building2, Mail, Phone, UserPlus, Copy } from "lucide-react";
 import { StatusPill } from "@/components/ui/status-pill";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Toast } from "@/components/ui/toast";
 import type {
   MerchantSummary,
   MerchantListResponse,
@@ -55,6 +58,11 @@ export function MerchantsTableClient({ initialMerchants }: Props) {
     useState<MerchantStatusFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createForm, setCreateForm] = useState({ email: "", firstName: "", lastName: "", businessName: "", password: "" });
+  const [creating, setCreating] = useState(false);
+  const [createdCreds, setCreatedCreds] = useState<{ email: string; password: string; businessName: string } | null>(null);
+  const [toast, setToast] = useState<{ kind: "success" | "error"; message: string } | null>(null);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedQuery(searchQuery.trim()), 300);
@@ -87,6 +95,58 @@ export function MerchantsTableClient({ initialMerchants }: Props) {
     window.addEventListener("focus", handleFocus);
     return () => window.removeEventListener("focus", handleFocus);
   }, [refetch]);
+
+  function showToast(kind: "success" | "error", message: string) {
+    setToast({ kind, message });
+    setTimeout(() => setToast(null), 4000);
+  }
+
+  async function handleCreateTestAccount() {
+    if (!createForm.email.trim() || !createForm.firstName.trim() || !createForm.lastName.trim() || !createForm.businessName.trim() || !createForm.password) {
+      showToast("error", "All fields required");
+      return;
+    }
+    if (createForm.password.length < 8) {
+      showToast("error", "Password must be at least 8 characters");
+      return;
+    }
+    setCreating(true);
+    try {
+      const res = await fetch("/api/master/merchants/test-account", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(createForm),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        showToast("error", j.error ?? `Failed (${res.status})`);
+        return;
+      }
+      setCreatedCreds({ email: createForm.email.trim(), password: createForm.password, businessName: createForm.businessName.trim() });
+      setCreateForm({ email: "", firstName: "", lastName: "", businessName: "", password: "" });
+      showToast("success", "Test account created");
+      await refetch();
+    } catch (e) {
+      showToast("error", e instanceof Error ? e.message : "Create failed");
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  function copyCredentials() {
+    if (!createdCreds) return;
+    const text = `Email: ${createdCreds.email}\nPassword: ${createdCreds.password}\nBusiness: ${createdCreds.businessName}\nLogin: https://portal.salontransact.com/login`;
+    navigator.clipboard.writeText(text).then(
+      () => showToast("success", "Credentials copied"),
+      () => showToast("error", "Failed to copy")
+    );
+  }
+
+  function closeModal() {
+    setShowCreateModal(false);
+    setCreatedCreds(null);
+    setCreateForm({ email: "", firstName: "", lastName: "", businessName: "", password: "" });
+  }
 
   const stats = useMemo(() => {
     const total = merchants.length;
@@ -155,6 +215,13 @@ export function MerchantsTableClient({ initialMerchants }: Props) {
               </button>
             ))}
           </div>
+          <Button
+            variant="primary"
+            leadingIcon={<UserPlus size={14} />}
+            onClick={() => setShowCreateModal(true)}
+          >
+            Create Test Account
+          </Button>
         </div>
       </div>
 
@@ -312,6 +379,59 @@ export function MerchantsTableClient({ initialMerchants }: Props) {
           </>
         )}
       </div>
+
+      {toast && (
+        <div style={{ position: "fixed", top: 80, right: 24, zIndex: 100, minWidth: 280 }}>
+          <Toast kind={toast.kind} message={toast.message} />
+        </div>
+      )}
+
+      {showCreateModal && (
+        <div
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 16 }}
+          onClick={closeModal}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ background: "#fff", borderRadius: 12, padding: 24, maxWidth: 480, width: "100%", boxShadow: "0 4px 16px rgba(0,0,0,0.1), 0 8px 32px rgba(0,0,0,0.1)" }}
+          >
+            {!createdCreds ? (
+              <>
+                <h2 style={{ fontSize: 18, fontWeight: 600, color: "#1A1313", marginBottom: 4 }}>Create Test Merchant Account</h2>
+                <p style={{ fontSize: 13, color: "#878787", marginBottom: 16 }}>Bypasses signup and onboarding. Charges enabled, payouts disabled.</p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  <Input label="Email" type="email" placeholder="user@example.com" value={createForm.email} onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })} />
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                    <Input label="First Name" placeholder="Chris" value={createForm.firstName} onChange={(e) => setCreateForm({ ...createForm, firstName: e.target.value })} />
+                    <Input label="Last Name" placeholder="Boutwell" value={createForm.lastName} onChange={(e) => setCreateForm({ ...createForm, lastName: e.target.value })} />
+                  </div>
+                  <Input label="Business Name" placeholder="Payroc Test (Chris)" value={createForm.businessName} onChange={(e) => setCreateForm({ ...createForm, businessName: e.target.value })} />
+                  <Input label="Password" type="text" placeholder="Minimum 8 characters" value={createForm.password} onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })} />
+                </div>
+                <div style={{ display: "flex", gap: 8, marginTop: 24, justifyContent: "flex-end" }}>
+                  <Button variant="ghost" onClick={closeModal}>Cancel</Button>
+                  <Button variant="primary" onClick={handleCreateTestAccount} loading={creating}>Create</Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <h2 style={{ fontSize: 18, fontWeight: 600, color: "#15803D", marginBottom: 4 }}>Account Created</h2>
+                <p style={{ fontSize: 13, color: "#878787", marginBottom: 16 }}>Send these credentials to the user. The password is shown once.</p>
+                <div style={{ background: "#F9FAFB", borderRadius: 8, padding: 16, marginBottom: 16, fontFamily: "monospace", fontSize: 13, wordBreak: "break-all" }}>
+                  <div style={{ marginBottom: 8 }}><span style={{ color: "#878787", fontWeight: 600 }}>Email:</span><br />{createdCreds.email}</div>
+                  <div style={{ marginBottom: 8 }}><span style={{ color: "#878787", fontWeight: 600 }}>Password:</span><br />{createdCreds.password}</div>
+                  <div style={{ marginBottom: 8 }}><span style={{ color: "#878787", fontWeight: 600 }}>Business:</span><br />{createdCreds.businessName}</div>
+                  <div><span style={{ color: "#878787", fontWeight: 600 }}>Login:</span><br /><span style={{ color: "#017ea7" }}>https://portal.salontransact.com/login</span></div>
+                </div>
+                <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+                  <Button variant="secondary" leadingIcon={<Copy size={14} />} onClick={copyCredentials}>Copy Credentials</Button>
+                  <Button variant="primary" onClick={closeModal}>Done</Button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </>
   );
 }
