@@ -6,6 +6,16 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   const cronSecret = process.env.CRON_SECRET;
+  const isProduction = process.env.VERCEL_ENV === "production";
+
+  if (isProduction && !cronSecret) {
+    console.error("[CRON-SYNC-PAYOUTS] CRON_SECRET not set in production");
+    return NextResponse.json(
+      { error: "Cron secret not configured" },
+      { status: 503 }
+    );
+  }
+
   if (cronSecret) {
     const authHeader = request.headers.get("authorization");
     if (authHeader !== `Bearer ${cronSecret}`) {
