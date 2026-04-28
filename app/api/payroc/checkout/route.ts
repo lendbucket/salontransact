@@ -103,7 +103,7 @@ export async function POST(request: Request) {
       try {
         console.log("[CHECKOUT-SAVE] Exchanging single-use token for Secure Token");
         const secureToken = await createSecureToken({
-          source: { type: "singleUseToken", singleUseToken: token },
+          source: { type: "singleUseToken", token: token },
           mitAgreement: "unscheduled",
           operator: (merchant.businessName || "SalonTransact").slice(0, 50),
         });

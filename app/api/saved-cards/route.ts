@@ -28,9 +28,9 @@ function isTokenizationSource(value: unknown): value is TokenizationSource {
   if (typeof value !== "object" || value === null) return false;
   const v = value as { type?: unknown };
   if (v.type === "singleUseToken") {
-    const tok = value as { singleUseToken?: unknown };
+    const tok = value as { token?: unknown };
     return (
-      typeof tok.singleUseToken === "string" && tok.singleUseToken.length > 0
+      typeof tok.token === "string" && tok.token.length > 0
     );
   }
   if (v.type === "card") {
@@ -166,7 +166,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         error:
-          'source required: { type: "singleUseToken", singleUseToken: "..." } or { type: "card", cardDetails: { type: "keyed", keyedData: { type: "plainText", cardNumber, expiryDate, cvv? } } }',
+          'source required: { type: "singleUseToken", token: "..." } or { type: "card", cardDetails: { type: "keyed", keyedData: { type: "plainText", cardNumber, expiryDate, cvv? } } }',
       },
       { status: 400 }
     );

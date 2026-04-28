@@ -179,7 +179,7 @@ export interface TokenizationCardPayload {
 
 export interface TokenizationSingleUseTokenPayload {
   type: 'singleUseToken'
-  singleUseToken: string
+  token: string
 }
 
 export type TokenizationSource =
