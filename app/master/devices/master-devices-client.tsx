@@ -74,6 +74,69 @@ function maskSerial(serial: string): string {
   return `${serial.slice(0, 4)}\u2026${serial.slice(-4)}`;
 }
 
+function humanizeError(rawMessage: string): {
+  title: string;
+  body: string;
+  hint: string | null;
+} {
+  let title = "Charge failed";
+  let body = rawMessage;
+  let hint: string | null = null;
+
+  const lower = rawMessage.toLowerCase();
+
+  const detailMatch = rawMessage.match(/"detail":"([^"]+)"/);
+  const titleMatch = rawMessage.match(/"title":"([^"]+)"/);
+  const messageMatch = rawMessage.match(/"message":"([^"]+)"/);
+
+  if (titleMatch) title = titleMatch[1];
+  if (detailMatch) {
+    body = detailMatch[1];
+    if (messageMatch && messageMatch[1] !== detailMatch[1]) {
+      body = `${detailMatch[1]} ${messageMatch[1]}`;
+    }
+  }
+
+  if (
+    lower.includes("capability not supported") ||
+    lower.includes("does not support sales")
+  ) {
+    title = "Terminal not configured for sales";
+    body =
+      "Payroc rejected the charge because the processing terminal is not enabled to run sale transactions.";
+    hint =
+      "Contact your Payroc Integration Engineer to enable Sales capability on the merchant\u2019s processing terminal.";
+  } else if (lower.includes("missing required field")) {
+    title = "Charge rejected by Payroc";
+    body =
+      "Payroc returned a \u2018missing required field\u2019 error. This usually means a parameter was malformed.";
+    hint =
+      "Try again. If it persists, check Vercel logs for [PAYROC-REQ] to see what was sent.";
+  } else if (
+    lower.includes("device not found") ||
+    lower.includes("device offline") ||
+    lower.includes("no terminal connected")
+  ) {
+    title = "Terminal not reachable";
+    body =
+      "The Pax terminal isn\u2019t responding. It may be offline, asleep, or no longer paired.";
+    hint =
+      "Wake the terminal screen and confirm it shows the Payroc app. Then try again.";
+  } else if (lower.includes("timed out") || lower.includes("timeout")) {
+    title = "Customer didn\u2019t complete";
+    body =
+      "We waited 5 minutes for the customer to complete the charge at the terminal but never got a response.";
+    hint = "If the customer walked away, you can send another charge.";
+  } else if (lower.includes("idempotency")) {
+    title = "Duplicate request blocked";
+    body =
+      "Payroc detected a duplicate request. This usually means you submitted the same charge twice in quick succession.";
+    hint = "Wait a moment and try again with a fresh charge.";
+  }
+
+  return { title, body, hint };
+}
+
 interface Props {
   initialDevices: MasterDeviceRow[];
   allMerchants: { id: string; businessName: string }[];
@@ -651,18 +714,40 @@ export function MasterDevicesClient({
                       color: "#DC2626",
                     }}
                   >
-                    Charge failed
+                    {humanizeError(phase.message).title}
                   </span>
                 </div>
                 <p
                   style={{
                     fontSize: 13,
                     color: "#4A4A4A",
-                    marginBottom: 12,
+                    marginBottom: 8,
                   }}
                 >
-                  {phase.message}
+                  {humanizeError(phase.message).body}
                 </p>
+                {humanizeError(phase.message).hint && (
+                  <p
+                    style={{
+                      fontSize: 12,
+                      color: "#92400E",
+                      background: "#FEF3C7",
+                      border: "1px solid #FDE68A",
+                      borderRadius: 6,
+                      padding: "8px 10px",
+                      marginBottom: 12,
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: 6,
+                    }}
+                  >
+                    <AlertCircle
+                      size={14}
+                      style={{ marginTop: 1, flexShrink: 0 }}
+                    />
+                    <span>{humanizeError(phase.message).hint}</span>
+                  </p>
+                )}
                 <Button variant="secondary" onClick={() => resetPhase(d.id)}>
                   Try again
                 </Button>
