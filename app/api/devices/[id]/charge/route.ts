@@ -139,14 +139,15 @@ export async function POST(
   };
   if (description) order.description = description;
 
+  // NOTE: Payroc Cloud does not accept processAsSale on payment instructions.
+  // Per Chris Boutwell at Payroc (email 2026-04-28): "Remove processAsSale,
+  // or set it to false. It's not compatible with Payroc Cloud."
   let result;
   try {
     result = await sendPaymentInstruction(device.serialNumber, {
       order,
       autoCapture:
         typeof body.autoCapture === "boolean" ? body.autoCapture : true,
-      processAsSale:
-        typeof body.processAsSale === "boolean" ? body.processAsSale : false,
       operator: user.email?.slice(0, 50),
       customizationOptions:
         Object.keys(customizationOptions).length > 0
