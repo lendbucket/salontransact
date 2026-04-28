@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import {
   getPaymentInstruction,
   cancelPaymentInstruction,
 } from "@/lib/payroc/devices";
+import { persistDeviceCharge } from "@/lib/devices/persistence";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -35,6 +37,44 @@ export async function GET(
 
   try {
     const result = await getPaymentInstruction(id);
+
+    // Persist on completion: write Transaction + bump merchant counters.
+    // Idempotent — repeated polls no-op via unique paymentId check in helper.
+    if (result.status === "completed") {
+      const paymentIdFromLink =
+        result.link?.href?.match(/\/payments\/([^/]+)/)?.[1];
+
+      if (paymentIdFromLink) {
+        // Look up the instruction→merchant mapping written by the charge route
+        const mapping = await prisma.payrocPaymentRecord.findUnique({
+          where: { payrocPaymentId: id },
+          select: { merchantId: true, amountCents: true },
+        });
+
+        if (mapping) {
+          try {
+            const persistResult = await persistDeviceCharge({
+              merchantId: mapping.merchantId,
+              paymentInstructionId: id,
+              paymentId: paymentIdFromLink,
+              amountCents: mapping.amountCents,
+            });
+            if (!persistResult.alreadyExisted) {
+              console.log(
+                `[DEVICE-POLL-PERSIST] Transaction ${persistResult.transactionId} created for instruction ${id}`
+              );
+            }
+          } catch (e) {
+            console.error("[DEVICE-POLL-PERSIST] failed:", e);
+          }
+        } else {
+          console.warn(
+            `[DEVICE-POLL-PERSIST] No mapping for instruction ${id}`
+          );
+        }
+      }
+    }
+
     return NextResponse.json(result);
   } catch (e) {
     const message = e instanceof Error ? e.message : "Unknown error";

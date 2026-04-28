@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { sendPaymentInstruction } from "@/lib/payroc/devices";
+import { persistDeviceCharge } from "@/lib/devices/persistence";
 import type {
   PaymentInstructionOrder,
   PaymentInstructionCustomizationOptions,
@@ -171,6 +172,42 @@ export async function POST(
       lastSeenAt: new Date(),
     },
   });
+
+  // Write instruction→merchant mapping so the polling route can find the merchant
+  try {
+    await prisma.payrocPaymentRecord.create({
+      data: {
+        payrocPaymentId: result.paymentInstructionId,
+        merchantId: device.merchantId,
+        amountCents: body.amount as number,
+        status: "pending",
+        source: "device-instruction",
+      },
+    });
+  } catch (mapErr) {
+    // Non-fatal — unique constraint means we already mapped this instruction
+    console.log("[DEVICE-CHARGE] Mapping write skipped (likely duplicate):", mapErr instanceof Error ? mapErr.message : "");
+  }
+
+  // Synchronous completion: rare but possible
+  if (result.status === "completed" && result.paymentInstructionId) {
+    try {
+      // Extract paymentId from the link if available
+      const paymentIdFromLink = result.link?.href?.match(/\/payments\/([^/]+)/)?.[1];
+      if (paymentIdFromLink) {
+        await persistDeviceCharge({
+          merchantId: device.merchantId,
+          paymentInstructionId: result.paymentInstructionId,
+          paymentId: paymentIdFromLink,
+          amountCents: body.amount as number,
+          description,
+          operatorEmail: user.email ?? undefined,
+        });
+      }
+    } catch (e) {
+      console.error("[DEVICE-CHARGE-PERSIST] sync path failed:", e);
+    }
+  }
 
   return NextResponse.json(result, { status: 202 });
 }
