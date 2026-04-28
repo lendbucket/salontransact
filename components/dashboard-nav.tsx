@@ -54,7 +54,7 @@ const links: NavLink[] = [
   { href: "/support", label: "Support", icon: HelpCircle, section: "Account" },
   // Master Portal
   { href: "/master/merchants", label: "Merchants", icon: Building2, section: "Master", masterOnly: true },
-  { href: "/master/devices", label: "Devices", icon: Smartphone, section: "Master", masterOnly: true, comingSoon: true },
+  { href: "/master/devices", label: "Devices", icon: Smartphone, section: "Master", masterOnly: true },
   { href: "/master/saved-cards", label: "Saved Cards", icon: CreditCard, section: "Master", masterOnly: true, comingSoon: true },
   { href: "/master/applications", label: "Applications", icon: ClipboardList, section: "Master", masterOnly: true, comingSoon: true },
   { href: "/master/audit", label: "Audit Log", icon: ScrollText, section: "Master", masterOnly: true, comingSoon: true },

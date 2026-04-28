@@ -17,3 +17,16 @@ export interface DeviceListResponse {
   data: DevicePublic[];
   count: number;
 }
+
+export interface MasterDeviceRow extends DevicePublic {
+  merchantId: string;
+  merchantBusinessName: string;
+  merchantCity: string | null;
+  merchantState: string | null;
+}
+
+export interface MasterDeviceListResponse {
+  data: MasterDeviceRow[];
+  count: number;
+  merchantsRepresented: number;
+}
