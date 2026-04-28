@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getPayrocToken } from "@/lib/payroc/client";
 import { createSecureToken } from "@/lib/payroc/tokens";
+import { isPayrocApiError } from "@/lib/payroc/errors";
 import crypto from "crypto";
 
 export async function POST(request: Request) {
@@ -158,6 +159,23 @@ export async function POST(request: Request) {
           "[CHECKOUT-SAVE] Secure Token creation failed:",
           message
         );
+        if (isPayrocApiError(tokenErr)) {
+          console.error(
+            "[CHECKOUT-SAVE] Payroc error body:",
+            JSON.stringify(tokenErr.body, null, 2)
+          );
+          console.error(
+            "[CHECKOUT-SAVE] Payroc error status:",
+            tokenErr.status,
+            "path:",
+            tokenErr.path
+          );
+        } else {
+          console.error(
+            "[CHECKOUT-SAVE] Non-Payroc error:",
+            tokenErr instanceof Error ? tokenErr.stack : String(tokenErr)
+          );
+        }
         return NextResponse.json(
           {
             success: false,
