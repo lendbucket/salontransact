@@ -372,6 +372,7 @@ export async function POST(request: Request) {
     if (responseCode === "A") {
       const amountDollars = orderAmount / 100;
 
+      let dbSaveError: string | null = null;
       try {
         await prisma.transaction.create({
           data: {
@@ -396,8 +397,14 @@ export async function POST(request: Request) {
             },
           },
         });
+        console.log("[CHECKOUT] Transaction row created in local DB");
       } catch (dbErr) {
+        dbSaveError =
+          dbErr instanceof Error
+            ? `${dbErr.name}: ${dbErr.message}`
+            : String(dbErr);
         console.error("[CHECKOUT] DB save failed (non-fatal):", dbErr);
+        console.error("[CHECKOUT] DB save failed (full):", JSON.stringify(dbErr, Object.getOwnPropertyNames(dbErr)));
       }
 
       // Update lastUsedAt on the saved card row when charging via secureTokenId
@@ -423,6 +430,7 @@ export async function POST(request: Request) {
         cardBrand: cardScheme,
         amount: orderAmount,
         savedCardId: savedCardRowId,
+        _debug_dbSaveError: dbSaveError,
       });
     }
 
