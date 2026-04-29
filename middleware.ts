@@ -89,6 +89,7 @@ export default withAuth(
           path.startsWith('/api/webhooks/payroc') ||
           path.startsWith('/api/webhooks/bookings') ||
           (path.startsWith('/api/card-entry-tokens/') && (path.endsWith('/session') || path.endsWith('/store'))) ||
+          path.startsWith('/api/v1/') ||
           path.startsWith('/api/cron') ||
           path.startsWith('/c/') ||
           path === '/'
