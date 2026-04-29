@@ -70,7 +70,7 @@ const links: NavLink[] = [
   { href: "/master/applications", label: "Applications", icon: ClipboardList, section: "Master", masterOnly: true, comingSoon: true },
   { href: "/master/notifications", label: "Notifications", icon: Bell, section: "Master", masterOnly: true },
   { href: "/master/audit", label: "Audit Log", icon: ScrollText, section: "Master", masterOnly: true },
-  { href: "/master/reporting", label: "Reporting", icon: BarChart3, section: "Master", masterOnly: true, comingSoon: true },
+  { href: "/master/reporting", label: "Reporting", icon: BarChart3, section: "Master", masterOnly: true },
 ];
 
 const sections = ["Overview", "Payments", "Developers", "Account", "Master"];
