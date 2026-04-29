@@ -29,6 +29,7 @@ import {
   BarChart3,
   Bell,
   Users,
+  ShieldAlert,
 } from "lucide-react";
 
 type NavLink = {
@@ -66,6 +67,7 @@ const links: NavLink[] = [
   { href: "/master/transactions", label: "Transactions", icon: ArrowLeftRight, section: "Master", masterOnly: true },
   { href: "/master/payouts", label: "Payouts", icon: Wallet, section: "Master", masterOnly: true },
   { href: "/master/disputes", label: "Disputes", icon: AlertCircle, section: "Master", masterOnly: true },
+  { href: "/master/risk", label: "Risk Monitor", icon: ShieldAlert, section: "Master", masterOnly: true },
   { href: "/master/refunds", label: "Refunds", icon: ArrowDownCircle, section: "Master", masterOnly: true },
   { href: "/master/authorizations", label: "Authorizations", icon: Lock, section: "Master", masterOnly: true },
   { href: "/master/settlements", label: "Settlements", icon: Wallet, section: "Master", masterOnly: true },

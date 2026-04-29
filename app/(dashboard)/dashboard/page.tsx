@@ -1,6 +1,6 @@
 import { requireMerchant } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
-import { DollarSign, TrendingUp, CreditCard, Clock } from "lucide-react";
+import { DollarSign, TrendingUp, CreditCard, Clock, ShieldCheck } from "lucide-react";
 import { StatCard } from "@/components/ui/stat-card";
 import { StatusPill } from "@/components/ui/status-pill";
 import { DashboardCharts } from "./dashboard-charts";
@@ -83,6 +83,20 @@ export default async function DashboardPage() {
       }),
     ]);
 
+  // Fetch chargeback risk for this merchant (90-day window)
+  let riskRatio = 0;
+  let riskStatus = "safe";
+  let riskSubtitle = "90-day window";
+  try {
+    const { computeChargebackRisk } = await import("@/lib/risk/chargeback-monitor");
+    const riskMetrics = await computeChargebackRisk({ merchantId: merchant.id, windowDays: 90 });
+    riskRatio = riskMetrics.chargebackRatio;
+    riskStatus = riskMetrics.status;
+    riskSubtitle = `${riskMetrics.chargebackCount} of ${riskMetrics.completedTransactions} (90d)`;
+  } catch {
+    // Graceful degradation — dashboard still renders without risk data
+  }
+
   const thisMonthVal = monthAgg._sum.amount ?? 0;
   const lastMonthVal = lastMonthAgg._sum.amount ?? 0;
   const monthTrend =
@@ -156,6 +170,14 @@ export default async function DashboardPage() {
           icon={Clock}
           iconBg="#FFFBEB"
           iconColor="#92400E"
+        />
+        <StatCard
+          title="Chargeback Health"
+          value={`${riskRatio.toFixed(2)}%`}
+          subtitle={riskSubtitle}
+          icon={ShieldCheck}
+          iconBg={riskStatus === "critical" ? "#FEF2F2" : riskStatus === "warning" ? "#FFF7ED" : "#F0FDF4"}
+          iconColor={riskStatus === "critical" ? "#DC2626" : riskStatus === "warning" ? "#9A3412" : "#15803D"}
         />
       </div>
 
