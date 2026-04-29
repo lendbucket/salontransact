@@ -54,9 +54,14 @@ export default withAuth(
         '/webhooks': '/master/webhooks',
         '/transactions': '/master/transactions',
         '/saved-cards': '/master/saved-cards',
+        '/customers': '/master/customers',
       }
       if (merchantToMasterMap[path]) {
         return NextResponse.redirect(new URL(merchantToMasterMap[path], req.url))
+      }
+      if (path.startsWith('/customers/')) {
+        const id = path.replace('/customers/', '')
+        return NextResponse.redirect(new URL(`/master/customers/${id}`, req.url))
       }
     }
 
