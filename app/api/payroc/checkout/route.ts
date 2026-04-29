@@ -305,13 +305,15 @@ export async function POST(request: Request) {
     // Get bearer token and send directly so we can capture raw response
     const bearerToken = await getPayrocToken();
     const apiUrl = process.env.PAYROC_API_URL;
+    const paymentIdempotencyKey = crypto.randomUUID();
+    console.log(`[PAYROC-IDEMPOTENCY] key=${paymentIdempotencyKey} path=/payments method=POST orderId=${finalOrderId} amount=${amountInCents} merchantId=${merchant.id} usingSecureToken=${secureTokenIdForPayment ? "yes" : "no"}`);
 
     const payrRes = await fetch(`${apiUrl}/payments`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${bearerToken}`,
-        "Idempotency-Key": crypto.randomUUID(),
+        "Idempotency-Key": paymentIdempotencyKey,
         Accept: "application/json",
       },
       body: JSON.stringify(paymentPayload),

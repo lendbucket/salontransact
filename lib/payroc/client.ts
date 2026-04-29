@@ -101,13 +101,13 @@ export async function payrocRequest<T>(
     "Content-Type": "application/json",
     Authorization: `Bearer ${token}`,
   };
-
-  if (method === "POST") {
-    headers["Idempotency-Key"] = crypto.randomUUID();
-  }
-
   const bodyJson = body ? JSON.stringify(body) : undefined;
   const cid = Math.random().toString(36).slice(2, 10);
+  if (method === "POST") {
+    const idempotencyKey = crypto.randomUUID();
+    headers["Idempotency-Key"] = idempotencyKey;
+    console.log(`[PAYROC-IDEMPOTENCY] cid=${cid} key=${idempotencyKey} path=${path} method=${method}`);
+  }
 
   console.log(`[PAYROC-REQ] ${cid} ${method} ${path}`);
   if (bodyJson) {
@@ -159,6 +159,7 @@ export async function getHostedFieldsSessionToken(
 
   const idempotencyKey = crypto.randomUUID();
   const requestUrl = `${apiUrl}/processing-terminals/${terminalId}/hosted-fields-sessions`;
+  console.log(`[PAYROC-IDEMPOTENCY] key=${idempotencyKey} path=/processing-terminals/${terminalId}/hosted-fields-sessions method=POST scenario=${scenario}`);
 
   const requestHeaders: Record<string, string> = {
     "Content-Type": "application/json",
