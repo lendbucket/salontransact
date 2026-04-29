@@ -30,6 +30,7 @@ import {
   Bell,
   Users,
   ShieldAlert,
+  Calendar,
 } from "lucide-react";
 
 type NavLink = {
@@ -52,6 +53,9 @@ const links: NavLink[] = [
   { href: "/customers", label: "Customers", icon: Users, section: "Payments" },
   { href: "/payouts", label: "Payouts", icon: Wallet, section: "Payments" },
   { href: "/statements", label: "Statements", icon: FileText, section: "Payments" },
+  // Operations
+  { href: "/stylists", label: "Stylists", icon: Users, section: "Operations" },
+  { href: "/bookings", label: "Bookings", icon: Calendar, section: "Operations" },
   // Developers
   { href: "/api-keys", label: "API Keys", icon: KeyRound, section: "Developers" },
   { href: "/webhooks", label: "Webhooks", icon: Webhook, section: "Developers" },
@@ -80,7 +84,7 @@ const links: NavLink[] = [
   { href: "/master/reporting", label: "Reporting", icon: BarChart3, section: "Master", masterOnly: true },
 ];
 
-const sections = ["Overview", "Payments", "Developers", "Account", "Master"];
+const sections = ["Overview", "Payments", "Operations", "Developers", "Account", "Master"];
 
 export function Sidebar({
   businessName,

@@ -109,6 +109,9 @@ model Merchant {
   batches               Batch[]
   contracts             Contract[]
   customers             Customer[]
+  stylists              Stylist[]
+  bookings              Booking[]
+  cardEntryTokens       CardEntryToken[]
 }
 
 model Transaction {
@@ -122,6 +125,10 @@ model Transaction {
   customerEmail    String?
   customerName     String?
   customerId       String?
+  stylistId        String?
+  bookingId        String?
+  tipAmount        Float     @default(0)
+  items            Json?
   fee              Float     @default(0)
   net              Float     @default(0)
   refunded         Boolean   @default(false)
@@ -131,8 +138,12 @@ model Transaction {
   updatedAt        DateTime  @updatedAt
   merchant         Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   customer         Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  stylist          Stylist?  @relation(fields: [stylistId], references: [id], onDelete: SetNull)
+  booking          Booking?  @relation(fields: [bookingId], references: [id], onDelete: SetNull)
 
   @@index([customerId])
+  @@index([stylistId])
+  @@index([bookingId])
 }
 
 model Payout {
@@ -273,6 +284,7 @@ model SavedPaymentMethod {
 
   merchant            Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   customer            Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  bookings            Booking[]
 
   @@index([merchantId, customerEmail])
   @@index([payrocSecureTokenId])
@@ -522,9 +534,106 @@ model Customer {
   merchant            Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   transactions        Transaction[]
   savedPaymentMethods SavedPaymentMethod[]
+  bookings            Booking[]
 
   @@unique([merchantId, email])
   @@index([merchantId])
   @@index([email])
   @@index([lastSeenAt])
+}
+
+model Stylist {
+  id              String    @id @default(cuid())
+  merchantId      String
+  name            String
+  email           String?
+  phone           String?
+  role            String    @default("stylist")
+  commissionRate  Float?
+  hourlyRate      Float?
+  payoutMethod    String?
+  status          String    @default("active")
+  externalRef     String?
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  merchant        Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  transactions    Transaction[]
+  bookings        Booking[]
+
+  @@unique([merchantId, externalRef])
+  @@index([merchantId])
+  @@index([status])
+  @@index([email])
+}
+
+model Booking {
+  id                    String    @id @default(cuid())
+  merchantId            String
+  stylistId             String?
+  customerId            String?
+  savedPaymentMethodId  String?
+
+  scheduledFor          DateTime
+  durationMinutes       Int       @default(60)
+  serviceCode           String?
+  serviceName           String?
+  expectedAmountCents   Int       @default(0)
+
+  status                String    @default("booked")
+  authHoldId            String?
+  authHoldAmountCents   Int?
+  authHoldExpiresAt     DateTime?
+
+  externalBookingId     String?
+  externalSource        String?
+
+  notes                 String?
+
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  merchant              Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  stylist               Stylist?  @relation(fields: [stylistId], references: [id], onDelete: SetNull)
+  customer              Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  savedPaymentMethod    SavedPaymentMethod? @relation(fields: [savedPaymentMethodId], references: [id], onDelete: SetNull)
+  transactions          Transaction[]
+  cardEntryTokens       CardEntryToken[]
+
+  @@unique([merchantId, externalSource, externalBookingId])
+  @@index([merchantId])
+  @@index([stylistId])
+  @@index([customerId])
+  @@index([scheduledFor])
+  @@index([status])
+}
+
+model CardEntryToken {
+  id                    String    @id @default(cuid())
+  merchantId            String
+  bookingId             String?
+  customerPhone         String
+  customerName          String?
+  customerEmail         String?
+
+  signedToken           String    @unique
+  expiresAt             DateTime
+  usedAt                DateTime?
+  status                String    @default("active")
+  resultingSavedPaymentMethodId String?
+
+  smsSentAt             DateTime?
+  smsSid                String?
+
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  merchant              Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  booking               Booking?  @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+
+  @@index([merchantId])
+  @@index([bookingId])
+  @@index([status])
+  @@index([expiresAt])
 }
