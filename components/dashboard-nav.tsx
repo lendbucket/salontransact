@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -352,44 +353,229 @@ export function Sidebar({
   );
 }
 
-export function BottomNav() {
+export function BottomNav({ role }: { role?: string }) {
   const pathname = usePathname();
+  const [moreOpen, setMoreOpen] = useState(false);
+  const isMaster = role === "master portal";
+
   const mobileLinks = [
-    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/transactions", label: "Transactions", icon: ArrowLeftRight },
-    { href: "/payouts", label: "Payouts", icon: Wallet },
+    {
+      href: isMaster ? "/master/merchants" : "/dashboard",
+      label: isMaster ? "Merchants" : "Dashboard",
+      icon: isMaster ? Building2 : LayoutDashboard,
+    },
+    {
+      href: isMaster ? "/master/transactions" : "/transactions",
+      label: "Transactions",
+      icon: ArrowLeftRight,
+    },
+    {
+      href: isMaster ? "/master/payouts" : "/payouts",
+      label: "Payouts",
+      icon: Wallet,
+    },
     { href: "/settings", label: "Settings", icon: Settings },
-    { href: "/more", label: "More", icon: Menu },
   ];
 
   return (
-    <nav
-      className="md:hidden fixed bottom-0 left-0 right-0 flex justify-around z-50"
-      style={{
-        background: "#FFFFFF",
-        borderTop: "1px solid #E8EAED",
-      }}
+    <>
+      <nav
+        className="md:hidden fixed bottom-0 left-0 right-0 flex justify-around z-50"
+        style={{
+          background: "#FFFFFF",
+          borderTop: "1px solid #E8EAED",
+          paddingBottom: "env(safe-area-inset-bottom)",
+        }}
+      >
+        {mobileLinks.map((link) => {
+          const Icon = link.icon;
+          const active = pathname === link.href;
+          return (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="flex flex-col items-center justify-center py-3 px-2 flex-1"
+              style={{
+                color: active ? "#017ea7" : "#878787",
+                fontSize: 10,
+                fontWeight: 500,
+                textDecoration: "none",
+                minHeight: 56,
+              }}
+            >
+              <Icon size={20} strokeWidth={1.5} style={{ marginBottom: 4 }} />
+              {link.label}
+            </Link>
+          );
+        })}
+        <button
+          onClick={() => setMoreOpen(true)}
+          className="flex flex-col items-center justify-center py-3 px-2 flex-1"
+          style={{
+            color: "#878787",
+            fontSize: 10,
+            fontWeight: 500,
+            background: "transparent",
+            border: "none",
+            cursor: "pointer",
+            minHeight: 56,
+          }}
+        >
+          <Menu size={20} strokeWidth={1.5} style={{ marginBottom: 4 }} />
+          More
+        </button>
+      </nav>
+
+      {moreOpen && <MoreDrawer role={role} onClose={() => setMoreOpen(false)} />}
+    </>
+  );
+}
+
+function MoreDrawer({
+  role,
+  onClose,
+}: {
+  role?: string;
+  onClose: () => void;
+}) {
+  const pathname = usePathname();
+  const { data: session } = useSession();
+  const isMaster = role === "master portal";
+
+  const visibleLinks = links.filter(
+    (l) => !l.masterOnly || isMaster
+  );
+  const visibleSections = sections.filter((s) =>
+    visibleLinks.some((l) => l.section === s)
+  );
+
+  return (
+    <div
+      className="md:hidden fixed inset-0 z-[60]"
+      style={{ background: "rgba(0,0,0,0.5)" }}
+      onClick={onClose}
     >
-      {mobileLinks.map((link) => {
-        const Icon = link.icon;
-        const active = pathname === link.href;
-        return (
-          <Link
-            key={link.href}
-            href={link.href}
-            className="flex flex-col items-center justify-center py-3 px-2 flex-1"
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          position: "absolute",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          maxHeight: "85vh",
+          background: "#FFFFFF",
+          borderTopLeftRadius: 16,
+          borderTopRightRadius: 16,
+          boxShadow: "0 -4px 24px rgba(0,0,0,0.15)",
+          overflowY: "auto",
+          paddingBottom: "env(safe-area-inset-bottom)",
+          WebkitOverflowScrolling: "touch",
+        }}
+      >
+        {/* Drag handle */}
+        <div style={{ display: "flex", justifyContent: "center", padding: "10px 0 4px" }}>
+          <div style={{ width: 36, height: 4, background: "#D1D5DB", borderRadius: 2 }} />
+        </div>
+
+        {/* Header */}
+        <div style={{ padding: "8px 20px 16px", borderBottom: "1px solid #F4F5F7" }}>
+          <h2 style={{ fontSize: 18, fontWeight: 600, color: "#1A1313", margin: 0 }}>
+            All Sections
+          </h2>
+        </div>
+
+        {/* Nav sections */}
+        <div style={{ padding: "8px 0 16px" }}>
+          {visibleSections.map((section) => {
+            const sectionLinks = visibleLinks.filter((l) => l.section === section);
+            return (
+              <div key={section} style={{ marginBottom: 12 }}>
+                <p
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    letterSpacing: "0.08em",
+                    textTransform: "uppercase",
+                    color: "#878787",
+                    padding: "8px 20px 4px",
+                    margin: 0,
+                  }}
+                >
+                  {section}
+                </p>
+                {sectionLinks.map((link) => {
+                  const Icon = link.icon;
+                  const active = pathname === link.href;
+                  if (link.comingSoon) {
+                    return (
+                      <span
+                        key={link.href}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 12,
+                          padding: "12px 20px",
+                          fontSize: 14,
+                          color: "#878787",
+                          opacity: 0.5,
+                        }}
+                      >
+                        <Icon size={18} strokeWidth={1.5} />
+                        <span style={{ flex: 1 }}>{link.label}</span>
+                        <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.05em" }}>SOON</span>
+                      </span>
+                    );
+                  }
+                  return (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      onClick={onClose}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 12,
+                        padding: "12px 20px",
+                        fontSize: 14,
+                        fontWeight: active ? 500 : 400,
+                        color: active ? "#017ea7" : "#1A1313",
+                        background: active ? "#E6F4F8" : "transparent",
+                        textDecoration: "none",
+                      }}
+                    >
+                      <Icon size={18} strokeWidth={1.5} />
+                      <span style={{ flex: 1 }}>{link.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Sign out */}
+        <div style={{ borderTop: "1px solid #F4F5F7", padding: "12px 20px 20px" }}>
+          <button
+            onClick={() => signOut({ callbackUrl: "/login" })}
             style={{
-              color: active ? "#017ea7" : "#878787",
-              fontSize: 10,
-              fontWeight: 500,
-              textDecoration: "none",
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              width: "100%",
+              padding: "12px 0",
+              fontSize: 14,
+              color: "#DC2626",
+              background: "transparent",
+              border: "none",
+              cursor: "pointer",
+              textAlign: "left",
             }}
           >
-            <Icon size={16} strokeWidth={1.5} style={{ marginBottom: 4 }} />
-            {link.label}
-          </Link>
-        );
-      })}
-    </nav>
+            <LogOut size={18} strokeWidth={1.5} />
+            <span>Sign out · {session?.user?.email}</span>
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

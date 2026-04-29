@@ -38,7 +38,7 @@ export default async function DashboardLayout({
         <Topbar />
         <main className="flex-1 pb-20 md:pb-0">{children}</main>
       </div>
-      <BottomNav />
+      <BottomNav role={role} />
     </div>
   );
 }

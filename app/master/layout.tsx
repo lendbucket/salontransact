@@ -47,7 +47,7 @@ export default async function MasterLayout({
         <Topbar />
         <main className="flex-1 pb-20 md:pb-0">{children}</main>
       </div>
-      <BottomNav />
+      <BottomNav role="master portal" />
     </div>
   );
 }

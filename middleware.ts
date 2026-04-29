@@ -46,6 +46,20 @@ export default withAuth(
       }
     }
 
+    // Master users visiting merchant-only pages get redirected to master version
+    if (token?.role === 'master portal') {
+      const merchantToMasterMap: Record<string, string> = {
+        '/payouts': '/master/payouts',
+        '/api-keys': '/master/api-keys',
+        '/webhooks': '/master/webhooks',
+        '/transactions': '/master/transactions',
+        '/saved-cards': '/master/saved-cards',
+      }
+      if (merchantToMasterMap[path]) {
+        return NextResponse.redirect(new URL(merchantToMasterMap[path], req.url))
+      }
+    }
+
     return NextResponse.next()
   },
   {

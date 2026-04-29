@@ -87,15 +87,13 @@ export function SettingsClient({
         Manage your business and account
       </p>
 
-      {/* Tabs */}
+      {/* Tabs — desktop horizontal strip */}
       <div
-        className="scrollbar-hide -mx-6 md:mx-0 px-6 md:px-0"
+        className="hidden md:flex"
         style={{
-          display: "flex",
           gap: 2,
           marginBottom: 24,
           borderBottom: "1px solid #E8EAED",
-          overflowX: "auto",
         }}
       >
         {tabs.map((t) => (
@@ -125,6 +123,63 @@ export function SettingsClient({
             {t.label}
           </button>
         ))}
+      </div>
+
+      {/* Tabs — mobile vertical list */}
+      <div
+        className="md:hidden"
+        style={{
+          marginBottom: 24,
+          background: "#FFFFFF",
+          border: "1px solid #E8EAED",
+          borderRadius: 12,
+          overflow: "hidden",
+        }}
+      >
+        {tabs.map((t, idx) => {
+          const active = tab === t.id;
+          return (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                width: "100%",
+                padding: "14px 16px",
+                fontSize: 14,
+                fontWeight: active ? 500 : 400,
+                color: active ? "#017ea7" : "#1A1313",
+                background: active ? "#E6F4F8" : "transparent",
+                border: "none",
+                borderTop: idx === 0 ? "none" : "1px solid #F4F5F7",
+                cursor: "pointer",
+                textAlign: "left",
+              }}
+            >
+              <t.Icon
+                size={16}
+                strokeWidth={1.5}
+                color={active ? "#017ea7" : "#878787"}
+              />
+              <span style={{ flex: 1 }}>{t.label}</span>
+              {active && (
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    color: "#017ea7",
+                    letterSpacing: "0.05em",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  ACTIVE
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {tab === "business" && <BusinessTab merchant={merchant} />}
