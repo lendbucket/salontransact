@@ -12,11 +12,13 @@ import {
   Eye,
   EyeOff,
   Smartphone,
+  FileText,
 } from "lucide-react";
 import { DevicesSection } from "./devices-section";
 import { NotificationsSection } from "./notifications-section";
+import { ContractsSection } from "@/components/contracts-section";
 
-type TabId = "business" | "payments" | "devices" | "team" | "security" | "notifications";
+type TabId = "business" | "payments" | "devices" | "team" | "security" | "notifications" | "documents";
 
 type MerchantData = {
   businessName: string;
@@ -48,13 +50,26 @@ const INPUT: React.CSSProperties = {
   boxSizing: "border-box",
 };
 
-export function SettingsClient({ merchant }: { merchant: MerchantData }) {
+interface SettingsClientProps {
+  merchant: MerchantData;
+  merchantId: string;
+  currentUserId: string;
+  currentUserRole: string;
+}
+
+export function SettingsClient({
+  merchant,
+  merchantId,
+  currentUserId,
+  currentUserRole,
+}: SettingsClientProps) {
   const [tab, setTab] = useState<TabId>("business");
 
   const tabs: { id: TabId; label: string; Icon: typeof Building2 }[] = [
     { id: "business", label: "Business Info", Icon: Building2 },
     { id: "payments", label: "Payments", Icon: CreditCard },
     { id: "devices", label: "Devices", Icon: Smartphone },
+    { id: "documents", label: "Documents", Icon: FileText },
     { id: "team", label: "Team", Icon: Users },
     { id: "security", label: "Security", Icon: Lock },
     { id: "notifications", label: "Notifications", Icon: Bell },
@@ -115,6 +130,15 @@ export function SettingsClient({ merchant }: { merchant: MerchantData }) {
       {tab === "business" && <BusinessTab merchant={merchant} />}
       {tab === "payments" && <PaymentsTab merchant={merchant} />}
       {tab === "devices" && <DevicesSection />}
+      {tab === "documents" && (
+        <ContractsSection
+          merchantId={merchantId}
+          currentUserId={currentUserId}
+          currentUserRole={currentUserRole}
+          title="Your documents"
+          description="Upload and manage contracts, W-9s, voided checks, ID verification, and other supporting documents."
+        />
+      )}
       {tab === "team" && <TeamTab />}
       {tab === "security" && <SecurityTab />}
       {tab === "notifications" && <NotificationsTab />}

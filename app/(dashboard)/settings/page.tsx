@@ -2,7 +2,11 @@ import { requireMerchant } from "@/lib/session";
 import { SettingsClient } from "./settings-client";
 
 export default async function SettingsPage() {
-  const { merchant } = await requireMerchant();
+  const { session, merchant } = await requireMerchant();
+
+  const sessionUser = session.user as { id?: string; role?: string };
+  const currentUserId = sessionUser.id ?? "";
+  const currentUserRole = sessionUser.role ?? "merchant";
 
   return (
     <SettingsClient
@@ -22,6 +26,9 @@ export default async function SettingsPage() {
         fundingSpeed: merchant.fundingSpeed,
         status: merchant.status,
       }}
+      merchantId={merchant.id}
+      currentUserId={currentUserId}
+      currentUserRole={currentUserRole}
     />
   );
 }
