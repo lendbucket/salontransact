@@ -5,14 +5,12 @@ import { apiError } from "@/lib/api/v1/errors";
 import { checkIdempotency, storeIdempotency } from "@/lib/api/v1/idempotency";
 import { writeAuditLog } from "@/lib/audit/log";
 import { fireWebhookEvent } from "@/lib/webhooks/fanout";
-import { formatTransactionAsCharge } from "@/lib/api/v1/charges/format";
-import { getPayrocToken } from "@/lib/payroc/client";
-import crypto from "crypto";
+import { processRefund } from "@/lib/api/v1/charges/refund";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-interface RefundBody {
+interface RefundRequestBody {
   amount_cents?: unknown;
   reason?: unknown;
 }
@@ -25,7 +23,7 @@ export async function POST(
   if (auth instanceof NextResponse) return auth;
 
   const { id: rawId } = await params;
-  const txnId = rawId.startsWith("ch_") ? rawId.slice(3) : rawId;
+  const transactionId = rawId.startsWith("ch_") ? rawId.slice(3) : rawId;
 
   let bodyText: string;
   try { bodyText = await request.text(); } catch {
@@ -35,129 +33,100 @@ export async function POST(
   const idem = await checkIdempotency(request, auth.apiKey.id, bodyText, auth.requestId);
   if (idem.cached === true || idem.cached === "conflict") return idem.response;
 
-  let body: RefundBody = {};
-  try { body = bodyText.length > 0 ? JSON.parse(bodyText) : {}; } catch {
-    return apiError("validation_error", "Invalid JSON", { requestId: auth.requestId });
+  let body: RefundRequestBody = {};
+  if (bodyText.length > 0) {
+    try { body = JSON.parse(bodyText) as RefundRequestBody; } catch {
+      return apiError("validation_error", "Invalid JSON", { requestId: auth.requestId });
+    }
   }
 
-  const txn = await prisma.transaction.findUnique({ where: { id: txnId } });
+  // Look up charge to determine default refund amount
+  const txn = await prisma.transaction.findUnique({ where: { id: transactionId } });
   if (!txn || txn.merchantId !== auth.merchant.id) {
     return apiError("not_found", "Charge not found", { requestId: auth.requestId });
   }
-  if (txn.status !== "succeeded") {
-    return apiError("validation_error", `Cannot refund charge with status '${txn.status}'`, { requestId: auth.requestId });
-  }
 
-  const totalCents = Math.round(txn.amount * 100);
+  const originalCents = Math.round(txn.amount * 100);
   const alreadyRefundedCents = Math.round(txn.refundAmount * 100);
-  const maxRefundable = totalCents - alreadyRefundedCents;
+  const remainingCents = originalCents - alreadyRefundedCents;
 
-  let refundCents = maxRefundable; // default: full remaining
-  if (body.amount_cents !== undefined) {
-    if (typeof body.amount_cents !== "number" || !Number.isInteger(body.amount_cents) || body.amount_cents < 1) {
-      return apiError("validation_error", "amount_cents must be a positive integer", { requestId: auth.requestId });
-    }
-    if (body.amount_cents > maxRefundable) {
-      return apiError("validation_error", `amount_cents (${body.amount_cents}) exceeds refundable amount (${maxRefundable})`, { requestId: auth.requestId, details: { max_refundable_cents: maxRefundable } });
-    }
-    refundCents = body.amount_cents;
-  }
-
-  const reason = typeof body.reason === "string" ? body.reason.trim().slice(0, 500) : null;
-
-  // Call Payroc refund
-  const meta = (txn.metadata ?? {}) as Record<string, unknown>;
-  const payrocPaymentId = meta.payrocPaymentId as string | undefined;
-
-  let refundSuccess = false;
-  let payrocRefundId: string | null = null;
-  let refundError: string | null = null;
-
-  if (payrocPaymentId) {
-    try {
-      const apiUrl = process.env.PAYROC_API_URL;
-      const bearerToken = await getPayrocToken();
-      const idempotencyKey = crypto.randomUUID();
-      console.log(`[PAYROC-IDEMPOTENCY] key=${idempotencyKey} path=/payments/${payrocPaymentId}/refunds method=POST amount=${refundCents} requestId=${auth.requestId}`);
-
-      const res = await fetch(`${apiUrl}/payments/${payrocPaymentId}/refunds`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${bearerToken}`,
-          "Idempotency-Key": idempotencyKey,
-          Accept: "application/json",
-        },
-        body: JSON.stringify({ amount: refundCents }),
-      });
-
-      const resData = await res.json().catch(() => ({}));
-      if (res.ok || res.status === 201) {
-        refundSuccess = true;
-        payrocRefundId = (resData as { refundId?: string }).refundId ?? null;
-      } else {
-        refundError = `Payroc ${res.status}: ${JSON.stringify(resData).slice(0, 200)}`;
-      }
-    } catch (e) {
-      refundError = e instanceof Error ? e.message : "Refund request failed";
-    }
+  let amountCents: number;
+  if (body.amount_cents === undefined) {
+    amountCents = remainingCents;
+  } else if (typeof body.amount_cents !== "number" || !Number.isInteger(body.amount_cents) || body.amount_cents < 1) {
+    return apiError("validation_error", "amount_cents must be a positive integer", { requestId: auth.requestId, details: { field: "amount_cents" } });
   } else {
-    // No payrocPaymentId — update locally only (test transactions, legacy)
-    refundSuccess = true;
+    amountCents = body.amount_cents;
   }
 
-  if (!refundSuccess) {
-    const errorBody = { error: { code: "payment_failed" as const, message: refundError ?? "Refund failed" } };
-    const response = NextResponse.json(errorBody, { status: 502 });
+  const reason = typeof body.reason === "string" && body.reason.trim().length > 0
+    ? body.reason.trim().slice(0, 200)
+    : null;
+
+  const result = await processRefund({
+    apiKeyId: auth.apiKey.id,
+    merchantId: auth.merchant.id,
+    transactionId,
+    amountCents,
+    reason,
+    requestId: auth.requestId,
+  });
+
+  if (!result.ok) {
+    const isNotFound = result.errorMessage?.toLowerCase().includes("not found");
+    const errorBody = { error: { code: isNotFound ? "not_found" as const : "payment_failed" as const, message: result.errorMessage ?? "Refund failed" } };
+    const status = isNotFound ? 404 : 422;
+    const response = NextResponse.json(errorBody, { status });
     response.headers.set("X-Request-ID", auth.requestId);
+    await storeIdempotency(auth.apiKey.id, request, bodyText, status, errorBody);
+    await writeAuditLog({
+      actor: { id: `apikey:${auth.apiKey.id}`, email: auth.merchant.email, role: "api" },
+      action: "refund.create.v1.failed",
+      targetType: "Charge",
+      targetId: transactionId,
+      merchantId: auth.merchant.id,
+      metadata: { amountCents, errorMessage: result.errorMessage, requestId: auth.requestId },
+    }).catch(() => {});
     return response;
   }
 
-  // Update transaction
-  const newRefundAmount = (txn.refundAmount * 100 + refundCents) / 100;
-  const isFullRefund = Math.round(newRefundAmount * 100) >= totalCents;
-
-  await prisma.transaction.update({
-    where: { id: txnId },
-    data: {
-      refunded: true,
-      refundAmount: newRefundAmount,
-      status: isFullRefund ? "refunded" : "succeeded",
-    },
-  });
-
-  const updated = await prisma.transaction.findUnique({ where: { id: txnId } });
-  const responseBody = updated ? formatTransactionAsCharge(updated) : null;
-
-  const responseStatus = 200;
-  const jsonBody = {
-    refund: {
-      amount_cents: refundCents,
-      reason,
-      payroc_refund_id: payrocRefundId,
-      full_refund: isFullRefund,
-    },
-    charge: responseBody,
+  const responseBody = {
+    id: result.refundId,
+    object: "refund",
+    charge_id: `ch_${transactionId}`,
+    amount_cents: result.refundedAmountCents,
+    total_refunded_cents: result.totalRefundedCents,
+    original_amount_cents: result.originalAmountCents,
+    fully_refunded: result.totalRefundedCents >= result.originalAmountCents,
+    reason,
+    created_at: new Date().toISOString(),
+    payroc: { refund_id: result.payrocRefundId },
   };
 
-  const response = NextResponse.json(jsonBody, { status: responseStatus });
+  const response = NextResponse.json(responseBody, { status: 201 });
   response.headers.set("X-Request-ID", auth.requestId);
 
-  await storeIdempotency(auth.apiKey.id, request, bodyText, responseStatus, jsonBody);
+  await storeIdempotency(auth.apiKey.id, request, bodyText, 201, responseBody);
 
   await writeAuditLog({
     actor: { id: `apikey:${auth.apiKey.id}`, email: auth.merchant.email, role: "api" },
-    action: "charge.refund.v1",
+    action: "refund.create.v1",
     targetType: "Charge",
-    targetId: txnId,
+    targetId: transactionId,
     merchantId: auth.merchant.id,
-    metadata: { refundCents, reason, payrocRefundId, fullRefund: isFullRefund, requestId: auth.requestId },
+    metadata: {
+      refundedCents: result.refundedAmountCents,
+      totalRefundedCents: result.totalRefundedCents,
+      payrocRefundId: result.payrocRefundId,
+      reason,
+      requestId: auth.requestId,
+    },
   }).catch(() => {});
 
   void fireWebhookEvent({
     merchantId: auth.merchant.id,
     eventType: "charge.refunded",
-    data: { refund: { amount_cents: refundCents, reason, full_refund: isFullRefund }, charge: responseBody as unknown as Record<string, unknown> },
+    data: { refund: responseBody },
   });
 
   return response;
