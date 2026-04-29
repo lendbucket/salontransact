@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiKey } from "@/lib/api/v1/auth";
 import { apiError } from "@/lib/api/v1/errors";
-import { formatTransactionAsCharge } from "@/lib/api/v1/charges/format";
+import { transactionToCharge } from "@/lib/api/v1/charges/retrieve";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -29,7 +29,7 @@ export async function GET(
     });
   }
 
-  const body = formatTransactionAsCharge(txn);
+  const body = transactionToCharge(txn);
 
   const response = NextResponse.json(body);
   response.headers.set("X-Request-ID", auth.requestId);
