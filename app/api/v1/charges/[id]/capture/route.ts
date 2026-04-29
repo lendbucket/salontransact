@@ -2,10 +2,11 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiKey } from "@/lib/api/v1/auth";
 import { apiError } from "@/lib/api/v1/errors";
+import { checkIdempotency, storeIdempotency } from "@/lib/api/v1/idempotency";
 import { writeAuditLog } from "@/lib/audit/log";
-import { formatTransactionAsCharge } from "@/lib/api/v1/charges/format";
-import { getPayrocToken } from "@/lib/payroc/client";
-import crypto from "crypto";
+import { fireWebhookEvent } from "@/lib/webhooks/fanout";
+import { processCapture } from "@/lib/api/v1/charges/capture";
+import { transactionToCharge } from "@/lib/api/v1/charges/retrieve";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,74 +19,79 @@ export async function POST(
   if (auth instanceof NextResponse) return auth;
 
   const { id: rawId } = await params;
-  const txnId = rawId.startsWith("ch_") ? rawId.slice(3) : rawId;
+  const transactionId = rawId.startsWith("ch_") ? rawId.slice(3) : rawId;
 
-  const txn = await prisma.transaction.findUnique({ where: { id: txnId } });
-  if (!txn || txn.merchantId !== auth.merchant.id) {
-    return apiError("not_found", "Charge not found", { requestId: auth.requestId });
-  }
-  if (txn.status !== "requires_capture") {
-    return apiError("validation_error", `Cannot capture charge with status '${txn.status}'. Only requires_capture charges can be captured.`, { requestId: auth.requestId });
+  let bodyText: string;
+  try { bodyText = await request.text(); } catch {
+    return apiError("validation_error", "Could not read request body", { requestId: auth.requestId });
   }
 
-  const meta = (txn.metadata ?? {}) as Record<string, unknown>;
-  const payrocPaymentId = meta.payrocPaymentId as string | undefined;
+  const idem = await checkIdempotency(request, auth.apiKey.id, bodyText, auth.requestId);
+  if (idem.cached === true || idem.cached === "conflict") return idem.response;
 
-  let captureSuccess = false;
-  let captureError: string | null = null;
-
-  if (payrocPaymentId) {
+  let amountCents: number | null = null;
+  if (bodyText.length > 0) {
     try {
-      const apiUrl = process.env.PAYROC_API_URL;
-      const bearerToken = await getPayrocToken();
-      const idempotencyKey = crypto.randomUUID();
-      console.log(`[PAYROC-IDEMPOTENCY] key=${idempotencyKey} path=/payments/${payrocPaymentId}/capture method=POST requestId=${auth.requestId}`);
-
-      const res = await fetch(`${apiUrl}/payments/${payrocPaymentId}/capture`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${bearerToken}`,
-          "Idempotency-Key": idempotencyKey,
-          Accept: "application/json",
-        },
-        body: JSON.stringify({ amount: Math.round(txn.amount * 100) }),
-      });
-
-      if (res.ok || res.status === 200 || res.status === 201) {
-        captureSuccess = true;
-      } else {
-        const resData = await res.json().catch(() => ({}));
-        captureError = `Payroc ${res.status}: ${JSON.stringify(resData).slice(0, 200)}`;
+      const body = JSON.parse(bodyText) as { amount_cents?: unknown };
+      if (body.amount_cents !== undefined) {
+        if (typeof body.amount_cents !== "number" || !Number.isInteger(body.amount_cents) || body.amount_cents < 1) {
+          return apiError("validation_error", "amount_cents must be a positive integer", { requestId: auth.requestId });
+        }
+        amountCents = body.amount_cents;
       }
-    } catch (e) {
-      captureError = e instanceof Error ? e.message : "Capture request failed";
+    } catch {
+      return apiError("validation_error", "Invalid JSON", { requestId: auth.requestId });
     }
-  } else {
-    captureSuccess = true;
   }
 
-  if (!captureSuccess) {
-    const response = NextResponse.json({ error: { code: "payment_failed", message: captureError ?? "Capture failed" } }, { status: 502 });
+  const result = await processCapture({
+    apiKeyId: auth.apiKey.id,
+    merchantId: auth.merchant.id,
+    transactionId,
+    amountCents,
+    requestId: auth.requestId,
+  });
+
+  if (!result.ok) {
+    const isNotFound = result.errorMessage?.toLowerCase().includes("not found");
+    const status = isNotFound ? 404 : 422;
+    const errorBody = { error: { code: isNotFound ? "not_found" as const : "payment_failed" as const, message: result.errorMessage ?? "Capture failed" } };
+    const response = NextResponse.json(errorBody, { status });
     response.headers.set("X-Request-ID", auth.requestId);
+    await storeIdempotency(auth.apiKey.id, request, bodyText, status, errorBody);
+    await writeAuditLog({
+      actor: { id: `apikey:${auth.apiKey.id}`, email: auth.merchant.email, role: "api" },
+      action: "capture.create.v1.failed",
+      targetType: "Charge",
+      targetId: transactionId,
+      merchantId: auth.merchant.id,
+      metadata: { errorMessage: result.errorMessage, requestId: auth.requestId },
+    }).catch(() => {});
     return response;
   }
 
-  await prisma.transaction.update({ where: { id: txnId }, data: { status: "succeeded" } });
+  const updatedTxn = await prisma.transaction.findUnique({ where: { id: transactionId } });
+  const responseBody = updatedTxn ? transactionToCharge(updatedTxn) : null;
 
-  const updated = await prisma.transaction.findUnique({ where: { id: txnId } });
-  const responseBody = updated ? formatTransactionAsCharge(updated) : null;
+  const response = NextResponse.json(responseBody, { status: 200 });
+  response.headers.set("X-Request-ID", auth.requestId);
+
+  await storeIdempotency(auth.apiKey.id, request, bodyText, 200, responseBody);
 
   await writeAuditLog({
     actor: { id: `apikey:${auth.apiKey.id}`, email: auth.merchant.email, role: "api" },
-    action: "charge.capture.v1",
+    action: "capture.create.v1",
     targetType: "Charge",
-    targetId: txnId,
+    targetId: transactionId,
     merchantId: auth.merchant.id,
-    metadata: { amountCents: Math.round(txn.amount * 100), payrocPaymentId, requestId: auth.requestId },
+    metadata: { capturedAmountCents: result.capturedAmountCents, payrocCaptureId: result.payrocCaptureId, requestId: auth.requestId },
   }).catch(() => {});
 
-  const response = NextResponse.json(responseBody);
-  response.headers.set("X-Request-ID", auth.requestId);
+  void fireWebhookEvent({
+    merchantId: auth.merchant.id,
+    eventType: "charge.succeeded",
+    data: { charge: responseBody as unknown as Record<string, unknown>, capture: true },
+  });
+
   return response;
 }
