@@ -163,13 +163,13 @@ export function ApplicationDetailClient({ initialApplication }: Props) {
           <StatusPill status={statusKind(app.status)} label={APPLICATION_STATUS_LABELS[app.status]} />
         </div>
 
-        <div style={{ display: "flex", gap: 16, fontSize: 12, color: "#878787", flexWrap: "wrap", marginBottom: 16 }}>
+        <div style={{ display: "flex", gap: "8px 16px", fontSize: 12, color: "#878787", flexWrap: "wrap", marginBottom: 16 }}>
           <span>Submitted {fmtDateLocale(app.submittedAt)}</span>
           {app.approvedAt && <span>Approved {fmtDateLocale(app.approvedAt)} by {app.approvedByEmail}</span>}
           {app.rejectedAt && <span>Rejected {fmtDateLocale(app.rejectedAt)} by {app.rejectedByEmail}</span>}
         </div>
 
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <div className="flex flex-col sm:flex-row" style={{ gap: 8 }}>
           {app.status === "submitted" && (
             <>
               <Button variant="primary" leadingIcon={<CheckCircle2 size={14} />} onClick={() => setShowApproveModal(true)}>
@@ -251,7 +251,7 @@ export function ApplicationDetailClient({ initialApplication }: Props) {
             Internal notes (optional, master-only)
           </label>
           <textarea value={internalNotes} onChange={(e) => setInternalNotes(e.target.value)} maxLength={1000} placeholder="Notes about your decision (not shown to merchant)" style={textareaStyle} />
-          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+          <div className="flex flex-col-reverse sm:flex-row" style={{ gap: 8, justifyContent: "flex-end" }}>
             <Button variant="ghost" onClick={() => setShowApproveModal(false)}>Cancel</Button>
             <Button variant="primary" leadingIcon={<CheckCircle2 size={14} />} onClick={handleApprove} loading={actionLoading === "approve"}>
               Approve
@@ -273,7 +273,7 @@ export function ApplicationDetailClient({ initialApplication }: Props) {
             Internal notes (optional, master-only)
           </label>
           <textarea value={internalNotes} onChange={(e) => setInternalNotes(e.target.value)} maxLength={1000} placeholder="Notes about your decision" style={{ ...textareaStyle, minHeight: 60 }} />
-          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+          <div className="flex flex-col-reverse sm:flex-row" style={{ gap: 8, justifyContent: "flex-end" }}>
             <Button variant="ghost" onClick={() => setShowRejectModal(false)}>Cancel</Button>
             <Button variant="danger" leadingIcon={<XCircle size={14} />} onClick={handleReject} loading={actionLoading === "reject"}>
               Reject
@@ -309,12 +309,12 @@ function Row({ label, value, mono }: { label: string; value: string; mono?: bool
 function Modal({ title, children, onClose }: { title: string; children: React.ReactNode; onClose: () => void }) {
   return (
     <div
-      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 16 }}
+      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 12, WebkitOverflowScrolling: "touch" }}
       onClick={onClose}
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        style={{ background: "#FFFFFF", borderRadius: 12, padding: 24, maxWidth: 520, width: "100%", boxShadow: "0 0 0 1px rgba(0,0,0,0.05), 0 4px 16px rgba(0,0,0,0.1), 0 8px 32px rgba(0,0,0,0.1)", maxHeight: "90vh", overflowY: "auto" }}
+        style={{ background: "#FFFFFF", borderRadius: 12, padding: 20, maxWidth: 520, width: "100%", boxShadow: "0 0 0 1px rgba(0,0,0,0.05), 0 4px 16px rgba(0,0,0,0.1), 0 8px 32px rgba(0,0,0,0.1)", maxHeight: "calc(100vh - 24px)", overflowY: "auto" }}
       >
         <h3 style={{ fontSize: 18, fontWeight: 600, color: "#1A1313", margin: 0, marginBottom: 12, letterSpacing: "-0.31px" }}>{title}</h3>
         {children}

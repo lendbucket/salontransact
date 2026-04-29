@@ -178,18 +178,19 @@ export function ReportingClient() {
                 Daily transaction volume for the last {window} days
               </p>
             </div>
-            <div style={{ width: "100%", height: 280 }}>
+            <div style={{ width: "100%" }} className="h-[240px] md:h-[300px]">
               <ResponsiveContainer>
                 <AreaChart
                   data={summary.dailyVolume.map((d) => ({
                     date: fmtDateShort(d.date),
                     volume: d.volumeCents / 100,
+                    count: d.count,
                   }))}
-                  margin={{ top: 8, right: 8, left: 8, bottom: 8 }}
+                  margin={{ top: 16, right: 8, left: 8, bottom: 8 }}
                 >
                   <defs>
                     <linearGradient id="volumeGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#017ea7" stopOpacity={0.3} />
+                      <stop offset="5%" stopColor="#017ea7" stopOpacity={0.35} />
                       <stop offset="95%" stopColor="#017ea7" stopOpacity={0} />
                     </linearGradient>
                   </defs>
@@ -200,11 +201,13 @@ export function ReportingClient() {
                     tickLine={false}
                     axisLine={false}
                     interval="preserveStartEnd"
+                    minTickGap={24}
                   />
                   <YAxis
                     tick={{ fontSize: 11, fill: "#878787" }}
                     tickLine={false}
                     axisLine={false}
+                    width={56}
                     tickFormatter={(v) =>
                       new Intl.NumberFormat("en-US", {
                         style: "currency",
@@ -215,14 +218,24 @@ export function ReportingClient() {
                     }
                   />
                   <Tooltip
-                    formatter={(value) => fmtMoney(Math.round(Number(value ?? 0) * 100))}
+                    cursor={{ stroke: "#017ea7", strokeWidth: 1, strokeDasharray: "3 3" }}
+                    formatter={(value, _name, item) => {
+                      const count = (item?.payload as { count?: number })?.count ?? 0;
+                      return [
+                        `${fmtMoney(Math.round(Number(value ?? 0) * 100))}  ·  ${fmtCount(count)} txn${count === 1 ? "" : "s"}`,
+                        "Volume",
+                      ];
+                    }}
                     contentStyle={{
                       background: "#FFFFFF",
                       border: "1px solid #E8EAED",
-                      borderRadius: 8,
+                      borderRadius: 10,
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
                       fontSize: 12,
+                      padding: "8px 12px",
                     }}
-                    labelStyle={{ color: "#1A1313", fontWeight: 600 }}
+                    labelStyle={{ color: "#1A1313", fontWeight: 600, marginBottom: 4 }}
+                    itemStyle={{ color: "#1A1313" }}
                   />
                   <Area
                     type="monotone"
@@ -230,6 +243,8 @@ export function ReportingClient() {
                     stroke="#017ea7"
                     strokeWidth={2}
                     fill="url(#volumeGradient)"
+                    dot={{ r: 2.5, fill: "#017ea7", strokeWidth: 0 }}
+                    activeDot={{ r: 5, fill: "#017ea7", stroke: "#FFFFFF", strokeWidth: 2 }}
                   />
                 </AreaChart>
               </ResponsiveContainer>
@@ -251,34 +266,53 @@ export function ReportingClient() {
                 No merchant activity in this window
               </div>
             ) : (
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", fontSize: 13 }}>
-                  <thead style={{ background: "#F9FAFB" }}>
-                    <tr>
-                      <Th>Rank</Th>
-                      <Th>Business</Th>
-                      <Th>Volume</Th>
-                      <Th>Transactions</Th>
-                      <Th>Avg Ticket</Th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {topMerchants.data.map((m) => (
-                      <tr key={m.merchantId} style={{ borderTop: "1px solid #F4F5F7" }}>
-                        <Td>
-                          <span style={{ fontWeight: 600, color: m.rank <= 3 ? "#017ea7" : "#1A1313" }}>
-                            #{m.rank}
-                          </span>
-                        </Td>
-                        <Td>{m.businessName}</Td>
-                        <Td>{fmtMoney(m.volumeCents)}</Td>
-                        <Td muted>{fmtCount(m.transactionCount)}</Td>
-                        <Td muted>{fmtMoney(m.averageTicketCents)}</Td>
+              <>
+                <div className="hidden md:block" style={{ overflowX: "auto" }}>
+                  <table style={{ width: "100%", fontSize: 13 }}>
+                    <thead style={{ background: "#F9FAFB" }}>
+                      <tr>
+                        <Th>Rank</Th>
+                        <Th>Business</Th>
+                        <Th>Volume</Th>
+                        <Th>Transactions</Th>
+                        <Th>Avg Ticket</Th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {topMerchants.data.map((m) => (
+                        <tr key={m.merchantId} style={{ borderTop: "1px solid #F4F5F7" }}>
+                          <Td>
+                            <span style={{ fontWeight: 600, color: m.rank <= 3 ? "#017ea7" : "#1A1313" }}>
+                              #{m.rank}
+                            </span>
+                          </Td>
+                          <Td>{m.businessName}</Td>
+                          <Td>{fmtMoney(m.volumeCents)}</Td>
+                          <Td muted>{fmtCount(m.transactionCount)}</Td>
+                          <Td muted>{fmtMoney(m.averageTicketCents)}</Td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="md:hidden">
+                  {topMerchants.data.map((m) => (
+                    <div key={m.merchantId} style={{ padding: "14px 20px", borderTop: "1px solid #F4F5F7", display: "flex", flexDirection: "column", gap: 6 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
+                        <div style={{ display: "flex", alignItems: "baseline", gap: 8, minWidth: 0 }}>
+                          <span style={{ fontWeight: 600, fontSize: 13, color: m.rank <= 3 ? "#017ea7" : "#878787", flexShrink: 0 }}>#{m.rank}</span>
+                          <span style={{ fontSize: 14, fontWeight: 600, color: "#1A1313", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.businessName}</span>
+                        </div>
+                        <span style={{ fontSize: 14, fontWeight: 600, color: "#1A1313", flexShrink: 0 }}>{fmtMoney(m.volumeCents)}</span>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#878787" }}>
+                        <span>{fmtCount(m.transactionCount)} txns</span>
+                        <span>Avg {fmtMoney(m.averageTicketCents)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
             )}
           </Card>
 
@@ -297,32 +331,48 @@ export function ReportingClient() {
                 No merchant activity in this window
               </div>
             ) : (
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", fontSize: 13 }}>
-                  <thead style={{ background: "#F9FAFB" }}>
-                    <tr>
-                      <Th>Rank</Th>
-                      <Th>Business</Th>
-                      <Th>Transactions ({window}d)</Th>
-                      <Th>Avg / day</Th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {velocity.data.map((m) => (
-                      <tr key={m.merchantId} style={{ borderTop: "1px solid #F4F5F7" }}>
-                        <Td>
-                          <span style={{ fontWeight: 600, color: m.rank <= 3 ? "#017ea7" : "#1A1313" }}>
-                            #{m.rank}
-                          </span>
-                        </Td>
-                        <Td>{m.businessName}</Td>
-                        <Td muted>{fmtCount(m.transactionCount)}</Td>
-                        <Td muted>{m.avgPerDay.toFixed(2)}</Td>
+              <>
+                <div className="hidden md:block" style={{ overflowX: "auto" }}>
+                  <table style={{ width: "100%", fontSize: 13 }}>
+                    <thead style={{ background: "#F9FAFB" }}>
+                      <tr>
+                        <Th>Rank</Th>
+                        <Th>Business</Th>
+                        <Th>Transactions ({window}d)</Th>
+                        <Th>Avg / day</Th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {velocity.data.map((m) => (
+                        <tr key={m.merchantId} style={{ borderTop: "1px solid #F4F5F7" }}>
+                          <Td>
+                            <span style={{ fontWeight: 600, color: m.rank <= 3 ? "#017ea7" : "#1A1313" }}>
+                              #{m.rank}
+                            </span>
+                          </Td>
+                          <Td>{m.businessName}</Td>
+                          <Td muted>{fmtCount(m.transactionCount)}</Td>
+                          <Td muted>{m.avgPerDay.toFixed(2)}</Td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="md:hidden">
+                  {velocity.data.map((m) => (
+                    <div key={m.merchantId} style={{ padding: "14px 20px", borderTop: "1px solid #F4F5F7", display: "flex", flexDirection: "column", gap: 6 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
+                        <div style={{ display: "flex", alignItems: "baseline", gap: 8, minWidth: 0 }}>
+                          <span style={{ fontWeight: 600, fontSize: 13, color: m.rank <= 3 ? "#017ea7" : "#878787", flexShrink: 0 }}>#{m.rank}</span>
+                          <span style={{ fontSize: 14, fontWeight: 600, color: "#1A1313", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.businessName}</span>
+                        </div>
+                        <span style={{ fontSize: 14, fontWeight: 600, color: "#1A1313", flexShrink: 0 }}>{fmtCount(m.transactionCount)}</span>
+                      </div>
+                      <div style={{ fontSize: 12, color: "#878787" }}>{m.avgPerDay.toFixed(2)} / day on average</div>
+                    </div>
+                  ))}
+                </div>
+              </>
             )}
           </Card>
         </>

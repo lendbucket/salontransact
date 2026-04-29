@@ -158,7 +158,7 @@ export function ApplicationsClient() {
         </Card>
       ) : (
         <Card noPadding>
-          <div style={{ overflowX: "auto" }}>
+          <div className="hidden md:block" style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", fontSize: 13 }}>
               <thead style={{ background: "#F9FAFB" }}>
                 <tr>
@@ -199,15 +199,7 @@ export function ApplicationsClient() {
                     <td style={{ padding: "12px 16px" }}>
                       <Link
                         href={`/master/applications/${row.id}`}
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 4,
-                          fontSize: 13,
-                          color: "#017ea7",
-                          textDecoration: "none",
-                          fontWeight: 500,
-                        }}
+                        style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 13, color: "#017ea7", textDecoration: "none", fontWeight: 500 }}
                       >
                         Review
                         <ChevronRight size={14} />
@@ -217,6 +209,38 @@ export function ApplicationsClient() {
                 ))}
               </tbody>
             </table>
+          </div>
+          <div className="md:hidden">
+            {rows.map((row) => (
+              <Link
+                key={row.id}
+                href={`/master/applications/${row.id}`}
+                style={{ display: "block", padding: "14px 16px", borderTop: "1px solid #F4F5F7", textDecoration: "none", color: "inherit" }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 6 }}>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ fontWeight: 600, fontSize: 14, color: "#1A1313", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 2 }}>
+                      {row.legalBusinessName}
+                    </div>
+                    {row.dba && <div style={{ fontSize: 11, color: "#878787", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>DBA: {row.dba}</div>}
+                  </div>
+                  <div style={{ flexShrink: 0 }}>
+                    <StatusPill status={statusKind(row.status)} label={APPLICATION_STATUS_LABELS[row.status]} />
+                  </div>
+                </div>
+                <div style={{ fontSize: 12, color: "#4A4A4A", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 4 }}>
+                  {row.ownerFullName} · {row.ownerEmail}
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11, color: "#878787" }}>
+                  <span>Submitted {fmtDateLocale(row.submittedAt)}</span>
+                  {row.hasSignedAgreement && (
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "#15803D" }}>
+                      <FileText size={11} /> Signed
+                    </span>
+                  )}
+                </div>
+              </Link>
+            ))}
           </div>
         </Card>
       )}
