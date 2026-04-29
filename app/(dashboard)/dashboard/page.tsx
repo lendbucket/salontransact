@@ -2,7 +2,7 @@ import { requireMerchant } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { DollarSign, TrendingUp, CreditCard, Clock } from "lucide-react";
 import { StatCard } from "@/components/ui/stat-card";
-import { Badge } from "@/components/ui/badge";
+import { StatusPill } from "@/components/ui/status-pill";
 import { DashboardCharts } from "./dashboard-charts";
 import { format } from "date-fns";
 
@@ -216,7 +216,7 @@ export default async function DashboardPage() {
                           {formatMoney(tx.amount)}
                         </td>
                         <td className="py-3 text-right">
-                          <Badge status={tx.status} />
+                          <StatusPill status={tx.status} />
                         </td>
                       </tr>
                     )
@@ -242,7 +242,7 @@ export default async function DashboardPage() {
                       <span className="text-sm text-foreground font-medium truncate">
                         {tx.description ?? "Payment"}
                       </span>
-                      <Badge status={tx.status} />
+                      <StatusPill status={tx.status} />
                     </div>
                     <div className="flex items-baseline justify-between gap-2">
                       <span className="text-base font-semibold text-foreground">

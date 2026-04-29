@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Search, Download, ChevronLeft, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
-import { Badge } from "@/components/ui/badge";
+import { StatusPill } from "@/components/ui/status-pill";
 import TransactionCard from "@/components/transactions/transaction-card";
 
 type Tx = {
@@ -187,7 +187,7 @@ export function TransactionsTable({ transactions }: { transactions: Tx[] }) {
                       {formatMoney(t.net)}
                     </td>
                     <td className="py-3 text-right">
-                      <Badge status={t.status} />
+                      <StatusPill status={t.status} />
                     </td>
                   </tr>
                 ))}
