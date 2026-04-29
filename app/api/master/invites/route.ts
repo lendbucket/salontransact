@@ -159,6 +159,7 @@ export async function POST(request: Request) {
     businessName,
     inviterEmail: user.email ?? "",
     inviteUrl,
+    baseUrl,
     note,
     expiresAt: invite.expiresAt,
   });

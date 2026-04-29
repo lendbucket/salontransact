@@ -57,6 +57,7 @@ export default withAuth(
           path.startsWith('/signup') ||
           path.startsWith('/register') ||
           path.startsWith('/invite') ||
+          path.startsWith('/master-invite') ||
           path.startsWith('/forgot-password') ||
           path.startsWith('/reset-password') ||
           path.startsWith('/magic') ||
@@ -64,6 +65,7 @@ export default withAuth(
           path.startsWith('/account-suspended') ||
           path.startsWith('/api/auth') ||
           path.startsWith('/api/invite') ||
+          path.startsWith('/api/merchant-invites') ||
           path.startsWith('/api/webhooks/payroc') ||
           path.startsWith('/api/cron') ||
           path === '/'

@@ -62,6 +62,7 @@ export async function POST(
     businessName: invite.businessName,
     inviterEmail: user.email ?? "",
     inviteUrl,
+    baseUrl,
     note: invite.note,
     expiresAt: newExpiresAt,
   });

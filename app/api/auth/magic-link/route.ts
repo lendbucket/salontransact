@@ -1,6 +1,31 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { RESEND_FROM } from "@/lib/email/sender";
+import {
+  buildEmailHtml,
+  emailHeading,
+  emailParagraph,
+  emailButton,
+  emailFallbackUrl,
+  emailDivider,
+  emailMutedParagraph,
+} from "@/lib/email/components";
+
+function buildMagicLinkEmail({ magicUrl, baseUrl }: { magicUrl: string; baseUrl: string }): string {
+  const content = `
+${emailHeading("Sign in to SalonTransact")}
+${emailParagraph("Click the button below to securely sign in to your account. No password needed.")}
+${emailButton(magicUrl, "Sign in to SalonTransact")}
+${emailFallbackUrl(magicUrl)}
+${emailDivider()}
+${emailMutedParagraph("This link expires in 15 minutes. If you didn't request this, you can safely ignore this email.")}`;
+
+  return buildEmailHtml({
+    baseUrl,
+    preheader: "Your sign-in link for SalonTransact",
+    content,
+  });
+}
 
 export async function POST(request: Request) {
   try {
@@ -61,35 +86,7 @@ export async function POST(request: Request) {
         from: RESEND_FROM,
         to: user.email,
         subject: "Your SalonTransact sign-in link",
-        html: `<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#0a0f1a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-  <div style="max-width:600px;margin:0 auto;padding:40px 20px;">
-    <div style="text-align:center;margin-bottom:32px;">
-      <div style="display:inline-block;width:40px;height:40px;background:#635bff;border-radius:10px;line-height:40px;text-align:center;">
-        <span style="color:#fff;font-weight:700;font-size:16px;">ST</span>
-      </div>
-      <span style="color:#fff;font-weight:600;font-size:18px;margin-left:12px;vertical-align:middle;">SalonTransact</span>
-    </div>
-    <div style="background:#111827;border:1px solid rgba(255,255,255,0.06);border-radius:16px;padding:40px;text-align:center;">
-      <h1 style="color:#fff;font-size:28px;font-weight:700;margin:0 0 16px;">Sign in to SalonTransact</h1>
-      <p style="color:#9ca3af;font-size:15px;line-height:1.6;margin:0 0 32px;">
-        Click the button below to securely sign in to your account. No password needed.
-      </p>
-      <a href="${magicUrl}" style="display:block;background:#635bff;color:#fff;text-decoration:none;padding:16px;border-radius:12px;font-weight:600;font-size:15px;">
-        Sign In to SalonTransact &rarr;
-      </a>
-      <p style="color:#6b7280;font-size:12px;margin:16px 0 0;word-break:break-all;">${magicUrl}</p>
-      <p style="color:#6b7280;font-size:13px;margin:24px 0 0;">This link expires in 15 minutes.</p>
-    </div>
-    <p style="color:#6b7280;font-size:12px;text-align:center;margin-top:32px;">
-      If you didn't request this, you can safely ignore this email.<br/>
-      SalonTransact by Reyna Pay LLC
-    </p>
-  </div>
-</body>
-</html>`,
+        html: buildMagicLinkEmail({ magicUrl, baseUrl }),
       }),
     });
 

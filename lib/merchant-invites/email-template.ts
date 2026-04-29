@@ -1,30 +1,29 @@
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
+import {
+  buildEmailHtml,
+  emailHeading,
+  emailParagraph,
+  emailButton,
+  emailFallbackUrl,
+  emailDivider,
+  emailMutedParagraph,
+  emailNoteBlock,
+  emailSubheading,
+  emailSteps,
+  escapeHtml,
+} from "@/lib/email/components";
 
 export interface InviteEmailData {
   recipientEmail: string;
   businessName: string;
   inviterEmail: string;
   inviteUrl: string;
+  baseUrl: string;
   note: string | null;
   expiresAt: Date;
 }
 
 export function buildInviteEmail(data: InviteEmailData): { subject: string; html: string } {
-  const subject = `You've been invited to SalonTransact`;
-
-  const noteBlock = data.note
-    ? `<div style="background:#F0F9FF;border:1px solid #BFDBFE;border-radius:8px;padding:12px 16px;margin:16px 0;">
-         <p style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:#878787;font-weight:600;margin:0 0 4px;">Personal note from ${escapeHtml(data.inviterEmail)}</p>
-         <p style="font-size:13px;color:#1A1313;margin:0;line-height:1.5;">${escapeHtml(data.note)}</p>
-       </div>`
-    : "";
+  const subject = `Your SalonTransact application is ready, ${data.businessName}`;
 
   const expiresLabel = data.expiresAt.toLocaleDateString("en-US", {
     month: "long",
@@ -32,51 +31,51 @@ export function buildInviteEmail(data: InviteEmailData): { subject: string; html
     year: "numeric",
   });
 
-  const html = `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-</head>
-<body style="margin:0;padding:0;background:#FBFBFB;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Inter',sans-serif;">
-  <div style="max-width:640px;margin:0 auto;padding:32px 24px;">
-    <div style="background:#FFFFFF;border-radius:12px;padding:32px;box-shadow:0 1px 3px rgba(0,0,0,0.05);">
-      <div style="height:4px;background:linear-gradient(90deg,#017ea7 0%,#0290be 100%);border-radius:12px 12px 0 0;margin:-32px -32px 24px -32px;"></div>
+  const noteHtml = data.note
+    ? emailNoteBlock(`Note from ${data.inviterEmail}`, escapeHtml(data.note))
+    : "";
 
-      <h1 style="font-size:24px;font-weight:600;color:#1A1313;margin:0 0 8px;letter-spacing:-0.31px;">
-        You're invited to SalonTransact
-      </h1>
-      <p style="font-size:14px;color:#878787;margin:0 0 16px;">
-        ${escapeHtml(data.inviterEmail)} has invited <strong style="color:#1A1313;">${escapeHtml(data.businessName)}</strong> to join SalonTransact, the payment platform built for salon businesses.
-      </p>
+  const stepsHtml = emailSteps([
+    {
+      number: 1,
+      title: "Click the button above",
+      description: "It opens your pre-filled merchant application — no signup needed.",
+    },
+    {
+      number: 2,
+      title: "Review and complete",
+      description: `We've already pre-filled your email and ${data.businessName} business name to save you time.`,
+    },
+    {
+      number: 3,
+      title: "We review within 1–2 business days",
+      description: "You'll get an email when your account is approved and you can start accepting payments.",
+    },
+  ]);
 
-      ${noteBlock}
+  const content = `
+${emailHeading(`Welcome to SalonTransact, ${escapeHtml(data.businessName)}`)}
+${emailParagraph(`<strong style="color:#1A1313;">${escapeHtml(data.inviterEmail)}</strong> has invited you to join SalonTransact, the payment platform built for salon businesses.`)}
 
-      <p style="font-size:14px;color:#4A4A4A;line-height:1.6;margin:16px 0 24px;">
-        Click below to start your merchant application. We've already pre-filled your email and business name to save you time.
-      </p>
+${noteHtml}
 
-      <div style="text-align:center;margin:24px 0;">
-        <a href="${data.inviteUrl}" style="display:inline-block;padding:14px 28px;background:#017ea7;color:#FFFFFF;text-decoration:none;border-radius:8px;font-size:14px;font-weight:600;">
-          Start your application
-        </a>
-      </div>
+${emailButton(data.inviteUrl, "Start your application")}
+${emailFallbackUrl(data.inviteUrl)}
 
-      <p style="font-size:12px;color:#878787;margin:0;text-align:center;word-break:break-all;">
-        Or copy this link: <a href="${data.inviteUrl}" style="color:#017ea7;text-decoration:none;">${data.inviteUrl}</a>
-      </p>
+${emailDivider()}
 
-      <p style="font-size:12px;color:#878787;margin:16px 0 0;text-align:center;">
-        This invitation expires on ${expiresLabel}.
-      </p>
+${emailSubheading("What to expect")}
+${stepsHtml}
 
-      <p style="text-align:center;font-size:11px;color:#878787;margin-top:24px;padding-top:24px;border-top:1px solid #E8EAED;">
-        SalonTransact by Reyna Pay LLC
-      </p>
-    </div>
-  </div>
-</body>
-</html>`;
+${emailDivider()}
+
+${emailMutedParagraph(`This invitation expires on <strong>${escapeHtml(expiresLabel)}</strong>. If you weren't expecting this, you can ignore the email.`)}`;
+
+  const html = buildEmailHtml({
+    baseUrl: data.baseUrl,
+    preheader: `${data.inviterEmail} invited ${data.businessName} to apply on SalonTransact.`,
+    content,
+  });
 
   return { subject, html };
 }
