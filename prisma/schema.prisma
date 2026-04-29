@@ -359,7 +359,8 @@ model MerchantApplication {
   monthlyVolume     String
   averageTicket     String
   mccCode           String
-  agreementAccepted Boolean  @default(false)
+  agreementAccepted          Boolean  @default(false)
+  signedAgreementContractId  String?
 
   status            String   @default("submitted")
   submittedAt       DateTime @default(now())
