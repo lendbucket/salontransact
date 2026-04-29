@@ -5,11 +5,10 @@ import { prisma } from "@/lib/prisma";
 import { writeAuditLog } from "@/lib/audit/log";
 import { getInviteExpiresAt } from "@/lib/merchant-invites/generate";
 import { buildInviteEmail } from "@/lib/merchant-invites/email-template";
+import { RESEND_FROM } from "@/lib/email/sender";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-const RESEND_FROM = "SalonTransact <onboarding@resend.dev>";
 
 export async function POST(
   _request: Request,

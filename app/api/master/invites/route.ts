@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { writeAuditLog } from "@/lib/audit/log";
 import { getInviteExpiresAt } from "@/lib/merchant-invites/generate";
 import { buildInviteEmail } from "@/lib/merchant-invites/email-template";
+import { RESEND_FROM } from "@/lib/email/sender";
 import type {
   MerchantInviteListResponse,
   MerchantInvitePublic,
@@ -19,8 +20,6 @@ interface PostBody {
   businessName?: unknown;
   note?: unknown;
 }
-
-const RESEND_FROM = "SalonTransact <onboarding@resend.dev>";
 
 function rowToPublic(row: {
   id: string;

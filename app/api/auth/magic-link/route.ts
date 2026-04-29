@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { RESEND_FROM } from "@/lib/email/sender";
 
 export async function POST(request: Request) {
   try {
@@ -57,7 +58,7 @@ export async function POST(request: Request) {
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        from: "SalonTransact <onboarding@resend.dev>",
+        from: RESEND_FROM,
         to: user.email,
         subject: "Your SalonTransact sign-in link",
         html: `<!DOCTYPE html>

@@ -1,9 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { buildDigestEmail } from "./digest-template";
+import { RESEND_FROM } from "@/lib/email/sender";
 import type { NotificationPublic } from "./types";
 import type { DigestFrequency } from "./preferences";
-
-const RESEND_FROM = "SalonTransact <onboarding@resend.dev>";
 
 function rowToPublic(row: {
   id: string;
