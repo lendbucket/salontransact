@@ -2,14 +2,18 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import type { AuditLogListResponse, AuditLogPublic } from "@/lib/audit/types";
+import { writeAuditLog } from "@/lib/audit/log";
+import { auditLogsToCsv, csvFilename } from "@/lib/audit/csv";
+import type { AuditLogPublic } from "@/lib/audit/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
-  const user = session?.user as { id?: string; role?: string } | undefined;
+  const user = session?.user as
+    | { id?: string; email?: string | null; role?: string }
+    | undefined;
 
   if (!user || !user.id) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
@@ -28,7 +32,6 @@ export async function GET(request: Request) {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const where: any = {};
-
   if (actionParam && actionParam !== "all" && actionParam.length > 0) {
     where.action = actionParam;
   }
@@ -61,23 +64,11 @@ export async function GET(request: Request) {
     ];
   }
 
-  const [rows, distinctActions, distinctTargetTypes] = await Promise.all([
-    prisma.auditLog.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-      take: 500,
-    }),
-    prisma.auditLog.findMany({
-      distinct: ["action"],
-      select: { action: true },
-      orderBy: { action: "asc" },
-    }),
-    prisma.auditLog.findMany({
-      distinct: ["targetType"],
-      select: { targetType: true },
-      orderBy: { targetType: "asc" },
-    }),
-  ]);
+  const rows = await prisma.auditLog.findMany({
+    where,
+    orderBy: { createdAt: "desc" },
+    take: 10000,
+  });
 
   const merchantIds = Array.from(
     new Set(rows.map((r) => r.merchantId).filter((id): id is string => !!id))
@@ -91,7 +82,7 @@ export async function GET(request: Request) {
     for (const m of merchants) merchantMap.set(m.id, m.businessName);
   }
 
-  const data: AuditLogPublic[] = rows.map((r) => ({
+  const data: Array<AuditLogPublic & { merchantBusinessName: string | null }> = rows.map((r) => ({
     id: r.id,
     actorId: r.actorId,
     actorEmail: r.actorEmail,
@@ -100,26 +91,37 @@ export async function GET(request: Request) {
     targetType: r.targetType,
     targetId: r.targetId,
     merchantId: r.merchantId,
-    merchantBusinessName: r.merchantId
-      ? merchantMap.get(r.merchantId) ?? null
-      : null,
     metadata: (r.metadata as Record<string, unknown> | null) ?? null,
     createdAt: r.createdAt.toISOString(),
+    merchantBusinessName: r.merchantId ? merchantMap.get(r.merchantId) ?? null : null,
   }));
 
-  const uniqueActors = new Set(data.map((d) => d.actorId)).size;
-  const uniqueMerchants = new Set(
-    data.map((d) => d.merchantId).filter((id) => !!id)
-  ).size;
+  await writeAuditLog({
+    actor: { id: user.id, email: user.email ?? "", role: user.role ?? "" },
+    action: "audit.export",
+    targetType: "AuditLog",
+    targetId: "export",
+    merchantId: null,
+    metadata: {
+      exportedRows: data.length,
+      filters: {
+        action: actionParam,
+        targetType: targetTypeParam,
+        merchantId: merchantIdParam,
+        q,
+        from: fromParam,
+        to: toParam,
+      },
+    },
+  });
 
-  const response: AuditLogListResponse = {
-    data,
-    count: data.length,
-    uniqueActors,
-    uniqueMerchants,
-    availableActions: distinctActions.map((r) => r.action),
-    availableTargetTypes: distinctTargetTypes.map((r) => r.targetType),
-  };
+  const csv = auditLogsToCsv(data);
+  const filename = csvFilename("audit-log");
 
-  return NextResponse.json(response);
+  return new Response(csv, {
+    headers: {
+      "Content-Type": "text/csv; charset=utf-8",
+      "Content-Disposition": `attachment; filename="${filename}"`,
+    },
+  });
 }

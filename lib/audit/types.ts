@@ -29,4 +29,6 @@ export interface AuditLogListResponse {
   count: number;
   uniqueActors: number;
   uniqueMerchants: number;
+  availableActions: string[];
+  availableTargetTypes: string[];
 }

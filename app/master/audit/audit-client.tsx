@@ -7,6 +7,7 @@ import {
   ChevronDown,
   ChevronRight,
   ScrollText,
+  Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -17,19 +18,6 @@ import type {
   AuditLogPublic,
   AuditLogListResponse,
 } from "@/lib/audit/types";
-
-const KNOWN_ACTIONS = [
-  "all",
-  "merchant.suspend",
-  "merchant.reactivate",
-  "merchant.plan_change",
-  "merchant.update",
-  "saved_card.revoke",
-  "device.charge.initiated",
-  "device.charge.failed",
-  "transaction.refund",
-  "transaction.reverse",
-];
 
 interface Props {
   initialEntries: AuditLogPublic[];
@@ -46,6 +34,10 @@ export function AuditClient({ initialEntries, allMerchants }: Props) {
   const [fromDate, setFromDate] = useState<string>("");
   const [toDate, setToDate] = useState<string>("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [targetTypeFilter, setTargetTypeFilter] = useState<string>("all");
+  const [availableActions, setAvailableActions] = useState<string[]>([]);
+  const [availableTargetTypes, setAvailableTargetTypes] = useState<string[]>([]);
+  const [exportLoading, setExportLoading] = useState(false);
   const [toast, setToast] = useState<{
     kind: "success" | "error";
     message: string;
@@ -66,6 +58,7 @@ export function AuditClient({ initialEntries, allMerchants }: Props) {
     try {
       const params = new URLSearchParams();
       if (actionFilter !== "all") params.set("action", actionFilter);
+      if (targetTypeFilter !== "all") params.set("targetType", targetTypeFilter);
       if (merchantFilter) params.set("merchantId", merchantFilter);
       if (debouncedQuery.length > 0) params.set("q", debouncedQuery);
       if (fromDate) params.set("from", fromDate);
@@ -77,12 +70,14 @@ export function AuditClient({ initialEntries, allMerchants }: Props) {
       }
       const data = (await res.json()) as AuditLogListResponse;
       setEntries(data.data);
+      setAvailableActions(data.availableActions ?? []);
+      setAvailableTargetTypes(data.availableTargetTypes ?? []);
     } catch (e) {
       showToast("error", e instanceof Error ? e.message : "Reload failed");
     } finally {
       setLoading(false);
     }
-  }, [actionFilter, merchantFilter, debouncedQuery, fromDate, toDate]);
+  }, [actionFilter, targetTypeFilter, merchantFilter, debouncedQuery, fromDate, toDate]);
 
   useEffect(() => {
     refetch();
@@ -167,6 +162,44 @@ export function AuditClient({ initialEntries, allMerchants }: Props) {
             <Button variant="secondary" leadingIcon={<RefreshCw size={14} />} onClick={refetch} loading={loading}>
               Refresh
             </Button>
+            <Button
+              variant="secondary"
+              leadingIcon={<Download size={14} />}
+              loading={exportLoading}
+              disabled={entries.length === 0}
+              onClick={async () => {
+                setExportLoading(true);
+                try {
+                  const p = new URLSearchParams();
+                  if (actionFilter !== "all") p.set("action", actionFilter);
+                  if (targetTypeFilter !== "all") p.set("targetType", targetTypeFilter);
+                  if (merchantFilter) p.set("merchantId", merchantFilter);
+                  if (debouncedQuery.length > 0) p.set("q", debouncedQuery);
+                  if (fromDate) p.set("from", fromDate);
+                  if (toDate) p.set("to", toDate);
+                  const res = await fetch(`/api/master/audit/export?${p.toString()}`);
+                  if (!res.ok) { showToast("error", "Export failed"); return; }
+                  const blob = await res.blob();
+                  const blobUrl = window.URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = blobUrl;
+                  const disposition = res.headers.get("Content-Disposition") ?? "";
+                  const match = disposition.match(/filename="([^"]+)"/);
+                  a.download = match?.[1] ?? "audit-log.csv";
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  window.URL.revokeObjectURL(blobUrl);
+                  showToast("success", "Audit log exported");
+                } catch (e) {
+                  showToast("error", e instanceof Error ? e.message : "Export failed");
+                } finally {
+                  setExportLoading(false);
+                }
+              }}
+            >
+              Export CSV
+            </Button>
           </div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
             <select
@@ -174,8 +207,19 @@ export function AuditClient({ initialEntries, allMerchants }: Props) {
               onChange={(e) => setActionFilter(e.target.value)}
               style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #E8EAED", fontSize: 13, background: "#fff", color: "#1A1313", cursor: "pointer" }}
             >
-              {KNOWN_ACTIONS.map((a) => (
-                <option key={a} value={a}>{a === "all" ? "All actions" : a}</option>
+              <option value="all">All actions</option>
+              {availableActions.map((a) => (
+                <option key={a} value={a}>{a}</option>
+              ))}
+            </select>
+            <select
+              value={targetTypeFilter}
+              onChange={(e) => setTargetTypeFilter(e.target.value)}
+              style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #E8EAED", fontSize: 13, background: "#fff", color: "#1A1313", cursor: "pointer" }}
+            >
+              <option value="all">All targets</option>
+              {availableTargetTypes.map((t) => (
+                <option key={t} value={t}>{t}</option>
               ))}
             </select>
             <select
@@ -191,8 +235,8 @@ export function AuditClient({ initialEntries, allMerchants }: Props) {
             <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid #E8EAED", fontSize: 13, background: "#fff", color: "#1A1313" }} />
             <span style={{ fontSize: 12, color: "#878787" }}>to</span>
             <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid #E8EAED", fontSize: 13, background: "#fff", color: "#1A1313" }} />
-            {(actionFilter !== "all" || merchantFilter || fromDate || toDate) && (
-              <Button variant="ghost" onClick={() => { setActionFilter("all"); setMerchantFilter(""); setFromDate(""); setToDate(""); }}>
+            {(actionFilter !== "all" || targetTypeFilter !== "all" || merchantFilter || fromDate || toDate) && (
+              <Button variant="ghost" onClick={() => { setActionFilter("all"); setTargetTypeFilter("all"); setMerchantFilter(""); setFromDate(""); setToDate(""); }}>
                 Clear filters
               </Button>
             )}
