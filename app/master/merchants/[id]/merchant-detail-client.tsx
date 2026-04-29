@@ -15,6 +15,7 @@ import {
 import type { MerchantDetail } from "../_lib/merchant-types";
 import { StatusPill } from "@/components/ui/status-pill";
 import { Toast } from "@/components/ui/toast";
+import { ContractsTab } from "./contracts-tab";
 
 const SHADOW =
   "0 0 0 1px rgba(0,0,0,0.05), 0 1px 1px rgba(0,0,0,0.05), 0 2px 2px rgba(0,0,0,0.05), 0 4px 4px rgba(0,0,0,0.05), 0 8px 8px rgba(0,0,0,0.05), 0 16px 16px rgba(0,0,0,0.05)";
@@ -55,9 +56,12 @@ interface Props {
     devices: number;
     savedCards: number;
   };
+  currentUserId: string;
+  currentUserRole: string;
 }
 
-export function MerchantDetailClient({ merchant, counts }: Props) {
+export function MerchantDetailClient({ merchant, counts, currentUserId, currentUserRole }: Props) {
+  const [tab, setTab] = useState<"overview" | "contracts">("overview");
   const [status, setStatus] = useState(merchant.status);
   const [updating, setUpdating] = useState(false);
   const [toast, setToast] = useState<{
@@ -112,6 +116,43 @@ export function MerchantDetailClient({ merchant, counts }: Props) {
 
   return (
     <>
+      {/* Tab switcher */}
+      <div style={{ display: "flex", gap: 4, padding: 4, background: "#F4F5F7", borderRadius: 8, marginBottom: 16, width: "fit-content" }}>
+        <button
+          onClick={() => setTab("overview")}
+          style={{
+            padding: "6px 16px", fontSize: 13, fontWeight: 500, borderRadius: 6, border: "none", cursor: "pointer",
+            background: tab === "overview" ? "#FFFFFF" : "transparent",
+            color: tab === "overview" ? "#1A1313" : "#878787",
+            boxShadow: tab === "overview" ? "0 1px 2px rgba(0,0,0,0.05)" : "none",
+          }}
+        >
+          Overview
+        </button>
+        <button
+          onClick={() => setTab("contracts")}
+          style={{
+            padding: "6px 16px", fontSize: 13, fontWeight: 500, borderRadius: 6, border: "none", cursor: "pointer",
+            background: tab === "contracts" ? "#FFFFFF" : "transparent",
+            color: tab === "contracts" ? "#1A1313" : "#878787",
+            boxShadow: tab === "contracts" ? "0 1px 2px rgba(0,0,0,0.05)" : "none",
+          }}
+        >
+          Documents
+        </button>
+      </div>
+
+      {tab === "contracts" && (
+        <ContractsTab
+          merchantId={merchant.id}
+          merchantName={merchant.businessName}
+          currentUserId={currentUserId}
+          currentUserRole={currentUserRole}
+        />
+      )}
+
+      {tab === "overview" && (
+      <>
       {/* Header */}
       <div className="flex items-start justify-between gap-4 mb-6 flex-wrap">
         <div>
@@ -279,6 +320,8 @@ export function MerchantDetailClient({ merchant, counts }: Props) {
           )}
         </Section>
       </div>
+      </>
+      )}
     </>
   );
 }

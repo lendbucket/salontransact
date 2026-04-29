@@ -107,6 +107,7 @@ model Merchant {
   savedPaymentMethods   SavedPaymentMethod[]
   devices               Device[]
   batches               Batch[]
+  contracts             Contract[]
 }
 
 model Transaction {
@@ -455,4 +456,26 @@ model MerchantInvite {
   @@index([invitedById])
   @@index([email])
   @@index([expiresAt])
+}
+
+model Contract {
+  id              String   @id @default(cuid())
+  merchantId      String
+  fileName        String
+  mimeType        String
+  sizeBytes       Int
+  storagePath     String   @unique
+  docType         String
+  uploadedById    String
+  uploadedByEmail String
+  uploadedByRole  String
+  notes           String?
+  createdAt       DateTime @default(now())
+
+  merchant        Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@index([merchantId])
+  @@index([docType])
+  @@index([uploadedById])
+  @@index([createdAt])
 }

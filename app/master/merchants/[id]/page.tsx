@@ -13,7 +13,7 @@ export default async function MasterMerchantDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requireMaster();
+  const { userId: currentUserId } = await requireMaster();
   const { id } = await params;
 
   const m = await prisma.merchant.findUnique({
@@ -90,6 +90,8 @@ export default async function MasterMerchantDetailPage({
           devices: m._count.devices,
           savedCards: m._count.savedPaymentMethods,
         }}
+        currentUserId={currentUserId}
+        currentUserRole="master portal"
       />
     </div>
   );
