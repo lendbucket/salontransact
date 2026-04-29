@@ -8,7 +8,7 @@ import { fireWebhookEvent } from "@/lib/webhooks/fanout";
 import { validateChargeInput } from "@/lib/api/v1/charges/validate";
 import { processCharge } from "@/lib/api/v1/charges/process";
 import { formatChargeResponse, formatTransactionAsCharge } from "@/lib/api/v1/charges/format";
-import type { V1ChargeResponse } from "@/lib/api/v1/charges/types";
+import type { V1ChargeResponse, V1ChargeListResponse } from "@/lib/api/v1/charges/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -44,11 +44,15 @@ export async function GET(request: Request) {
   const where: any = { merchantId: auth.merchant.id };
 
   if (status) {
-    const valid = ["succeeded", "failed", "requires_capture"];
+    const valid = ["succeeded", "failed", "requires_capture", "refunded"];
     if (!valid.includes(status)) {
       return apiError("validation_error", `status must be one of: ${valid.join(", ")}`, { requestId: auth.requestId });
     }
-    where.status = status;
+    if (status === "refunded") {
+      where.refunded = true;
+    } else {
+      where.status = status;
+    }
   }
   if (customerId) where.customerId = customerId;
   if (stylistId) where.stylistId = stylistId;
@@ -88,7 +92,8 @@ export async function GET(request: Request) {
     ? encodeCursor(sliced[sliced.length - 1].createdAt.getTime(), sliced[sliced.length - 1].id)
     : null;
 
-  const response = NextResponse.json({ data, has_more: hasMore, next_cursor: nextCursor });
+  const body: V1ChargeListResponse = { data, has_more: hasMore, next_cursor: nextCursor };
+  const response = NextResponse.json(body);
   response.headers.set("X-Request-ID", auth.requestId);
   return response;
 }

@@ -52,3 +52,9 @@ export interface V1ChargeResponse {
   created_at: string;
   payroc: { payment_id: string | null };
 }
+
+export interface V1ChargeListResponse {
+  data: V1ChargeResponse[];
+  has_more: boolean;
+  next_cursor: string | null;
+}
