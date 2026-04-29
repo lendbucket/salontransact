@@ -55,6 +55,7 @@ export default withAuth(
         '/transactions': '/master/transactions',
         '/saved-cards': '/master/saved-cards',
         '/customers': '/master/customers',
+        '/statements': '/master/merchants',
       }
       if (merchantToMasterMap[path]) {
         return NextResponse.redirect(new URL(merchantToMasterMap[path], req.url))

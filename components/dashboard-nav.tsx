@@ -50,6 +50,7 @@ const links: NavLink[] = [
   { href: "/saved-cards", label: "Saved Cards", icon: CreditCard, section: "Payments" },
   { href: "/customers", label: "Customers", icon: Users, section: "Payments" },
   { href: "/payouts", label: "Payouts", icon: Wallet, section: "Payments" },
+  { href: "/statements", label: "Statements", icon: FileText, section: "Payments" },
   // Developers
   { href: "/api-keys", label: "API Keys", icon: KeyRound, section: "Developers" },
   { href: "/webhooks", label: "Webhooks", icon: Webhook, section: "Developers" },
