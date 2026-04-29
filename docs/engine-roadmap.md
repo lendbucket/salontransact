@@ -2,7 +2,7 @@
 
 **Status:** Active reference document. Updated as phases ship.
 
-**Last updated:** 2026-04-29 (after Day 3 of Phase 8.5, post-Payroc call with Matt + Chris)
+**Last updated:** 2026-04-29 (after Commit 40 shipped Customer Intelligence; Phase 10 master plan locked in: 47 commits across sub-phases 10.3 through 10.13)
 
 ---
 
@@ -85,62 +85,159 @@ Per Chris #7 (Payroc Boarding API is early beta, NOT GA), Phase 9 uses ERF/manua
 
 ---
 
-## Phase 10 — SalonTransact deepening (next 6–8 weeks after Phase 9)
+## Phase 10 — Engine v1 API build-out (47 commits, 6–8 weeks)
 
-**Goal:** Make SalonTransact a 10/10 engine for one vertical (salons) before templatizing for other verticals. The features below are what make Reyna Pay's processing materially better than Square/Stripe/Clover for salon owners.
+**Goal:** Build out SalonTransact's v1 API surface so Kasse and third-party POS systems can build rich integrations. API-first: every capability ships as a `/api/v1/*` endpoint. Merchant portal stays thin (payment ops only).
 
-Build in this priority order:
+### Master commit list
 
-### 10.1 — Operational intelligence
-- **Cash flow forecasting** — "based on bookings + recurring patterns, you'll deposit $X on Friday"
-- **Stylist productivity scoreboard** — gamified leaderboard (revenue, biggest tickets, rebook rate, tip percentage)
-- **Smart deposit holds** — alert when chargeback ratio creeps toward Visa's 0.65% monitoring threshold
+```
+Phase 10.3 — Charge endpoint expansions (5 commits)
+  41: Roadmap doc update (this commit)
+  42: GET /api/v1/charges/[id]
+  43: GET /api/v1/charges (list with filters)
+  44: POST /api/v1/charges/[id]/refund (full + partial)
+  45: POST /api/v1/charges/[id]/capture
+  46: POST /api/v1/charges/[id]/void
 
-### 10.2 — Customer intelligence
-- **Visit frequency segmentation** — auto-classify regular / occasional / lapsed
-- **Lifetime value scoring** — every customer profile shows LTV, surfaces gold clients to stylists
-- **Birthday automation** — saved-card-on-file customers get a $X credit on their birthday, auto-redeems
+Phase 10.4 — Saved cards + wallets (5 commits)
+  47: GET /api/v1/cards + /api/v1/cards/[id]
+  48: DELETE /api/v1/cards/[id]
+  49: POST /api/v1/tokenization/sessions
+  50: Apple Pay integration (production cert + Hosted Fields wallet path)
+  51: Google Pay integration (Hosted Fields wallet path)
 
-### 10.3 — Compliance & risk
-- **PCI compliance status visualization** — show merchants their PCI scope (small thanks to Hosted Fields)
-- **Chargeback evidence pack auto-builder** — one click pulls transaction record, customer profile, signed receipts, IP/geo, prior visit history; routes to Reyna Pay support
-- **Velocity controls** — auto-flag suspicious patterns (same card used 5+ times in 1 hour, decline-then-approve within minutes)
+Phase 10.5 — Reporting APIs (5 commits)
+  52: GET /api/v1/reports/transactions (flexible query)
+  53: GET /api/v1/reports/payouts
+  54: GET /api/v1/reports/stylist-attribution (Kasse uses for payroll)
+  55: GET /api/v1/reports/cash-flow
+  56: GET /api/v1/reports/risk
 
-### 10.4 — Money movement
-- **Same-day payouts (T+0)** — opt-in, ~1% fee, vs default T+1 standard
-- **Split deposits** — owner gets X%, business account gets Y%, automatic at settlement
-- **Multi-location consolidation** — single owner, multiple salons, one dashboard, separate MIDs per location for clean accounting
+Phase 10.6 — Webhook delivery completion (3 commits)
+  57: Webhook delivery retry with exponential backoff
+  58: GET /api/v1/webhooks/[id]/deliveries (delivery history)
+  59: POST manual replay endpoint
 
-### 10.5 — Integrations
-- **QuickBooks sync** — every transaction auto-categorizes to GL accounts
-- **Booking system webhooks** — Vagaro/Booksy/Square Appointments hooks to pre-authorize cards at booking time
-- **Email marketing sync** (Mailchimp, Klaviyo) — customer list with LTV/segmentation flows out
+Phase 10.7 — Operational intelligence (5 commits)
+  60: Velocity controls (server-side suspicious-pattern flagging)
+  61: Fraud scoring (riskScore on every charge)
+  62: Predictive chargeback risk
+  63: Chargeback evidence pack auto-builder
+  64: Smart deposit hold expansion + alerting (Twilio + Resend)
 
-### 10.6 — Differentiator features (real moat)
-- **Negotiated rates pass-through** — show merchants exactly what they pay vs. what Visa charges; transparent unbundled pricing
-- **Statement parser** — merchant uploads competitor statement, we auto-show "with us, you'd save $X/mo"
-- **Switching wizard** — merchant uploads 3 months of competitor statements, we pre-populate the application from extracted data
+Phase 10.8 — Multi-location / franchise (4 commits)
+  65: Location model + POST /api/v1/locations
+  66: GET /api/v1/locations + per-location scoping on existing endpoints
+  67: Multi-location reporting roll-ups
+  68: Per-location stylist/customer scoping
 
-### 10.7 — Future-Tier-4 (AI features competitors will have soon)
-- **ML fraud scoring** — every transaction scored for fraud risk before approval
-- **Predictive chargeback risk** — flag transactions with high chargeback probability
-- **Customer churn prediction** — flag clients who haven't booked in N days, recommend outreach
+Phase 10.9 — Money movement (4 commits)
+  69: POST /api/v1/payouts/instant (T+0, ~1% fee)
+  70: POST /api/v1/payouts/split
+  71: Per-stylist payout method preferences
+  72: End-of-day batch close
 
-### Build estimate
-- Phase 10 total: 6–8 weeks if done in priority order
-- Subsections 10.1–10.4 are the core (4–5 weeks)
-- 10.5 (integrations) is parallelizable
-- 10.6 is sales-tooling, build alongside or just after
-- 10.7 deferred to year 2 unless competitive pressure
+Phase 10.10 — Compliance / risk surface (3 commits)
+  73: GET /api/v1/compliance/pci-status
+  74: POST /api/v1/disputes/[id]/evidence-pack
+  75: GET /api/v1/audit + GET /api/v1/risk/velocity-alerts
 
-### Multi-location & franchise readiness
-Phase 10 explicitly **prepares** for multi-location merchants but does NOT yet implement multi-tenant brand switching:
-- Multi-location consolidation (10.4): single owner with multiple salons sees them all in one view, but they're all under one Reyna Pay brand (SalonTransact)
-- Each location gets its own MID, its own settlements, its own reporting
-- Owner dashboard shows roll-up across locations
-- Permissions: owner can see all locations; location managers see only their location
+Phase 10.11 — Integration ecosystem (5 commits)
+  76: QuickBooks GL sync
+  77: Mailchimp/Klaviyo customer export
+  78: Statement parser (PDF/CSV upload)
+  79: Switching wizard (auto-populate application from competitor statement)
+  80: Kasse SDK foundation (TypeScript npm package)
 
-This is multi-LOCATION (merchant-level), not multi-BRAND (engine-level). Multi-brand is Phase 12.
+Phase 10.12 — Feature flags + environment split (3 commits)
+  81: sk_test_* vs sk_live_* keys (UAT vs production routing)
+  82: Per-merchant feature flags (Brand model preview for Phase 12)
+  83: Test mode for charge/customer endpoints (predictable test data)
+
+Phase 10.13 — IMPLEMENTATION KIT (final phase, 5 commits)
+  84: OpenAPI 3.1 spec auto-generated for /api/v1/*
+  85: Interactive docs page at /api/v1/docs (Scalar)
+  86: Master integration prompt for Claude Code/Cursor (single .md file)
+  87: Vertical quick-starts (salon, restaurant, tire shop, computer store, gym, wellness)
+  88: Solution review template (Payroc-style architectural overview)
+```
+
+After Phase 10.13 ships, any new vertical brand or external reseller can be onboarded in days, not weeks. Drop a single markdown file into Claude Code or Cursor and the entire Reyna Pay engine integrates against any platform.
+
+### Phase 10.3 — Charge endpoint expansions
+
+Completes the charge lifecycle. Consumers (Kasse, third-party POS) need to retrieve, list, refund, capture, and void charges via API. Today only POST /charges exists.
+
+### Phase 10.4 — Saved cards + wallets
+
+Card-on-file management as a clean API surface. Includes Apple Pay and Google Pay wallet integration: customer types in card via Apple Pay/Google Pay sheet (instead of typing card number), Hosted Fields tokenizes the wallet token the same way it tokenizes a typed card, our charge flow stays unchanged. **Apple Pay production cert workflow** (per Chris #3): UAT cert needs sandbox setup; production cert uses consumer Apple device for verification. Google Pay similar.
+
+### Phase 10.5 — Reporting APIs
+
+The reporting surface that Kasse, accounting integrations, and merchant dashboards consume. Flexible query API for transactions, payouts, stylist attribution rollups (Kasse uses this for end-of-day payroll), cash flow projections, and risk metrics.
+
+### Phase 10.6 — Webhook delivery completion
+
+Today's webhook delivery is single-attempt fire-and-forget (Commit 39). Production needs retry with exponential backoff (5 attempts over 24 hours), delivery history queries, and manual replay for failed deliveries. Cron-based retry queue.
+
+### Phase 10.7 — Operational intelligence
+
+The "engine knows things" surface. Server-side velocity controls (flag 5+ uses of same card in 1 hour). Fraud scoring on every charge. Predictive chargeback risk. Auto-built dispute evidence pack (one-click pulls transaction record, customer profile, signed receipts, IP/geo, prior visit history). Smart deposit hold alerting via Twilio + Resend when chargeback ratio approaches Visa thresholds.
+
+### Phase 10.8 — Multi-location / franchise
+
+Single owner, multiple salons, one dashboard, separate MIDs per location for clean accounting. Location model. Per-location scoping on existing endpoints. Aggregated reporting across locations. Per-location stylist/customer scoping.
+
+### Phase 10.9 — Money movement
+
+Same-day payouts (T+0, ~1% fee). Split deposits across multiple bank accounts. Per-stylist payout method preferences (cash, ACH, Venmo, next paycheck). End-of-day batch close trigger that distributes tips automatically.
+
+### Phase 10.10 — Compliance / risk surface
+
+PCI compliance status visualization (merchant dashboards show their PCI scope). Auto-built dispute evidence pack. Audit log query (scoped to API key's merchant). Velocity alerts feed.
+
+### Phase 10.11 — Integration ecosystem
+
+QuickBooks GL category sync. Mailchimp/Klaviyo customer export. Statement parser (merchant uploads competitor statement PDF, we auto-show "with us, you'd save $X/mo"). Switching wizard (auto-populate application from extracted statement data). Kasse SDK foundation (TypeScript npm package wrapping the v1 API for ergonomic use in Kasse + future native consumer apps).
+
+### Phase 10.12 — Feature flags + environment split
+
+`sk_test_*` keys hit Payroc UAT environment; `sk_live_*` keys hit production. Per-merchant feature flags (some Phase 10 features should be opt-in: same-day payouts, ML risk scoring, multi-location). Test mode for charge/customer endpoints (predictable test data, no real card touches).
+
+### Phase 10.13 — IMPLEMENTATION KIT
+
+The final phase. Makes Reyna Pay easy for ANY external developer to integrate.
+
+**OpenAPI 3.1 spec** auto-generated from the v1 routes. Importable into Postman, Insomnia, Swagger UI, Stoplight. Machine-readable contract.
+
+**Interactive docs page** at `/api/v1/docs` powered by Scalar (or similar). Beautiful, searchable, with code samples in TypeScript, Python, Ruby, cURL.
+
+**Master integration prompt** — a single `.md` file (`docs/integration-kit/REYNA-PAY-INTEGRATION.md`) that contains:
+- API surface summary
+- Auth pattern with examples
+- Endpoint catalog with request/response shapes
+- Code samples for every common flow (charge a card, refund, save a card, look up customer, place auth hold, send card-entry SMS)
+- Error handling patterns
+- Idempotency key best practices
+- Webhook signature verification
+- Common integration patterns by use case
+
+This is the file you (Robert) drop into a fresh Claude Code or Cursor project and say "integrate Reyna Pay payments" — Claude Code can read it once and produce a working integration in minutes.
+
+**Vertical quick-starts** — separate `.md` files for each vertical Robert plans to launch under:
+- `docs/integration-kit/quick-start-salon.md` (SalonTransact pattern, with Kasse expectations)
+- `docs/integration-kit/quick-start-restaurant.md` (RestaurantTransact pattern, with table/tab/course/tip-out concepts)
+- `docs/integration-kit/quick-start-tire-shop.md` (auto/repair pattern, parts + labor + multi-bay attribution)
+- `docs/integration-kit/quick-start-computer-store.md` (retail + service mix, inventory + repair tickets)
+- `docs/integration-kit/quick-start-gym.md` (recurring billing, class drop-ins, member tiers)
+- `docs/integration-kit/quick-start-wellness.md` (massage, spa, yoga: appointment + retail + memberships)
+
+Each is a one-page integration guide that shows: the typical customer journey, the API calls that map to that journey, the data model nuances for that vertical, the Kasse-deep features available if using a Reyna Pay POS.
+
+**Solution review template** — `docs/integration-kit/SOLUTION-REVIEW.md`. A 30-minute architectural read for any new vertical brand or external reseller. Models the Payroc Solution Review document Robert went through. Sections: Engine architecture overview, API surface map, integration patterns, security model, money flow, compliance perimeter, support model, billing/commercial model.
+
+After Phase 10.13 ships, the engine isn't just code — it's a productized integration platform.
 
 ---
 
@@ -257,7 +354,7 @@ Both use the same multi-tenant engine. The architectural difference is access sc
 
 ```
 Phase 9   → Real merchants on SalonTransact (single brand, manual ERF)
-Phase 10  → SalonTransact becomes a 10/10 vertical engine
+Phase 10  → Engine v1 API build-out (47 commits, 10.3-10.13)
 Phase 11  → Kasse iPad POS (parallel with 10)
 Phase 12  → Multi-tenant engine foundation (Brand model, switcher, theming)
 Phase 13  → RestaurantTransact launches (proves multi-tenant works)
