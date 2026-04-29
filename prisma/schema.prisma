@@ -362,6 +362,16 @@ model MerchantApplication {
   agreementAccepted          Boolean  @default(false)
   signedAgreementContractId  String?
 
+  // Master review fields
+  internalNotes              String?
+  approvedAt                 DateTime?
+  approvedById               String?
+  approvedByEmail            String?
+  rejectedAt                 DateTime?
+  rejectedById               String?
+  rejectedByEmail            String?
+  rejectionReason            String?
+
   status            String   @default("submitted")
   submittedAt       DateTime @default(now())
   updatedAt         DateTime @updatedAt
