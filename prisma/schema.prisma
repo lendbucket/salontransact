@@ -210,10 +210,39 @@ model Webhook {
   lastTriggeredAt DateTime?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
-  merchant        Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  merchant        Merchant           @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  deliveries      WebhookDelivery[]
 
   @@index([merchantId])
   @@index([active])
+  @@index([createdAt])
+}
+
+model WebhookDelivery {
+  id              String   @id @default(cuid())
+  webhookId       String
+  merchantId      String
+  eventType       String
+  eventId         String
+  payload         Json
+  signature       String
+
+  status          String   @default("pending")
+  responseStatus  Int?
+  responseBody    String?
+  errorMessage    String?
+  attemptCount    Int      @default(0)
+  lastAttemptAt   DateTime?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  webhook         Webhook  @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+
+  @@index([webhookId])
+  @@index([merchantId])
+  @@index([eventType])
+  @@index([status])
   @@index([createdAt])
 }
 
