@@ -108,6 +108,7 @@ model Merchant {
   devices               Device[]
   batches               Batch[]
   contracts             Contract[]
+  customers             Customer[]
 }
 
 model Transaction {
@@ -120,6 +121,7 @@ model Transaction {
   description      String?
   customerEmail    String?
   customerName     String?
+  customerId       String?
   fee              Float     @default(0)
   net              Float     @default(0)
   refunded         Boolean   @default(false)
@@ -128,6 +130,9 @@ model Transaction {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
   merchant         Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  customer         Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  @@index([customerId])
 }
 
 model Payout {
@@ -251,6 +256,7 @@ model SavedPaymentMethod {
   id                  String    @id @default(cuid())
   merchantId          String
   customerEmail       String
+  customerId          String?
   payrocSecureTokenId String    @unique
   payrocToken         String?
   cardScheme          String?
@@ -266,11 +272,13 @@ model SavedPaymentMethod {
   lastUsedAt          DateTime?
 
   merchant            Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  customer            Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
 
   @@index([merchantId, customerEmail])
   @@index([payrocSecureTokenId])
   @@index([status])
   @@index([createdAt])
+  @@index([customerId])
 }
 
 model Device {
@@ -489,4 +497,25 @@ model Contract {
   @@index([docType])
   @@index([uploadedById])
   @@index([createdAt])
+}
+
+model Customer {
+  id                  String    @id @default(cuid())
+  merchantId          String
+  email               String
+  name                String?
+  phone               String?
+  firstSeenAt         DateTime  @default(now())
+  lastSeenAt          DateTime  @default(now())
+  totalTransactions   Int       @default(0)
+  totalSpentCents     Int       @default(0)
+
+  merchant            Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  transactions        Transaction[]
+  savedPaymentMethods SavedPaymentMethod[]
+
+  @@unique([merchantId, email])
+  @@index([merchantId])
+  @@index([email])
+  @@index([lastSeenAt])
 }

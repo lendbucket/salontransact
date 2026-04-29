@@ -28,6 +28,7 @@ import {
   ScrollText,
   BarChart3,
   Bell,
+  Users,
 } from "lucide-react";
 
 type NavLink = {
@@ -47,6 +48,7 @@ const links: NavLink[] = [
   // Payments
   { href: "/transactions", label: "Transactions", icon: ArrowLeftRight, section: "Payments" },
   { href: "/saved-cards", label: "Saved Cards", icon: CreditCard, section: "Payments" },
+  { href: "/customers", label: "Customers", icon: Users, section: "Payments" },
   { href: "/payouts", label: "Payouts", icon: Wallet, section: "Payments" },
   // Developers
   { href: "/api-keys", label: "API Keys", icon: KeyRound, section: "Developers" },
@@ -58,6 +60,7 @@ const links: NavLink[] = [
   { href: "/support", label: "Support", icon: HelpCircle, section: "Account" },
   // Master — active first, then coming soon
   { href: "/master/merchants", label: "Merchants", icon: Building2, section: "Master", masterOnly: true },
+  { href: "/master/customers", label: "Customers", icon: Users, section: "Master", masterOnly: true },
   { href: "/master/devices", label: "Devices", icon: Smartphone, section: "Master", masterOnly: true },
   { href: "/master/transactions", label: "Transactions", icon: ArrowLeftRight, section: "Master", masterOnly: true },
   { href: "/master/payouts", label: "Payouts", icon: Wallet, section: "Master", masterOnly: true },

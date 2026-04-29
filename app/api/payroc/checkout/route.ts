@@ -435,6 +435,61 @@ export async function POST(request: Request) {
         }
       }
 
+      // Upsert Customer record + link Transaction & SavedPaymentMethod (best-effort)
+      if (typeof customerEmail === "string" && customerEmail.trim().length > 0) {
+        try {
+          const custEmail = customerEmail.trim().toLowerCase();
+          const custName =
+            [customerFirstName, customerLastName].filter(Boolean).join(" ").trim() || null;
+
+          const customer = await prisma.customer.upsert({
+            where: {
+              merchantId_email: {
+                merchantId: merchant.id,
+                email: custEmail,
+              },
+            },
+            update: {
+              lastSeenAt: new Date(),
+              totalTransactions: { increment: 1 },
+              totalSpentCents: { increment: amountInCents },
+              ...(custName ? { name: custName } : {}),
+            },
+            create: {
+              merchantId: merchant.id,
+              email: custEmail,
+              name: custName,
+              firstSeenAt: new Date(),
+              lastSeenAt: new Date(),
+              totalTransactions: 1,
+              totalSpentCents: amountInCents,
+            },
+          });
+
+          // Link the transaction by payrocPaymentId
+          if (paymentId) {
+            await prisma.transaction.updateMany({
+              where: {
+                merchantId: merchant.id,
+                metadata: { path: ["payrocPaymentId"], equals: paymentId },
+                customerId: null,
+              },
+              data: { customerId: customer.id },
+            });
+          }
+
+          // Link saved payment method
+          if (savedCardRowId) {
+            await prisma.savedPaymentMethod.update({
+              where: { id: savedCardRowId },
+              data: { customerId: customer.id },
+            });
+          }
+        } catch (e) {
+          console.error("[CHECKOUT] Customer upsert failed (non-fatal):", e);
+        }
+      }
+
       return NextResponse.json({
         success: true,
         paymentId,
