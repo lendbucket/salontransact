@@ -11,10 +11,14 @@ import {
   Copy,
   Check,
   AlertCircle,
+  Mail,
+  Send,
+  X,
 } from "lucide-react";
 import { Card, CardSection } from "@/components/ui/card";
 import { StatusPill } from "@/components/ui/status-pill";
 import { Toast } from "@/components/ui/toast";
+import { Button } from "@/components/ui/button";
 import type { TransactionDetail } from "@/app/master/transactions/_lib/transaction-types";
 
 function fmtMoney(n: number, currency = "USD") {
@@ -41,6 +45,10 @@ export function TransactionDetailClient({
 }: Props) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [errorToast, setErrorToast] = useState<string | null>(null);
+  const [resendModalOpen, setResendModalOpen] = useState(false);
+  const [resendEmail, setResendEmail] = useState(t.customerEmail ?? "");
+  const [resendLoading, setResendLoading] = useState(false);
 
   function copyToClipboard(text: string, kind: string) {
     navigator.clipboard.writeText(text).catch(() => {});
@@ -48,6 +56,37 @@ export function TransactionDetailClient({
     setToast(`${kind} copied to clipboard`);
     setTimeout(() => setCopiedId(null), 1500);
     setTimeout(() => setToast(null), 2500);
+  }
+
+  async function handleResendReceipt() {
+    const trimmed = resendEmail.trim().toLowerCase();
+    if (!trimmed.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+      setErrorToast("Please enter a valid email address");
+      setTimeout(() => setErrorToast(null), 3000);
+      return;
+    }
+    setResendLoading(true);
+    try {
+      const res = await fetch(`/api/transactions/${t.id}/receipt`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: trimmed }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setErrorToast((data as { error?: string }).error ?? `Failed (${res.status})`);
+        setTimeout(() => setErrorToast(null), 4000);
+        return;
+      }
+      setToast(`Receipt sent to ${trimmed}`);
+      setTimeout(() => setToast(null), 3500);
+      setResendModalOpen(false);
+    } catch (e) {
+      setErrorToast(e instanceof Error ? e.message : "Failed to send receipt");
+      setTimeout(() => setErrorToast(null), 4000);
+    } finally {
+      setResendLoading(false);
+    }
   }
 
   const remainingAmount = Math.max(0, t.amount - t.refundAmount);
@@ -67,6 +106,23 @@ export function TransactionDetailClient({
           <Toast kind="success" message={toast} />
         </div>
       )}
+
+      {errorToast && (
+        <div style={{ position: "fixed", top: 80, right: 24, zIndex: 100, minWidth: 280 }}>
+          <Toast kind="error" message={errorToast} />
+        </div>
+      )}
+
+      {/* Quick actions */}
+      <div className="flex flex-col sm:flex-row" style={{ gap: 8, marginBottom: 24 }}>
+        <Button
+          variant="secondary"
+          leadingIcon={<Mail size={14} />}
+          onClick={() => { setResendEmail(t.customerEmail ?? ""); setResendModalOpen(true); }}
+        >
+          Resend Receipt
+        </Button>
+      </div>
 
       {/* Header */}
       <div
@@ -321,6 +377,57 @@ export function TransactionDetailClient({
             </Link>
           </div>
         </Card>
+      )}
+
+      {resendModalOpen && (
+        <div
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 12, WebkitOverflowScrolling: "touch" }}
+          onClick={() => setResendModalOpen(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ background: "#FFFFFF", borderRadius: 12, padding: 20, maxWidth: 480, width: "100%", boxShadow: "0 0 0 1px rgba(0,0,0,0.05), 0 4px 16px rgba(0,0,0,0.1), 0 8px 32px rgba(0,0,0,0.1)", maxHeight: "calc(100vh - 24px)", overflowY: "auto" }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+              <div>
+                <h3 style={{ fontSize: 18, fontWeight: 600, color: "#1A1313", margin: 0, marginBottom: 4, letterSpacing: "-0.31px" }}>
+                  Resend Receipt
+                </h3>
+                <p style={{ margin: 0, fontSize: 13, color: "#878787" }}>
+                  Send a SalonTransact-branded receipt for this transaction.
+                </p>
+              </div>
+              <button
+                onClick={() => setResendModalOpen(false)}
+                style={{ background: "transparent", border: "none", color: "#878787", cursor: "pointer", padding: 4, lineHeight: 0 }}
+                aria-label="Close"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <label style={{ fontSize: 12, fontWeight: 600, color: "#1A1313", marginBottom: 6, display: "block" }}>
+              Recipient email
+            </label>
+            <input
+              type="email"
+              value={resendEmail}
+              onChange={(e) => setResendEmail(e.target.value)}
+              placeholder="customer@example.com"
+              autoComplete="email"
+              style={{ width: "100%", padding: 10, borderRadius: 8, border: "1px solid #E8EAED", background: "#F4F5F7", fontSize: 14, color: "#1A1313", boxSizing: "border-box", marginBottom: 16, outline: "none" }}
+            />
+
+            <div className="flex flex-col-reverse sm:flex-row" style={{ gap: 8, justifyContent: "flex-end" }}>
+              <Button variant="ghost" onClick={() => setResendModalOpen(false)} disabled={resendLoading}>
+                Cancel
+              </Button>
+              <Button variant="primary" leadingIcon={<Send size={14} />} onClick={handleResendReceipt} loading={resendLoading}>
+                Send Receipt
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );
