@@ -28,9 +28,11 @@ interface Props {
 }
 
 function statusKind(status: string): string {
+  if (status === "active") return "active";
   if (status === "approved") return "active";
-  if (status === "rejected") return "failed";
+  if (status === "submitted_to_payroc") return "pending";
   if (status === "submitted") return "pending";
+  if (status === "rejected") return "failed";
   return "neutral";
 }
 
@@ -42,6 +44,10 @@ export function ApplicationDetailClient({ initialApplication }: Props) {
   const [internalNotes, setInternalNotes] = useState("");
   const [rejectionReason, setRejectionReason] = useState("");
   const [agreementLoading, setAgreementLoading] = useState(false);
+  const [submitToPayrocLoading, setSubmitToPayrocLoading] = useState(false);
+  const [markActiveModalOpen, setMarkActiveModalOpen] = useState(false);
+  const [markActiveLoading, setMarkActiveLoading] = useState(false);
+  const [payrocMidInput, setPayrocMidInput] = useState("");
   const [toast, setToast] = useState<{ kind: "success" | "error"; message: string } | null>(null);
 
   function showToast(kind: "success" | "error", message: string) {
@@ -118,6 +124,57 @@ export function ApplicationDetailClient({ initialApplication }: Props) {
     }
   }
 
+  async function handleSubmitToPayroc() {
+    if (!confirm("Submit this application to Payroc? This marks that you've sent the ERF.")) return;
+    setSubmitToPayrocLoading(true);
+    try {
+      const res = await fetch(`/api/master/applications/${app.id}/submit-to-payroc`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showToast("error", (data as { error?: string }).error ?? `Failed (${res.status})`);
+        return;
+      }
+      showToast("success", "Submitted to Payroc");
+      window.location.reload();
+    } catch (e) {
+      showToast("error", e instanceof Error ? e.message : "Failed");
+    } finally {
+      setSubmitToPayrocLoading(false);
+    }
+  }
+
+  async function handleMarkActive() {
+    const trimmedMid = payrocMidInput.trim();
+    if (trimmedMid.length === 0) {
+      showToast("error", "Please enter the Payroc MID from the cert letter");
+      return;
+    }
+    setMarkActiveLoading(true);
+    try {
+      const res = await fetch(`/api/master/applications/${app.id}/mark-active`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ payrocMid: trimmedMid }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showToast("error", (data as { error?: string }).error ?? `Failed (${res.status})`);
+        return;
+      }
+      showToast("success", `Merchant activated with MID ${trimmedMid}`);
+      setMarkActiveModalOpen(false);
+      window.location.reload();
+    } catch (e) {
+      showToast("error", e instanceof Error ? e.message : "Failed");
+    } finally {
+      setMarkActiveLoading(false);
+    }
+  }
+
   const textareaStyle: React.CSSProperties = {
     width: "100%",
     minHeight: 80,
@@ -179,6 +236,16 @@ export function ApplicationDetailClient({ initialApplication }: Props) {
                 Reject
               </Button>
             </>
+          )}
+          {app.status === "approved" && (
+            <Button variant="primary" onClick={handleSubmitToPayroc} loading={submitToPayrocLoading}>
+              Submit to Payroc
+            </Button>
+          )}
+          {app.status === "submitted_to_payroc" && (
+            <Button variant="primary" onClick={() => { setPayrocMidInput(""); setMarkActiveModalOpen(true); }}>
+              Mark Active
+            </Button>
           )}
           {app.signedAgreementContractId && (
             <Button variant="secondary" leadingIcon={<FileText size={14} />} onClick={fetchAgreementUrl} loading={agreementLoading}>
@@ -277,6 +344,31 @@ export function ApplicationDetailClient({ initialApplication }: Props) {
             <Button variant="ghost" onClick={() => setShowRejectModal(false)}>Cancel</Button>
             <Button variant="danger" leadingIcon={<XCircle size={14} />} onClick={handleReject} loading={actionLoading === "reject"}>
               Reject
+            </Button>
+          </div>
+        </Modal>
+      )}
+
+      {markActiveModalOpen && (
+        <Modal title="Mark Application Active" onClose={() => setMarkActiveModalOpen(false)}>
+          <p style={{ fontSize: 13, color: "#4A4A4A", marginBottom: 16, lineHeight: 1.5 }}>
+            Enter the Payroc MID from the cert letter. The merchant will become active and able to process payments.
+          </p>
+          <label style={{ fontSize: 12, fontWeight: 600, color: "#1A1313", marginBottom: 6, display: "block" }}>
+            Payroc MID
+          </label>
+          <input
+            type="text"
+            value={payrocMidInput}
+            onChange={(e) => setPayrocMidInput(e.target.value)}
+            placeholder="e.g., 9876543"
+            autoComplete="off"
+            style={{ width: "100%", padding: 10, borderRadius: 8, border: "1px solid #E8EAED", background: "#F4F5F7", fontSize: 14, color: "#1A1313", boxSizing: "border-box", marginBottom: 16, outline: "none", fontFamily: "monospace" }}
+          />
+          <div className="flex flex-col-reverse sm:flex-row" style={{ gap: 8, justifyContent: "flex-end" }}>
+            <Button variant="ghost" onClick={() => setMarkActiveModalOpen(false)} disabled={markActiveLoading}>Cancel</Button>
+            <Button variant="primary" onClick={handleMarkActive} loading={markActiveLoading}>
+              Mark Active
             </Button>
           </div>
         </Modal>

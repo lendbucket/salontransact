@@ -24,14 +24,18 @@ import {
 const FILTERS: Array<{ id: ApplicationStatusFilter; label: string }> = [
   { id: "submitted", label: "Pending Review" },
   { id: "approved", label: "Approved" },
+  { id: "submitted_to_payroc", label: "Submitted to Payroc" },
+  { id: "active", label: "Active" },
   { id: "rejected", label: "Rejected" },
   { id: "all", label: "All" },
 ];
 
 function statusKind(status: string): string {
+  if (status === "active") return "active";
   if (status === "approved") return "active";
-  if (status === "rejected") return "failed";
+  if (status === "submitted_to_payroc") return "pending";
   if (status === "submitted") return "pending";
+  if (status === "rejected") return "failed";
   return "neutral";
 }
 

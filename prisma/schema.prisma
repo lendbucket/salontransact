@@ -380,6 +380,15 @@ model MerchantApplication {
   rejectedByEmail            String?
   rejectionReason            String?
 
+  // Payroc boarding fields
+  payrocSubmittedAt          DateTime?
+  payrocSubmittedById        String?
+  payrocSubmittedByEmail     String?
+  payrocActivatedAt          DateTime?
+  payrocActivatedById        String?
+  payrocActivatedByEmail     String?
+  payrocMid                  String?
+
   status            String   @default("submitted")
   submittedAt       DateTime @default(now())
   updatedAt         DateTime @updatedAt

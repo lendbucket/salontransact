@@ -1,15 +1,19 @@
 export type ApplicationStatus =
   | "submitted"
   | "approved"
+  | "submitted_to_payroc"
+  | "active"
   | "rejected";
 
 export const APPLICATION_STATUS_LABELS: Record<ApplicationStatus, string> = {
   submitted: "Pending Review",
   approved: "Approved",
+  submitted_to_payroc: "Submitted to Payroc",
+  active: "Active",
   rejected: "Rejected",
 };
 
-export const APPLICATION_STATUS_FILTERS = ["all", "submitted", "approved", "rejected"] as const;
+export const APPLICATION_STATUS_FILTERS = ["all", "submitted", "approved", "submitted_to_payroc", "active", "rejected"] as const;
 export type ApplicationStatusFilter = typeof APPLICATION_STATUS_FILTERS[number];
 
 export function isValidStatusFilter(v: string): v is ApplicationStatusFilter {
