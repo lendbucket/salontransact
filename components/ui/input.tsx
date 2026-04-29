@@ -82,7 +82,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
                 ? `${inputId}-helper`
                 : undefined
           }
-          className={`st-input ${className ?? ""}`.trim()}
+          className={`st-input st-input-mobile ${className ?? ""}`.trim()}
           style={{
             width: "100%",
             height: 40,

@@ -42,6 +42,7 @@ export function Topbar() {
 
   return (
     <div
+      className="st-topbar"
       style={{
         height: 56,
         background: "#FFFFFF",
@@ -240,6 +241,7 @@ export function AdminTopbar() {
 
   return (
     <div
+      className="st-topbar"
       style={{
         height: 56,
         background: "#FFFFFF",

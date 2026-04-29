@@ -112,7 +112,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         type={type ?? "button"}
         disabled={isDisabled}
         aria-busy={loading || undefined}
-        className={`${hoverClass[variant]} ${className ?? ""}`.trim()}
+        className={`btn-mobile-touch ${hoverClass[variant]} ${className ?? ""}`.trim()}
+        data-variant={variant}
         style={{
           display: "inline-flex",
           alignItems: "center",

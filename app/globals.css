@@ -194,6 +194,66 @@ p, h1, h2, h3, h4, h5, h6, span, div[contenteditable], input, textarea {
   user-select: auto;
 }
 
+/* No horizontal scroll anywhere */
+html,
+body {
+  overflow-x: hidden;
+}
+
+/* iPhone safe-area inset handling */
+body {
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* Disable iOS native input styling */
+input,
+textarea,
+select {
+  -webkit-appearance: none;
+  appearance: none;
+  border-radius: 8px;
+}
+
+/* Better default select chevron */
+select {
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3e%3cpath fill='%23878787' d='M6 8.5L2 4.5h8z'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+}
+
+/* Native-feel scrolling */
+.mobile-scroll {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Button 44px touch target on mobile */
+@media (max-width: 767px) {
+  .btn-mobile-touch {
+    min-height: 44px !important;
+  }
+  .btn-mobile-touch[data-variant="icon"] {
+    min-width: 44px !important;
+    min-height: 44px !important;
+  }
+}
+
+/* Input 44px on mobile */
+@media (max-width: 767px) {
+  .st-input-mobile {
+    height: 44px !important;
+  }
+}
+
+/* Topbar narrower padding on mobile */
+@media (max-width: 767px) {
+  .st-topbar {
+    padding: 0 16px !important;
+  }
+}
+
 /* ── Global typography ── */
 
 *,
