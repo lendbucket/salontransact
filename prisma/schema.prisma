@@ -772,3 +772,74 @@ model Location {
   @@index([merchantId, status])
   @@index([payrocTerminalId])
 }
+
+// ─────────────────────────────────────────────────────────────────
+// CertTestSession + CertTestRun — Payroc cert test plan execution
+//
+// One CertTestSession represents a batch like "Reyna Pay Production
+// Cert #1 — 2026-04-30". Each session is seeded with all 98 test
+// cases as CertTestRun rows in pending status when created. Tests
+// transition pending → running → passed/failed/skipped as they execute.
+//
+// This is internal master-portal tooling. Used to track progress
+// against Matt's structured cert plan and to export filled-in
+// spreadsheet results back to Payroc. Reusable for future cert runs
+// (resellers, additional verticals).
+// ─────────────────────────────────────────────────────────────────
+
+model CertTestSession {
+  id              String          @id @default(cuid())
+  name            String
+  description     String?
+  status          String          @default("in_progress")  // in_progress | complete | abandoned
+  merchantId      String?
+  createdByUserId String
+
+  totalTests      Int             @default(0)
+  passedTests     Int             @default(0)
+  failedTests     Int             @default(0)
+  skippedTests    Int             @default(0)
+
+  startedAt       DateTime        @default(now())
+  completedAt     DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  runs            CertTestRun[]
+
+  @@index([status])
+  @@index([createdByUserId])
+  @@index([createdAt])
+}
+
+model CertTestRun {
+  id            String           @id @default(cuid())
+  sessionId     String
+
+  testCaseId    String           // matches the id in lib/cert/test-cases.ts
+  sheetName     String           // "CNP" or "CP"
+  sectionName   String           // e.g. "Credit Card Sale NO Secure Token"
+  transactionType String          // e.g. "Sale", "Pre-Authorization", "Capture", "Void/Reversal"
+  scenario      String           // full scenario directions from spreadsheet
+  expectedResult String          // e.g. "Approved", "Decline", "Approve/Decline"
+  required      Boolean          @default(false)
+
+  status        String           @default("pending")  // pending | running | passed | failed | skipped
+  paymentId     String?          // Payroc paymentId / uniqueRef when test runs
+  sessionToken  String?          // For Hosted Fields tests
+  notes         String?
+  errorMessage  String?
+  testAmountCents Int?           // Amount used (controls Payroc test response)
+  testCardLast4 String?
+
+  ranAt         DateTime?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  session       CertTestSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([sessionId, sheetName])
+  @@index([sessionId, status])
+  @@index([testCaseId])
+}
