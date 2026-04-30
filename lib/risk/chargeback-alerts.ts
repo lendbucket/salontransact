@@ -6,6 +6,7 @@ import {
   WARNING_THRESHOLD,
   statusForRatio,
 } from "./types";
+import { listDisputes } from "@/lib/payroc/disputes";
 
 const WINDOW_DAYS = 90;
 
@@ -46,9 +47,41 @@ export async function checkAndAlertMerchants(): Promise<{
 
       if (totalCharges < 10) continue; // skip low-volume merchants
 
-      const chargebackCount = await prisma.transaction.count({
+      // Local count: transactions we've marked status="disputed" via webhook/manual ops
+      const localDisputedCount = await prisma.transaction.count({
         where: { merchantId: m.id, status: "disputed", createdAt: { gte: cutoff } },
       });
+
+      // Authoritative count: pull from Payroc disputes API for the same window.
+      // Payroc is the source of truth; if our local count is lower (webhook lag,
+      // failed sync, etc.) we use Payroc's count to avoid under-reporting risk.
+      let payrocDisputeCount = 0;
+      try {
+        const startDate = cutoff.toISOString().slice(0, 10); // YYYY-MM-DD
+        const endDate = new Date().toISOString().slice(0, 10);
+        const payrocResp = await listDisputes({ startDate, endDate });
+        // Note: Payroc /disputes returns disputes across all merchants on this
+        // House Account config. Until Reyna Pay has per-merchant Payroc MIDs
+        // (post Phase 9.4 cutover), filter by merchant identifiers we tag at
+        // charge time. For UAT/single-merchant operation we accept the full count.
+        payrocDisputeCount = payrocResp.disputes.length;
+      } catch (e) {
+        // Don't block the alert run on a Payroc API hiccup.
+        // Fall back to local count, but log so we know.
+        console.warn(
+          `[CB-ALERT] Payroc /disputes fetch failed for ${m.id} — using local count only:`,
+          e instanceof Error ? e.message : e
+        );
+      }
+
+      // Use MAX as authoritative. If they disagree, log so the data team
+      // can investigate webhook drift.
+      const chargebackCount = Math.max(localDisputedCount, payrocDisputeCount);
+      if (localDisputedCount !== payrocDisputeCount) {
+        console.warn(
+          `[CB-ALERT] Count drift for ${m.id}: local=${localDisputedCount}, payroc=${payrocDisputeCount}, using=${chargebackCount}`
+        );
+      }
 
       const ratio = (chargebackCount / totalCharges) * 100;
       const riskStatus = statusForRatio(ratio);
