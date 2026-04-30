@@ -112,6 +112,7 @@ model Merchant {
   stylists              Stylist[]
   bookings              Booking[]
   cardEntryTokens       CardEntryToken[]
+  velocityAlerts        VelocityAlert[]
 }
 
 model Transaction {
@@ -685,4 +686,29 @@ model CardEntryToken {
   @@index([bookingId])
   @@index([status])
   @@index([expiresAt])
+}
+
+model VelocityAlert {
+  id              String   @id @default(cuid())
+  merchantId      String
+  ruleCode        String
+  ruleDescription String
+  severity        String   @default("warn")
+  status          String   @default("detected")
+  customerId      String?
+  customerEmail   String?
+  cardLast4       String?
+  triggerData     Json?
+  amountCents     Int?
+  detectedAt      DateTime @default(now())
+  reviewedAt      DateTime?
+  reviewedBy      String?
+
+  merchant        Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@index([merchantId])
+  @@index([ruleCode])
+  @@index([status])
+  @@index([detectedAt])
+  @@index([customerId])
 }

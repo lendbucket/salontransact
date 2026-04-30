@@ -102,6 +102,35 @@ export async function processCharge(ctx: ProcessChargeContext): Promise<ProcessC
   try { bearerToken = await getPayrocToken(); }
   catch (e) { return { ...failResult(`Auth failed: ${e instanceof Error ? e.message : "unknown"}`), sourceLast4: last4, sourceBrand: brand, sourceSavedPaymentMethodId: savedPaymentMethodId }; }
 
+  // Velocity check — logs alerts, only blocks if VELOCITY_STRICT_MODE=true AND severity=block
+  try {
+    const { runVelocityChecks } = await import("@/lib/velocity/check");
+    const { logVelocityAlerts } = await import("@/lib/velocity/log");
+    const velocityResult = await runVelocityChecks({
+      merchantId: ctx.merchantId,
+      customerEmail: ctx.parsed.customerEmail ?? null,
+      customerId: ctx.parsed.customerId ?? null,
+      cardLast4: last4,
+      amountCents: ctx.parsed.amountCents,
+    });
+    if (velocityResult.alerts.length > 0) {
+      await logVelocityAlerts({
+        merchantId: ctx.merchantId,
+        customerId: ctx.parsed.customerId ?? null,
+        customerEmail: ctx.parsed.customerEmail ?? null,
+        cardLast4: last4,
+        amountCents: ctx.parsed.amountCents,
+        alerts: velocityResult.alerts,
+      });
+    }
+    if (process.env.VELOCITY_STRICT_MODE === "true" && velocityResult.shouldBlock) {
+      console.warn(`[VELOCITY-BLOCK] requestId=${ctx.requestId} merchantId=${ctx.merchantId} alerts=${velocityResult.alerts.map(a => a.ruleCode).join(",")}`);
+      return { ...failResult("Charge blocked by velocity controls"), sourceLast4: last4, sourceBrand: brand, sourceSavedPaymentMethodId: savedPaymentMethodId };
+    }
+  } catch (e) {
+    console.error(`[VELOCITY-CHECK] Failed (allow-through): requestId=${ctx.requestId}`, e);
+  }
+
   const orderId = `V1-${ctx.parsed.bookingId ? ctx.parsed.bookingId.slice(0, 6).toUpperCase() : Date.now().toString(36).toUpperCase()}`;
   const idempotencyKey = crypto.randomUUID();
   console.log(`[PAYROC-IDEMPOTENCY] key=${idempotencyKey} path=/payments method=POST merchantId=${ctx.merchantId} amount=${ctx.parsed.amountCents} requestId=${ctx.requestId}`);
