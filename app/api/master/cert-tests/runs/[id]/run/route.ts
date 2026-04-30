@@ -45,12 +45,37 @@ export async function POST(
     data: { status: "running" },
   });
 
+  // Look up previousPaymentId for chained tests (capture/void/refund need it)
+  let previousPaymentId: string | null = null;
+  const needsPrevious =
+    run.transactionType.toLowerCase().includes("capture") ||
+    run.transactionType.toLowerCase().includes("void") ||
+    run.transactionType.toLowerCase().includes("reversal") ||
+    run.transactionType.toLowerCase().includes("refund");
+
+  if (needsPrevious) {
+    const previous = await prisma.certTestRun.findFirst({
+      where: {
+        sessionId: run.sessionId,
+        sectionName: run.sectionName,
+        status: "passed",
+        paymentId: { not: null },
+        id: { not: run.id },
+      },
+      orderBy: { ranAt: "desc" },
+      select: { paymentId: true },
+    });
+    previousPaymentId = previous?.paymentId ?? null;
+  }
+
   try {
     const result = await dispatch.run({
       sessionId: run.sessionId,
       merchantId: run.session.merchantId,
       apiKeyId: run.session.apiKeyId,
       testRunId: run.id,
+      terminalSerial: run.session.terminalSerial,
+      previousPaymentId,
     });
 
     await prisma.certTestRun.update({

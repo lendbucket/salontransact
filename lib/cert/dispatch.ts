@@ -7,6 +7,12 @@ import {
   executeCardSale,
   executePreAuth,
   executeSecureTokenCreate,
+  executeCardPresentSale,
+  executeCardPresentPreAuth,
+  executeCardPresentCapture,
+  executeCardPresentRefund,
+  executeCardPresentVoid,
+  executeCardPresentTokenCreate,
   TEST_CARDS,
   type ExecutorContext,
   type ExecutorResult,
@@ -103,41 +109,53 @@ export const DISPATCH: Record<string, DispatchEntry> = {
   "cnp-dual-pricing": { kind: "manual", reason: "Dual pricing not yet wired." },
   "cnp-service-fee": { kind: "manual", reason: "Service fee not yet wired." },
 
-  // CP — All card-present (manual — requires Pax A920 Pro terminal)
-  "cp-cc-nst-sale-approved": { kind: "manual", reason: "Card-present on Pax A920 Pro terminal." },
-  "cp-cc-nst-sale-decline-01": { kind: "manual", reason: "Card-present on terminal." },
-  "cp-cc-nst-sale-avs-03": { kind: "manual", reason: "Card-present on terminal." },
-  "cp-cc-nst-sale-cvv-04": { kind: "manual", reason: "Card-present on terminal." },
-  "cp-cc-nst-sale-referral-02": { kind: "manual", reason: "Card-present on terminal." },
-  "cp-cc-cst-sale-approved": { kind: "manual", reason: "Card-present on terminal." },
-  "cp-cc-cst-sale-decline-01": { kind: "manual", reason: "Card-present on terminal." },
-  "cp-cc-cst-sale-avs-03": { kind: "manual", reason: "Card-present on terminal." },
-  "cp-cc-cst-sale-cvv-04": { kind: "manual", reason: "Card-present on terminal." },
-  "cp-cc-cst-sale-referral-02": { kind: "manual", reason: "Card-present on terminal." },
-  "cp-cc-preauth-approved": { kind: "manual", reason: "Card-present on terminal." },
-  "cp-cc-preauth-capture": { kind: "manual", reason: "Card-present on terminal." },
-  "cp-cc-preauth-decline-01": { kind: "manual", reason: "Card-present on terminal." },
-  "cp-cc-preauth-avs-03": { kind: "manual", reason: "Card-present on terminal." },
-  "cp-cc-preauth-cvv-04": { kind: "manual", reason: "Card-present on terminal." },
-  "cp-cc-preauth-referral-02": { kind: "manual", reason: "Card-present on terminal." },
-  "cp-cc-preauth-adjust-approved": { kind: "manual", reason: "Card-present on terminal." },
-  "cp-cc-preauth-adjust-adjust": { kind: "manual", reason: "Card-present on terminal." },
-  "cp-cc-preauth-adjust-capture": { kind: "manual", reason: "Card-present on terminal." },
-  "cp-cc-preauth-adjust-decline-01": { kind: "manual", reason: "Card-present on terminal." },
-  "cp-cc-preauth-adjust-avs-03": { kind: "manual", reason: "Card-present on terminal." },
-  "cp-cc-preauth-adjust-cvv-04": { kind: "manual", reason: "Card-present on terminal." },
-  "cp-cc-preauth-adjust-referral-02": { kind: "manual", reason: "Card-present on terminal." },
-  "cp-cc-void-same-day": { kind: "manual", reason: "Card-present on terminal." },
-  "cp-cc-refund-next-day": { kind: "manual", reason: "Card-present on terminal." },
-  "cp-cc-unreferenced-refund": { kind: "manual", reason: "Card-present — Selfcare UI." },
-  "cp-cc-error-bad-card": { kind: "manual", reason: "Card-present error injection on terminal." },
-  "cp-cc-token-create": { kind: "manual", reason: "Card-present on terminal." },
-  "cp-cc-token-sale": { kind: "manual", reason: "Card-present on terminal." },
-  "cp-cc-token-update": { kind: "manual", reason: "Card-present on terminal." },
-  "cp-surcharge-accept": { kind: "manual", reason: "Card-present on terminal." },
-  "cp-surcharge-decline": { kind: "manual", reason: "Card-present on terminal." },
-  "cp-dual-pricing": { kind: "manual", reason: "Card-present on terminal." },
-  "cp-service-fee": { kind: "manual", reason: "Card-present on terminal." },
+  // CP — Sale NO Secure Token (5 tests, auto via terminal)
+  "cp-cc-nst-sale-approved": { kind: "auto", run: (ctx) => executeCardPresentSale(ctx, { amountCents: 4500, expectedOutcome: "approved" }) },
+  "cp-cc-nst-sale-decline-01": { kind: "auto", run: (ctx) => executeCardPresentSale(ctx, { amountCents: 4501, expectedOutcome: "declined" }) },
+  "cp-cc-nst-sale-avs-03": { kind: "auto", run: (ctx) => executeCardPresentSale(ctx, { amountCents: 4503, expectedOutcome: "approve_or_decline" }) },
+  "cp-cc-nst-sale-cvv-04": { kind: "auto", run: (ctx) => executeCardPresentSale(ctx, { amountCents: 4504, expectedOutcome: "approve_or_decline" }) },
+  "cp-cc-nst-sale-referral-02": { kind: "auto", run: (ctx) => executeCardPresentSale(ctx, { amountCents: 4502, expectedOutcome: "referral" }) },
+
+  // CP — Sale WITH Create Secure Token (5 tests)
+  "cp-cc-cst-sale-approved": { kind: "auto", run: (ctx) => executeCardPresentSale(ctx, { amountCents: 4500, expectedOutcome: "approved", createToken: true }) },
+  "cp-cc-cst-sale-decline-01": { kind: "auto", run: (ctx) => executeCardPresentSale(ctx, { amountCents: 4501, expectedOutcome: "declined", createToken: true }) },
+  "cp-cc-cst-sale-avs-03": { kind: "auto", run: (ctx) => executeCardPresentSale(ctx, { amountCents: 4503, expectedOutcome: "approve_or_decline", createToken: true }) },
+  "cp-cc-cst-sale-cvv-04": { kind: "auto", run: (ctx) => executeCardPresentSale(ctx, { amountCents: 4504, expectedOutcome: "approve_or_decline", createToken: true }) },
+  "cp-cc-cst-sale-referral-02": { kind: "auto", run: (ctx) => executeCardPresentSale(ctx, { amountCents: 4502, expectedOutcome: "referral", createToken: true }) },
+
+  // CP — Pre-Auth + Capture (6 tests)
+  "cp-cc-preauth-approved": { kind: "auto", run: (ctx) => executeCardPresentPreAuth(ctx, { amountCents: 4500, expectedOutcome: "approved" }) },
+  "cp-cc-preauth-capture": { kind: "auto", run: (ctx) => executeCardPresentCapture(ctx) },
+  "cp-cc-preauth-decline-01": { kind: "auto", run: (ctx) => executeCardPresentPreAuth(ctx, { amountCents: 4501, expectedOutcome: "declined" }) },
+  "cp-cc-preauth-avs-03": { kind: "auto", run: (ctx) => executeCardPresentPreAuth(ctx, { amountCents: 4503, expectedOutcome: "approve_or_decline" }) },
+  "cp-cc-preauth-cvv-04": { kind: "auto", run: (ctx) => executeCardPresentPreAuth(ctx, { amountCents: 4504, expectedOutcome: "approve_or_decline" }) },
+  "cp-cc-preauth-referral-02": { kind: "auto", run: (ctx) => executeCardPresentPreAuth(ctx, { amountCents: 4502, expectedOutcome: "referral" }) },
+
+  // CP — Pre-Auth + ADJUST + Capture (adjust still manual)
+  "cp-cc-preauth-adjust-approved": { kind: "auto", run: (ctx) => executeCardPresentPreAuth(ctx, { amountCents: 4500, expectedOutcome: "approved" }) },
+  "cp-cc-preauth-adjust-adjust": { kind: "manual", reason: "Adjust API not yet wired. Run via Selfcare UI." },
+  "cp-cc-preauth-adjust-capture": { kind: "auto", run: (ctx) => executeCardPresentCapture(ctx) },
+  "cp-cc-preauth-adjust-decline-01": { kind: "auto", run: (ctx) => executeCardPresentPreAuth(ctx, { amountCents: 4501, expectedOutcome: "declined" }) },
+  "cp-cc-preauth-adjust-avs-03": { kind: "auto", run: (ctx) => executeCardPresentPreAuth(ctx, { amountCents: 4503, expectedOutcome: "approve_or_decline" }) },
+  "cp-cc-preauth-adjust-cvv-04": { kind: "auto", run: (ctx) => executeCardPresentPreAuth(ctx, { amountCents: 4504, expectedOutcome: "approve_or_decline" }) },
+  "cp-cc-preauth-adjust-referral-02": { kind: "auto", run: (ctx) => executeCardPresentPreAuth(ctx, { amountCents: 4502, expectedOutcome: "referral" }) },
+
+  // CP — Void + Refund (server-side, no terminal)
+  "cp-cc-void-same-day": { kind: "auto", run: (ctx) => executeCardPresentVoid(ctx) },
+  "cp-cc-refund-next-day": { kind: "auto", run: (ctx) => executeCardPresentRefund(ctx) },
+  "cp-cc-unreferenced-refund": { kind: "manual", reason: "Unreferenced refund — process via Payroc Selfcare UI." },
+
+  // CP — Error + Token tests
+  "cp-cc-error-bad-card": { kind: "manual", reason: "Tap a non-cert card on terminal to trigger card error." },
+  "cp-cc-token-create": { kind: "auto", run: (ctx) => executeCardPresentTokenCreate(ctx) },
+  "cp-cc-token-sale": { kind: "manual", reason: "Sale using terminal-created token — run via portal /checkout with saved card." },
+  "cp-cc-token-update": { kind: "manual", reason: "Token update via terminal — Selfcare UI flow." },
+
+  // CP — Surcharging / Dual Pricing / Service Fee (manual — terminal config)
+  "cp-surcharge-accept": { kind: "manual", reason: "Surcharging requires terminal-side merchant config." },
+  "cp-surcharge-decline": { kind: "manual", reason: "Surcharging — manual decline flow on Pax." },
+  "cp-dual-pricing": { kind: "manual", reason: "Dual pricing requires terminal-side config." },
+  "cp-service-fee": { kind: "manual", reason: "Service fee requires terminal-side config." },
 };
 
 export function getDispatchEntry(testCaseId: string): DispatchEntry {

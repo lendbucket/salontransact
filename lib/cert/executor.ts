@@ -26,6 +26,9 @@ import {
   updateSecureToken,
   deleteSecureToken,
 } from "@/lib/payroc/tokens";
+import { sendPaymentInstruction } from "@/lib/payroc/devices";
+import { capturePayment, reversePayment, refundPayment } from "@/lib/payroc/payments";
+import { pollPaymentInstruction } from "@/lib/cert/cp-polling";
 import { prisma } from "@/lib/prisma";
 
 // Payroc UAT test cards (from Matt's spreadsheet)
@@ -43,6 +46,8 @@ export interface ExecutorContext {
   merchantId: string;
   apiKeyId: string;
   testRunId: string;
+  terminalSerial: string | null;
+  previousPaymentId: string | null;
 }
 
 export interface ExecutorResult {
@@ -315,6 +320,188 @@ export async function executeSecureTokenDelete(
       notes: "",
     };
   }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Card-Present executors (Phase 9.7 Commit 19b)
+// ─────────────────────────────────────────────────────────────────
+
+interface CardPresentSaleParams {
+  amountCents: number;
+  expectedOutcome: "approved" | "declined" | "referral" | "approve_or_decline";
+  createToken?: boolean;
+}
+
+export async function executeCardPresentSale(
+  ctx: ExecutorContext,
+  params: CardPresentSaleParams
+): Promise<ExecutorResult> {
+  if (!ctx.terminalSerial) {
+    return { ok: false, paymentId: null, status: "failed", errorMessage: "CP test requires a Pax terminal", notes: "" };
+  }
+
+  const orderId = `cert-${ctx.testRunId.slice(0, 20)}-${Date.now().toString(36)}`;
+  let instructionId: string;
+  try {
+    const instruction = await sendPaymentInstruction(ctx.terminalSerial, {
+      order: { orderId, description: `Cert CP sale ${ctx.testRunId}`, amount: params.amountCents, currency: "USD", dateTime: new Date().toISOString() },
+      autoCapture: true,
+      processAsSale: false,
+      operator: "Cert Test",
+      ...(params.createToken ? { credentialOnFile: { storeCard: true, mitAgreement: "unscheduled" } } : {}),
+    });
+    instructionId = instruction.paymentInstructionId;
+  } catch (e) {
+    return { ok: false, paymentId: null, status: "failed", errorMessage: `Failed to send instruction: ${e instanceof Error ? e.message : "unknown"}`, notes: "" };
+  }
+
+  const pollResult = await pollPaymentInstruction({ paymentInstructionId: instructionId });
+  if (pollResult.status === "timeout") {
+    return { ok: false, paymentId: null, status: "failed", errorMessage: pollResult.errorMessage, notes: `Timed out after ${Math.round(pollResult.pollDurationMs / 1000)}s` };
+  }
+
+  const succeeded = pollResult.status === "completed";
+  let testPassed = false;
+  let notes = "";
+  switch (params.expectedOutcome) {
+    case "approved":
+      testPassed = succeeded;
+      notes = succeeded ? `Approved on terminal (${pollResult.pollAttempts} polls)` : `Expected approval but got ${pollResult.status}: ${pollResult.errorMessage}`;
+      break;
+    case "declined":
+      testPassed = !succeeded && pollResult.status === "failure";
+      notes = !succeeded ? `Declined as expected (${pollResult.errorMessage ?? "no message"})` : "Expected decline but transaction completed";
+      break;
+    case "referral":
+    case "approve_or_decline":
+      testPassed = true;
+      notes = succeeded ? "Approved on terminal" : `Declined (${pollResult.errorMessage ?? pollResult.status})`;
+      break;
+  }
+
+  return { ok: testPassed, paymentId: pollResult.paymentId, status: testPassed ? "passed" : "failed", errorMessage: testPassed ? null : pollResult.errorMessage, notes };
+}
+
+interface CardPresentPreAuthParams {
+  amountCents: number;
+  expectedOutcome: "approved" | "declined" | "referral" | "approve_or_decline";
+}
+
+export async function executeCardPresentPreAuth(
+  ctx: ExecutorContext,
+  params: CardPresentPreAuthParams
+): Promise<ExecutorResult> {
+  if (!ctx.terminalSerial) {
+    return { ok: false, paymentId: null, status: "failed", errorMessage: "CP test requires a Pax terminal", notes: "" };
+  }
+
+  const orderId = `cert-pa-${ctx.testRunId.slice(0, 18)}-${Date.now().toString(36)}`;
+  let instructionId: string;
+  try {
+    const instruction = await sendPaymentInstruction(ctx.terminalSerial, {
+      order: { orderId, description: `Cert CP pre-auth ${ctx.testRunId}`, amount: params.amountCents, currency: "USD", dateTime: new Date().toISOString() },
+      autoCapture: false,
+      processAsSale: false,
+      operator: "Cert Test",
+    });
+    instructionId = instruction.paymentInstructionId;
+  } catch (e) {
+    return { ok: false, paymentId: null, status: "failed", errorMessage: `Failed to send instruction: ${e instanceof Error ? e.message : "unknown"}`, notes: "" };
+  }
+
+  const pollResult = await pollPaymentInstruction({ paymentInstructionId: instructionId });
+  if (pollResult.status === "timeout") {
+    return { ok: false, paymentId: null, status: "failed", errorMessage: pollResult.errorMessage, notes: "" };
+  }
+
+  const authorized = pollResult.status === "completed";
+  let testPassed = false;
+  let notes = "";
+  switch (params.expectedOutcome) {
+    case "approved":
+      testPassed = authorized;
+      notes = authorized ? "Pre-authorized on terminal" : `Expected pre-auth but got ${pollResult.status}: ${pollResult.errorMessage}`;
+      break;
+    case "declined":
+      testPassed = !authorized;
+      notes = !authorized ? "Declined as expected" : "Expected decline but pre-auth succeeded";
+      break;
+    case "referral":
+    case "approve_or_decline":
+      testPassed = true;
+      notes = authorized ? "Pre-auth approved" : `Declined (${pollResult.errorMessage})`;
+      break;
+  }
+
+  return { ok: testPassed, paymentId: pollResult.paymentId, status: testPassed ? "passed" : "failed", errorMessage: testPassed ? null : pollResult.errorMessage, notes };
+}
+
+export async function executeCardPresentCapture(ctx: ExecutorContext): Promise<ExecutorResult> {
+  if (!ctx.previousPaymentId) {
+    return { ok: false, paymentId: null, status: "failed", errorMessage: "Capture requires a previous pre-auth — no previousPaymentId", notes: "Run the matching pre-auth test first." };
+  }
+  try {
+    const result = await capturePayment(ctx.previousPaymentId, { operator: "Cert Test" });
+    return { ok: true, paymentId: result.paymentId, status: "passed", errorMessage: null, notes: `Captured pre-auth ${ctx.previousPaymentId}` };
+  } catch (e) {
+    return { ok: false, paymentId: ctx.previousPaymentId, status: "failed", errorMessage: e instanceof Error ? e.message : "Capture failed", notes: "" };
+  }
+}
+
+export async function executeCardPresentRefund(ctx: ExecutorContext): Promise<ExecutorResult> {
+  if (!ctx.previousPaymentId) {
+    return { ok: false, paymentId: null, status: "failed", errorMessage: "Refund requires a previous sale — no previousPaymentId", notes: "Run the matching sale test first." };
+  }
+  try {
+    const result = await refundPayment(ctx.previousPaymentId, { reason: "Cert test refund" });
+    return { ok: true, paymentId: result.paymentId, status: "passed", errorMessage: null, notes: `Refunded ${ctx.previousPaymentId}` };
+  } catch (e) {
+    return { ok: false, paymentId: ctx.previousPaymentId, status: "failed", errorMessage: e instanceof Error ? e.message : "Refund failed", notes: "" };
+  }
+}
+
+export async function executeCardPresentVoid(ctx: ExecutorContext): Promise<ExecutorResult> {
+  if (!ctx.previousPaymentId) {
+    return { ok: false, paymentId: null, status: "failed", errorMessage: "Void requires a previous sale — no previousPaymentId", notes: "Run the matching sale test first." };
+  }
+  try {
+    const result = await reversePayment(ctx.previousPaymentId);
+    return { ok: true, paymentId: result.paymentId, status: "passed", errorMessage: null, notes: `Voided ${ctx.previousPaymentId}` };
+  } catch (e) {
+    return { ok: false, paymentId: ctx.previousPaymentId, status: "failed", errorMessage: e instanceof Error ? e.message : "Void failed", notes: "" };
+  }
+}
+
+export async function executeCardPresentTokenCreate(ctx: ExecutorContext): Promise<ExecutorResult> {
+  if (!ctx.terminalSerial) {
+    return { ok: false, paymentId: null, status: "failed", errorMessage: "CP token create requires a Pax terminal", notes: "" };
+  }
+  const orderId = `cert-tok-${ctx.testRunId.slice(0, 17)}-${Date.now().toString(36)}`;
+  let instructionId: string;
+  try {
+    const instruction = await sendPaymentInstruction(ctx.terminalSerial, {
+      order: { orderId, description: `Cert CP token create ${ctx.testRunId}`, amount: 100, currency: "USD", dateTime: new Date().toISOString() },
+      autoCapture: false,
+      processAsSale: false,
+      operator: "Cert Test",
+      credentialOnFile: { storeCard: true, mitAgreement: "unscheduled" },
+    });
+    instructionId = instruction.paymentInstructionId;
+  } catch (e) {
+    return { ok: false, paymentId: null, status: "failed", errorMessage: `Failed to send token-create instruction: ${e instanceof Error ? e.message : "unknown"}`, notes: "" };
+  }
+
+  const pollResult = await pollPaymentInstruction({ paymentInstructionId: instructionId });
+  if (pollResult.status !== "completed") {
+    return { ok: false, paymentId: pollResult.paymentId, status: "failed", errorMessage: pollResult.errorMessage ?? `Poll status: ${pollResult.status}`, notes: "" };
+  }
+
+  // Auto-void the placeholder $1 auth
+  if (pollResult.paymentId) {
+    try { await reversePayment(pollResult.paymentId); } catch { /* non-fatal */ }
+  }
+
+  return { ok: true, paymentId: pollResult.paymentId, status: "passed", errorMessage: null, notes: "Token created via terminal (placeholder auth voided)", capturedSecureTokenId: pollResult.paymentId ?? undefined };
 }
 
 // ─────────────────────────────────────────────────────────────────
