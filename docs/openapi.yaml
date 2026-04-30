@@ -1096,6 +1096,752 @@ components:
             The first location for a merchant is always primary regardless of this field.
       required:
         - name
+    MeResponse:
+      type: object
+      properties:
+        apiKey:
+          type: object
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+            keyPrefix:
+              type: string
+              description: >-
+                First few characters of the key (e.g. 'rp_live_'). Useful for confirming the
+                consumer is using the correct key without exposing the full secret.
+          required:
+            - id
+            - name
+            - keyPrefix
+        merchant:
+          type: object
+          properties:
+            id:
+              type: string
+            businessName:
+              type: string
+            email:
+              type: string
+              format: email
+          required:
+            - id
+            - businessName
+            - email
+      required:
+        - apiKey
+        - merchant
+    TransactionsReport:
+      type: object
+      properties:
+        object:
+          type: string
+          enum:
+            - report
+        type:
+          type: string
+          enum:
+            - transactions
+        group_by:
+          type: string
+          enum:
+            - day
+            - week
+            - month
+        from:
+          type: string
+          format: date-time
+        to:
+          type: string
+          format: date-time
+        totals:
+          $ref: '#/components/schemas/TransactionsReportTotals'
+        periods:
+          type: array
+          items:
+            $ref: '#/components/schemas/TransactionsReportPeriod'
+      required:
+        - object
+        - type
+        - group_by
+        - from
+        - to
+        - totals
+        - periods
+    TransactionsReportTotals:
+      type: object
+      properties:
+        volume_cents:
+          type: integer
+          minimum: 0
+        count:
+          type: integer
+          minimum: 0
+        fees_cents:
+          type: integer
+          minimum: 0
+        net_cents:
+          type: integer
+          minimum: 0
+        tips_cents:
+          type: integer
+          minimum: 0
+        refunds_cents:
+          type: integer
+          minimum: 0
+        refund_count:
+          type: integer
+          minimum: 0
+      required:
+        - volume_cents
+        - count
+        - fees_cents
+        - net_cents
+        - tips_cents
+        - refunds_cents
+        - refund_count
+    TransactionsReportPeriod:
+      type: object
+      properties:
+        period:
+          type: string
+          description: 'Period key. Format depends on group_by: ''YYYY-MM-DD'' for day/week, ''YYYY-MM'' for month.'
+        volume_cents:
+          type: integer
+          minimum: 0
+        count:
+          type: integer
+          minimum: 0
+        fees_cents:
+          type: integer
+          minimum: 0
+        net_cents:
+          type: integer
+          minimum: 0
+        tips_cents:
+          type: integer
+          minimum: 0
+        refunds_cents:
+          type: integer
+          minimum: 0
+        refund_count:
+          type: integer
+          minimum: 0
+      required:
+        - period
+        - volume_cents
+        - count
+        - fees_cents
+        - net_cents
+        - tips_cents
+        - refunds_cents
+        - refund_count
+    CashFlowReport:
+      type: object
+      properties:
+        object:
+          type: string
+          enum:
+            - report
+        type:
+          type: string
+          enum:
+            - cash_flow
+        days:
+          type: integer
+          minimum: 7
+          maximum: 365
+        inflow:
+          type: object
+          properties:
+            volume_cents:
+              type: integer
+              minimum: 0
+            transaction_count:
+              type: integer
+              minimum: 0
+            fees_cents:
+              type: integer
+              minimum: 0
+            net_cents:
+              type: integer
+              minimum: 0
+            tips_cents:
+              type: integer
+              minimum: 0
+            refunds_cents:
+              type: integer
+              minimum: 0
+          required:
+            - volume_cents
+            - transaction_count
+            - fees_cents
+            - net_cents
+            - tips_cents
+            - refunds_cents
+        outflow:
+          type: object
+          properties:
+            paid_cents:
+              type: integer
+              minimum: 0
+            paid_count:
+              type: integer
+              minimum: 0
+            pending_cents:
+              type: integer
+              minimum: 0
+            pending_count:
+              type: integer
+              minimum: 0
+          required:
+            - paid_cents
+            - paid_count
+            - pending_cents
+            - pending_count
+        net_position_cents:
+          type: integer
+          description: >-
+            Net cents = inflow.net_cents - outflow.paid_cents. Can be negative (over-payout).
+            Excludes pending payouts.
+      required:
+        - object
+        - type
+        - days
+        - inflow
+        - outflow
+        - net_position_cents
+    PayoutsReport:
+      type: object
+      properties:
+        object:
+          type: string
+          enum:
+            - report
+        type:
+          type: string
+          enum:
+            - payouts
+        count:
+          type: integer
+          minimum: 0
+        total_cents:
+          type: integer
+          minimum: 0
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/PayoutReportItem'
+      required:
+        - object
+        - type
+        - count
+        - total_cents
+        - data
+    PayoutReportItem:
+      type: object
+      properties:
+        id:
+          type: string
+        amount_cents:
+          type: integer
+          minimum: 0
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+        status:
+          type: string
+        arrival_date:
+          type:
+            - string
+            - 'null'
+          format: date-time
+        description:
+          type:
+            - string
+            - 'null'
+        created_at:
+          type: string
+          format: date-time
+      required:
+        - id
+        - amount_cents
+        - currency
+        - status
+        - arrival_date
+        - description
+        - created_at
+    RiskReport:
+      type: object
+      properties:
+        object:
+          type: string
+          enum:
+            - report
+        type:
+          type: string
+          enum:
+            - risk
+        window_days:
+          type: integer
+          minimum: 7
+          maximum: 365
+        completed_transactions:
+          type: integer
+          minimum: 0
+        chargeback_count:
+          type: integer
+          minimum: 0
+        chargeback_ratio:
+          type: number
+          description: >-
+            chargeback_count / completed_transactions. Visa monitoring threshold is 0.009 (0.9%);
+            excessive chargeback program threshold is 0.018 (1.8%).
+        status:
+          type: string
+          description: ok | monitoring | excessive — derived from ratio against Visa thresholds.
+        thresholds:
+          type: object
+          properties:
+            visa_monitoring:
+              type: number
+            visa_excessive:
+              type: number
+          required:
+            - visa_monitoring
+            - visa_excessive
+        computed_at:
+          type: string
+          format: date-time
+      required:
+        - object
+        - type
+        - window_days
+        - completed_transactions
+        - chargeback_count
+        - chargeback_ratio
+        - status
+        - thresholds
+        - computed_at
+    StylistAttributionReport:
+      type: object
+      properties:
+        object:
+          type: string
+          enum:
+            - report
+        type:
+          type: string
+          enum:
+            - stylist_attribution
+        from:
+          type: string
+          format: date-time
+        to:
+          type: string
+          format: date-time
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/StylistAttributionItem'
+          description: Sorted by volume_cents descending.
+      required:
+        - object
+        - type
+        - from
+        - to
+        - data
+    StylistAttributionItem:
+      type: object
+      properties:
+        stylist_id:
+          type:
+            - string
+            - 'null'
+        stylist_name:
+          type: string
+          description: >-
+            Stylist's display name. 'Unknown' if stylist_id is set but stylist record is missing.
+            'Unassigned' if stylist_id is null on the transaction.
+        transaction_count:
+          type: integer
+          minimum: 0
+        volume_cents:
+          type: integer
+          minimum: 0
+        tips_cents:
+          type: integer
+          minimum: 0
+        commission_rate:
+          type:
+            - number
+            - 'null'
+          description: Decimal between 0 and 1 (e.g. 0.55 = 55%). Null if not configured.
+        commission_cents:
+          type:
+            - integer
+            - 'null'
+          description: volume_cents × commission_rate. Null when rate is unset.
+        average_ticket_cents:
+          type: integer
+          minimum: 0
+      required:
+        - stylist_id
+        - stylist_name
+        - transaction_count
+        - volume_cents
+        - tips_cents
+        - commission_rate
+        - commission_cents
+        - average_ticket_cents
+    RiskCheckResponse:
+      type: object
+      properties:
+        object:
+          type: string
+          enum:
+            - risk_check
+        score:
+          type: integer
+          minimum: 0
+          maximum: 100
+        band:
+          type: string
+          enum:
+            - low
+            - medium
+            - high
+            - critical
+        recommendation:
+          type: string
+          enum:
+            - proceed
+            - proceed_with_caution
+            - require_additional_verification
+            - decline_or_manual_review
+        factors:
+          type: array
+          items:
+            $ref: '#/components/schemas/RiskFactor'
+        velocity_alerts:
+          type: array
+          items:
+            $ref: '#/components/schemas/VelocityAlert'
+        should_block:
+          type: boolean
+          description: >-
+            true = velocity rules are tripped at a level that should block the charge entirely
+            (regardless of band). false = consumer's choice based on band + recommendation.
+        checked_at:
+          type: string
+          format: date-time
+      required:
+        - object
+        - score
+        - band
+        - recommendation
+        - factors
+        - velocity_alerts
+        - should_block
+        - checked_at
+    RiskFactor:
+      type: object
+      properties:
+        name:
+          type: string
+        severity:
+          type: string
+        description:
+          type: string
+      required:
+        - name
+        - severity
+        - description
+    VelocityAlert:
+      type: object
+      properties:
+        name:
+          type: string
+        severity:
+          type: string
+          enum:
+            - info
+            - warning
+            - critical
+        message:
+          type: string
+      required:
+        - name
+        - severity
+        - message
+    EvidencePack:
+      type: object
+      properties:
+        object:
+          type: string
+          enum:
+            - evidence_pack
+        dispute_id:
+          type: string
+        transaction_id:
+          type: string
+        customer:
+          type:
+            - object
+            - 'null'
+          properties:
+            email:
+              type:
+                - string
+                - 'null'
+            name:
+              type:
+                - string
+                - 'null'
+            phone:
+              type:
+                - string
+                - 'null'
+            first_seen_at:
+              type:
+                - string
+                - 'null'
+              format: date-time
+            total_transactions:
+              type:
+                - integer
+                - 'null'
+          required:
+            - email
+            - name
+            - phone
+            - first_seen_at
+            - total_transactions
+          description: Customer profile if available.
+        transaction:
+          type: object
+          properties:
+            amount_cents:
+              type: integer
+            created_at:
+              type: string
+              format: date-time
+            description:
+              type:
+                - string
+                - 'null'
+            approval_code:
+              type:
+                - string
+                - 'null'
+            last4:
+              type:
+                - string
+                - 'null'
+            brand:
+              type:
+                - string
+                - 'null'
+          required:
+            - amount_cents
+            - created_at
+            - description
+            - approval_code
+            - last4
+            - brand
+          description: Transaction details snapshot.
+        booking:
+          type:
+            - object
+            - 'null'
+          properties:
+            scheduled_for:
+              type:
+                - string
+                - 'null'
+              format: date-time
+            service_name:
+              type:
+                - string
+                - 'null'
+            stylist_name:
+              type:
+                - string
+                - 'null'
+          required:
+            - scheduled_for
+            - service_name
+            - stylist_name
+          description: Associated booking if the transaction was tied to one.
+        related_history:
+          type: object
+          properties:
+            prior_successful_transactions:
+              type: integer
+              minimum: 0
+            prior_disputes:
+              type: integer
+              minimum: 0
+            days_as_customer:
+              type:
+                - integer
+                - 'null'
+          required:
+            - prior_successful_transactions
+            - prior_disputes
+            - days_as_customer
+          description: Customer history that bolsters the legitimacy case.
+        built_at:
+          type: string
+          format: date-time
+      required:
+        - object
+        - dispute_id
+        - transaction_id
+        - customer
+        - transaction
+        - booking
+        - related_history
+        - built_at
+    EvidencePackCreateRequest:
+      type: object
+      properties:
+        transaction_id:
+          type: string
+          description: ID of the disputed charge. Accepts both 'ch_<id>' and bare '<id>' formats.
+      required:
+        - transaction_id
+    WebhookDeliveryListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/WebhookDelivery'
+        has_more:
+          type: boolean
+        next_cursor:
+          type:
+            - string
+            - 'null'
+      required:
+        - data
+        - has_more
+        - next_cursor
+    WebhookDelivery:
+      type: object
+      properties:
+        id:
+          type: string
+          example: whd_clx7y8z9a0001b2c3d4e5f6g7
+        object:
+          type: string
+          enum:
+            - webhook_delivery
+        webhook_id:
+          type: string
+          example: whk_clx7y8z9a0001b2c3d4e5f6g7
+        event_id:
+          type: string
+        event_type:
+          type: string
+          example: charge.succeeded
+        status:
+          type: string
+          enum:
+            - pending
+            - succeeded
+            - failed
+            - exhausted
+        attempt_count:
+          type: integer
+          minimum: 0
+        response_status:
+          type:
+            - integer
+            - 'null'
+        response_body:
+          type:
+            - string
+            - 'null'
+        error_message:
+          type:
+            - string
+            - 'null'
+        last_attempt_at:
+          type:
+            - string
+            - 'null'
+          format: date-time
+        next_retry_at:
+          type:
+            - string
+            - 'null'
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+        - id
+        - object
+        - webhook_id
+        - event_id
+        - event_type
+        - status
+        - attempt_count
+        - response_status
+        - response_body
+        - error_message
+        - last_attempt_at
+        - next_retry_at
+        - created_at
+        - updated_at
+    WebhookDeliveryReplayResponse:
+      type: object
+      properties:
+        replay:
+          type: object
+          properties:
+            succeeded:
+              type: boolean
+            attempt_count:
+              type: integer
+              minimum: 0
+            status:
+              type: string
+              enum:
+                - pending
+                - succeeded
+                - failed
+                - exhausted
+            response_status:
+              type:
+                - integer
+                - 'null'
+            error_message:
+              type:
+                - string
+                - 'null'
+          required:
+            - succeeded
+            - attempt_count
+            - status
+            - response_status
+            - error_message
+        delivery:
+          allOf:
+            - $ref: '#/components/schemas/WebhookDelivery'
+            - type:
+                - object
+                - 'null'
+      required:
+        - replay
+        - delivery
   parameters:
     IdempotencyKey:
       schema:
@@ -1883,6 +2629,482 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '401':
           description: Missing or invalid API key.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/me:
+    get:
+      summary: Who am I?
+      description: >-
+        Returns the merchant and API key context associated with the bearer token. Useful for
+        authentication smoke tests, multi-merchant tooling, and debugging which key is being used.
+      tags:
+        - Self
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Auth context for this API key.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeResponse'
+        '401':
+          description: Missing or invalid API key.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/reports/transactions:
+    get:
+      summary: Transactions report (grouped by period)
+      description: >-
+        Aggregates successful transactions over a date range, grouped by day, week, or month.
+        Returns per-period volume + count + fees + net + tips + refunds, plus totals for the entire
+        range. Useful for revenue dashboards and trend analysis.
+      tags:
+        - Reports
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+            format: date-time
+            description: ISO 8601 lower bound (inclusive). Required.
+          required: true
+          description: ISO 8601 lower bound (inclusive). Required.
+          name: from
+          in: query
+        - schema:
+            type: string
+            format: date-time
+            description: ISO 8601 upper bound (inclusive). Required.
+          required: true
+          description: ISO 8601 upper bound (inclusive). Required.
+          name: to
+          in: query
+        - schema:
+            type: string
+            enum:
+              - day
+              - week
+              - month
+            description: Default 'day'.
+          required: false
+          description: Default 'day'.
+          name: group_by
+          in: query
+      responses:
+        '200':
+          description: Report computed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionsReport'
+        '400':
+          description: Missing or invalid date range.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid API key.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/reports/cash-flow:
+    get:
+      summary: Cash flow over the last N days
+      description: >-
+        Returns inflow (charges) and outflow (payouts) summary for the past N days. Includes pending
+        payouts separately so you can see what's en-route to the bank.
+      tags:
+        - Reports
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: integer
+            minimum: 7
+            maximum: 365
+            description: Window size in days. Default 30, min 7, max 365.
+          required: false
+          description: Window size in days. Default 30, min 7, max 365.
+          name: days
+          in: query
+      responses:
+        '200':
+          description: Cash flow computed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CashFlowReport'
+        '401':
+          description: Missing or invalid API key.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/reports/payouts:
+    get:
+      summary: Payout history
+      description: >-
+        Returns up to 200 payouts ordered by most recent first. Optional date range and status
+        filter. Use this to reconcile bank deposits against engine-tracked payouts.
+      tags:
+        - Reports
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+            format: date-time
+          required: false
+          name: from
+          in: query
+        - schema:
+            type: string
+            format: date-time
+          required: false
+          name: to
+          in: query
+        - schema:
+            type: string
+            description: e.g. 'paid', 'pending', 'in_transit', 'failed'.
+          required: false
+          description: e.g. 'paid', 'pending', 'in_transit', 'failed'.
+          name: status
+          in: query
+      responses:
+        '200':
+          description: Payouts list.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PayoutsReport'
+        '401':
+          description: Missing or invalid API key.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/reports/risk:
+    get:
+      summary: Chargeback ratio + Visa monitoring status
+      description: >-
+        Computes the merchant's chargeback ratio over the specified window. Cross-checked against
+        Payroc's dispute count to ensure local state is not under-counting (audit fix). Critical for
+        staying off Visa's monitoring program — exceeding 0.9% triggers fees, 1.8% can trigger
+        account termination.
+      tags:
+        - Reports
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: integer
+            minimum: 7
+            maximum: 365
+            description: Window in days. Default 90, min 7, max 365.
+          required: false
+          description: Window in days. Default 90, min 7, max 365.
+          name: days
+          in: query
+      responses:
+        '200':
+          description: Risk metrics computed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RiskReport'
+        '401':
+          description: Missing or invalid API key.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/reports/stylist-attribution:
+    get:
+      summary: Per-stylist revenue + commission attribution
+      description: >-
+        Groups successful transactions by stylist over the date range. Returns volume, tip total,
+        commission (if rate configured), and average ticket per stylist. Sorted by volume
+        descending. Use this for payroll prep and stylist performance tracking.
+      tags:
+        - Reports
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+            format: date-time
+            description: ISO 8601 lower bound. Required.
+          required: true
+          description: ISO 8601 lower bound. Required.
+          name: from
+          in: query
+        - schema:
+            type: string
+            format: date-time
+            description: ISO 8601 upper bound. Required.
+          required: true
+          description: ISO 8601 upper bound. Required.
+          name: to
+          in: query
+      responses:
+        '200':
+          description: Attribution computed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StylistAttributionReport'
+        '400':
+          description: Missing or invalid date range.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid API key.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/risk/check:
+    get:
+      summary: Pre-charge risk evaluation
+      description: >-
+        Lightweight LOOKUP (no state change) that returns a risk score, band, and recommendation for
+        a hypothetical charge. Use before POST /api/v1/charges when you want to surface a warning to
+        a human reviewer or auto-decline obvious fraud. Idempotent — call as many times as you want
+        without side effects (other than reading velocity counters).
+      tags:
+        - Risk
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: integer
+            exclusiveMinimum: 0
+            description: Hypothetical charge amount in cents. Required.
+          required: true
+          description: Hypothetical charge amount in cents. Required.
+          name: amount_cents
+          in: query
+        - schema:
+            type: string
+            description: Optional. If provided, customer history factors into the score.
+          required: false
+          description: Optional. If provided, customer history factors into the score.
+          name: customer_id
+          in: query
+        - schema:
+            type: string
+            format: email
+            description: Optional. Used for velocity matching when customer_id is unknown.
+          required: false
+          description: Optional. Used for velocity matching when customer_id is unknown.
+          name: customer_email
+          in: query
+        - schema:
+            type: string
+            minLength: 4
+            maxLength: 4
+            description: Optional. Used for card-velocity (same card across customers) detection.
+          required: false
+          description: Optional. Used for card-velocity (same card across customers) detection.
+          name: card_last4
+          in: query
+      responses:
+        '200':
+          description: Risk evaluation computed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RiskCheckResponse'
+        '400':
+          description: Missing or invalid amount_cents.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid API key.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Customer not found (when customer_id provided).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/disputes/{id}/evidence-pack:
+    post:
+      summary: Build a chargeback evidence pack
+      description: >-
+        Constructs a structured evidence bundle for a chargeback / dispute. Includes the transaction
+        snapshot, customer history, associated booking, and prior-relationship signals. Submit the
+        response to your acquirer to contest the dispute.
+      tags:
+        - Disputes
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+            description: Payroc-side dispute ID being contested.
+          required: true
+          description: Payroc-side dispute ID being contested.
+          name: id
+          in: path
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EvidencePackCreateRequest'
+      responses:
+        '200':
+          description: Evidence pack built.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvidencePack'
+        '400':
+          description: Missing transaction_id.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid API key.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Transaction not found or not owned by this merchant.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/webhooks/{id}/deliveries:
+    get:
+      summary: List webhook delivery attempts
+      description: >-
+        Returns delivery history for a webhook endpoint, ordered by created_at descending. Filter by
+        status (pending/succeeded/failed/exhausted) or event_type. Use this to debug why your
+        webhook receiver is missing events.
+      tags:
+        - Webhooks
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+            description: Webhook ID. Accepts both 'whk_<id>' and bare '<id>' formats.
+          required: true
+          description: Webhook ID. Accepts both 'whk_<id>' and bare '<id>' formats.
+          name: id
+          in: path
+        - schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+          required: false
+          name: limit
+          in: query
+        - schema:
+            type: string
+            enum:
+              - pending
+              - succeeded
+              - failed
+              - exhausted
+          required: false
+          name: status
+          in: query
+        - schema:
+            type: string
+          required: false
+          name: event_type
+          in: query
+        - schema:
+            type: string
+          required: false
+          name: cursor
+          in: query
+      responses:
+        '200':
+          description: Delivery history.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookDeliveryListResponse'
+        '401':
+          description: Missing or invalid API key.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Webhook not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/webhooks/{id}/deliveries/{deliveryId}/replay:
+    post:
+      summary: Replay a failed webhook delivery
+      description: >-
+        Manually retries a failed or exhausted webhook delivery. Resets the attempt counter to allow
+        one more delivery attempt. Cannot replay deliveries in 'pending' (still in flight) or
+        'succeeded' (nothing to replay) states. Returns the replay outcome plus the updated delivery
+        record.
+      tags:
+        - Webhooks
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+            description: Webhook ID.
+          required: true
+          description: Webhook ID.
+          name: id
+          in: path
+        - schema:
+            type: string
+            description: Delivery ID. Accepts both 'whd_<id>' and bare '<id>' formats.
+          required: true
+          description: Delivery ID. Accepts both 'whd_<id>' and bare '<id>' formats.
+          name: deliveryId
+          in: path
+      responses:
+        '200':
+          description: Replay attempted (may have succeeded or failed — check replay.succeeded).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookDeliveryReplayResponse'
+        '401':
+          description: Missing or invalid API key.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Webhook or delivery not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Delivery cannot be replayed (already succeeded or still pending).
           content:
             application/json:
               schema:

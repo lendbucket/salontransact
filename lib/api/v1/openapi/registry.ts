@@ -1130,5 +1130,607 @@ registry.registerPath({
   },
 });
 
+// ──────────────────────────────────────────────────────────────────
+// Self / introspection
+// ──────────────────────────────────────────────────────────────────
+
+const MeResponseSchema = z
+  .object({
+    apiKey: z.object({
+      id: z.string(),
+      name: z.string(),
+      keyPrefix: z
+        .string()
+        .openapi({
+          description:
+            "First few characters of the key (e.g. 'rp_live_'). Useful for confirming the consumer is using the correct key without exposing the full secret.",
+        }),
+    }),
+    merchant: z.object({
+      id: z.string(),
+      businessName: z.string(),
+      email: z.string().email(),
+    }),
+  })
+  .openapi("MeResponse");
+
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/me",
+  summary: "Who am I?",
+  description:
+    "Returns the merchant and API key context associated with the bearer token. Useful for authentication smoke tests, multi-merchant tooling, and debugging which key is being used.",
+  tags: ["Self"],
+  security: [{ bearerAuth: [] }],
+  responses: {
+    200: {
+      description: "Auth context for this API key.",
+      content: { "application/json": { schema: MeResponseSchema } },
+    },
+    401: { description: "Missing or invalid API key.", content: { "application/json": { schema: ErrorResponseSchema } } },
+  },
+});
+
+// ──────────────────────────────────────────────────────────────────
+// Reports domain
+// ──────────────────────────────────────────────────────────────────
+
+// Transactions report
+const TransactionsReportPeriodSchema = z
+  .object({
+    period: z.string().openapi({ description: "Period key. Format depends on group_by: 'YYYY-MM-DD' for day/week, 'YYYY-MM' for month." }),
+    volume_cents: z.number().int().nonnegative(),
+    count: z.number().int().nonnegative(),
+    fees_cents: z.number().int().nonnegative(),
+    net_cents: z.number().int().nonnegative(),
+    tips_cents: z.number().int().nonnegative(),
+    refunds_cents: z.number().int().nonnegative(),
+    refund_count: z.number().int().nonnegative(),
+  })
+  .openapi("TransactionsReportPeriod");
+
+const TransactionsReportTotalsSchema = z
+  .object({
+    volume_cents: z.number().int().nonnegative(),
+    count: z.number().int().nonnegative(),
+    fees_cents: z.number().int().nonnegative(),
+    net_cents: z.number().int().nonnegative(),
+    tips_cents: z.number().int().nonnegative(),
+    refunds_cents: z.number().int().nonnegative(),
+    refund_count: z.number().int().nonnegative(),
+  })
+  .openapi("TransactionsReportTotals");
+
+const TransactionsReportSchema = z
+  .object({
+    object: z.literal("report"),
+    type: z.literal("transactions"),
+    group_by: z.enum(["day", "week", "month"]),
+    from: z.string().datetime(),
+    to: z.string().datetime(),
+    totals: TransactionsReportTotalsSchema,
+    periods: z.array(TransactionsReportPeriodSchema),
+  })
+  .openapi("TransactionsReport");
+
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/reports/transactions",
+  summary: "Transactions report (grouped by period)",
+  description:
+    "Aggregates successful transactions over a date range, grouped by day, week, or month. Returns per-period volume + count + fees + net + tips + refunds, plus totals for the entire range. Useful for revenue dashboards and trend analysis.",
+  tags: ["Reports"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    query: z.object({
+      from: z.string().datetime().openapi({ description: "ISO 8601 lower bound (inclusive). Required." }),
+      to: z.string().datetime().openapi({ description: "ISO 8601 upper bound (inclusive). Required." }),
+      group_by: z.enum(["day", "week", "month"]).optional().openapi({ description: "Default 'day'." }),
+    }),
+  },
+  responses: {
+    200: {
+      description: "Report computed.",
+      content: { "application/json": { schema: TransactionsReportSchema } },
+    },
+    400: { description: "Missing or invalid date range.", content: { "application/json": { schema: ErrorResponseSchema } } },
+    401: { description: "Missing or invalid API key.", content: { "application/json": { schema: ErrorResponseSchema } } },
+  },
+});
+
+// Cash flow report
+const CashFlowReportSchema = z
+  .object({
+    object: z.literal("report"),
+    type: z.literal("cash_flow"),
+    days: z.number().int().min(7).max(365),
+    inflow: z.object({
+      volume_cents: z.number().int().nonnegative(),
+      transaction_count: z.number().int().nonnegative(),
+      fees_cents: z.number().int().nonnegative(),
+      net_cents: z.number().int().nonnegative(),
+      tips_cents: z.number().int().nonnegative(),
+      refunds_cents: z.number().int().nonnegative(),
+    }),
+    outflow: z.object({
+      paid_cents: z.number().int().nonnegative(),
+      paid_count: z.number().int().nonnegative(),
+      pending_cents: z.number().int().nonnegative(),
+      pending_count: z.number().int().nonnegative(),
+    }),
+    net_position_cents: z
+      .number()
+      .int()
+      .openapi({
+        description:
+          "Net cents = inflow.net_cents - outflow.paid_cents. Can be negative (over-payout). Excludes pending payouts.",
+      }),
+  })
+  .openapi("CashFlowReport");
+
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/reports/cash-flow",
+  summary: "Cash flow over the last N days",
+  description:
+    "Returns inflow (charges) and outflow (payouts) summary for the past N days. Includes pending payouts separately so you can see what's en-route to the bank.",
+  tags: ["Reports"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    query: z.object({
+      days: z
+        .number()
+        .int()
+        .min(7)
+        .max(365)
+        .optional()
+        .openapi({ description: "Window size in days. Default 30, min 7, max 365." }),
+    }),
+  },
+  responses: {
+    200: {
+      description: "Cash flow computed.",
+      content: { "application/json": { schema: CashFlowReportSchema } },
+    },
+    401: { description: "Missing or invalid API key.", content: { "application/json": { schema: ErrorResponseSchema } } },
+  },
+});
+
+// Payouts report
+const PayoutReportItemSchema = z
+  .object({
+    id: z.string(),
+    amount_cents: z.number().int().nonnegative(),
+    currency: z.string().length(3),
+    status: z.string(),
+    arrival_date: z.string().datetime().nullable(),
+    description: z.string().nullable(),
+    created_at: z.string().datetime(),
+  })
+  .openapi("PayoutReportItem");
+
+const PayoutsReportSchema = z
+  .object({
+    object: z.literal("report"),
+    type: z.literal("payouts"),
+    count: z.number().int().nonnegative(),
+    total_cents: z.number().int().nonnegative(),
+    data: z.array(PayoutReportItemSchema),
+  })
+  .openapi("PayoutsReport");
+
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/reports/payouts",
+  summary: "Payout history",
+  description:
+    "Returns up to 200 payouts ordered by most recent first. Optional date range and status filter. Use this to reconcile bank deposits against engine-tracked payouts.",
+  tags: ["Reports"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    query: z.object({
+      from: z.string().datetime().optional(),
+      to: z.string().datetime().optional(),
+      status: z
+        .string()
+        .optional()
+        .openapi({ description: "e.g. 'paid', 'pending', 'in_transit', 'failed'." }),
+    }),
+  },
+  responses: {
+    200: {
+      description: "Payouts list.",
+      content: { "application/json": { schema: PayoutsReportSchema } },
+    },
+    401: { description: "Missing or invalid API key.", content: { "application/json": { schema: ErrorResponseSchema } } },
+  },
+});
+
+// Risk report
+const RiskReportSchema = z
+  .object({
+    object: z.literal("report"),
+    type: z.literal("risk"),
+    window_days: z.number().int().min(7).max(365),
+    completed_transactions: z.number().int().nonnegative(),
+    chargeback_count: z.number().int().nonnegative(),
+    chargeback_ratio: z
+      .number()
+      .openapi({
+        description:
+          "chargeback_count / completed_transactions. Visa monitoring threshold is 0.009 (0.9%); excessive chargeback program threshold is 0.018 (1.8%).",
+      }),
+    status: z.string().openapi({ description: "ok | monitoring | excessive — derived from ratio against Visa thresholds." }),
+    thresholds: z.object({
+      visa_monitoring: z.number(),
+      visa_excessive: z.number(),
+    }),
+    computed_at: z.string().datetime(),
+  })
+  .openapi("RiskReport");
+
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/reports/risk",
+  summary: "Chargeback ratio + Visa monitoring status",
+  description:
+    "Computes the merchant's chargeback ratio over the specified window. Cross-checked against Payroc's dispute count to ensure local state is not under-counting (audit fix). Critical for staying off Visa's monitoring program — exceeding 0.9% triggers fees, 1.8% can trigger account termination.",
+  tags: ["Reports"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    query: z.object({
+      days: z
+        .number()
+        .int()
+        .min(7)
+        .max(365)
+        .optional()
+        .openapi({ description: "Window in days. Default 90, min 7, max 365." }),
+    }),
+  },
+  responses: {
+    200: {
+      description: "Risk metrics computed.",
+      content: { "application/json": { schema: RiskReportSchema } },
+    },
+    401: { description: "Missing or invalid API key.", content: { "application/json": { schema: ErrorResponseSchema } } },
+  },
+});
+
+// Stylist attribution report
+const StylistAttributionItemSchema = z
+  .object({
+    stylist_id: z.string().nullable(),
+    stylist_name: z
+      .string()
+      .openapi({ description: "Stylist's display name. 'Unknown' if stylist_id is set but stylist record is missing. 'Unassigned' if stylist_id is null on the transaction." }),
+    transaction_count: z.number().int().nonnegative(),
+    volume_cents: z.number().int().nonnegative(),
+    tips_cents: z.number().int().nonnegative(),
+    commission_rate: z.number().nullable().openapi({ description: "Decimal between 0 and 1 (e.g. 0.55 = 55%). Null if not configured." }),
+    commission_cents: z
+      .number()
+      .int()
+      .nullable()
+      .openapi({ description: "volume_cents × commission_rate. Null when rate is unset." }),
+    average_ticket_cents: z.number().int().nonnegative(),
+  })
+  .openapi("StylistAttributionItem");
+
+const StylistAttributionReportSchema = z
+  .object({
+    object: z.literal("report"),
+    type: z.literal("stylist_attribution"),
+    from: z.string().datetime(),
+    to: z.string().datetime(),
+    data: z
+      .array(StylistAttributionItemSchema)
+      .openapi({ description: "Sorted by volume_cents descending." }),
+  })
+  .openapi("StylistAttributionReport");
+
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/reports/stylist-attribution",
+  summary: "Per-stylist revenue + commission attribution",
+  description:
+    "Groups successful transactions by stylist over the date range. Returns volume, tip total, commission (if rate configured), and average ticket per stylist. Sorted by volume descending. Use this for payroll prep and stylist performance tracking.",
+  tags: ["Reports"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    query: z.object({
+      from: z.string().datetime().openapi({ description: "ISO 8601 lower bound. Required." }),
+      to: z.string().datetime().openapi({ description: "ISO 8601 upper bound. Required." }),
+    }),
+  },
+  responses: {
+    200: {
+      description: "Attribution computed.",
+      content: { "application/json": { schema: StylistAttributionReportSchema } },
+    },
+    400: { description: "Missing or invalid date range.", content: { "application/json": { schema: ErrorResponseSchema } } },
+    401: { description: "Missing or invalid API key.", content: { "application/json": { schema: ErrorResponseSchema } } },
+  },
+});
+
+// ──────────────────────────────────────────────────────────────────
+// Risk check (pre-charge lookup)
+// ──────────────────────────────────────────────────────────────────
+
+const RiskFactorSchema = z
+  .object({
+    name: z.string(),
+    severity: z.string(),
+    description: z.string(),
+  })
+  .openapi("RiskFactor");
+
+const VelocityAlertSchema = z
+  .object({
+    name: z.string(),
+    severity: z.enum(["info", "warning", "critical"]),
+    message: z.string(),
+  })
+  .openapi("VelocityAlert");
+
+const RiskCheckResponseSchema = z
+  .object({
+    object: z.literal("risk_check"),
+    score: z.number().int().min(0).max(100),
+    band: z.enum(["low", "medium", "high", "critical"]),
+    recommendation: z.enum([
+      "proceed",
+      "proceed_with_caution",
+      "require_additional_verification",
+      "decline_or_manual_review",
+    ]),
+    factors: z.array(RiskFactorSchema),
+    velocity_alerts: z.array(VelocityAlertSchema),
+    should_block: z
+      .boolean()
+      .openapi({
+        description:
+          "true = velocity rules are tripped at a level that should block the charge entirely (regardless of band). false = consumer's choice based on band + recommendation.",
+      }),
+    checked_at: z.string().datetime(),
+  })
+  .openapi("RiskCheckResponse");
+
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/risk/check",
+  summary: "Pre-charge risk evaluation",
+  description:
+    "Lightweight LOOKUP (no state change) that returns a risk score, band, and recommendation for a hypothetical charge. Use before POST /api/v1/charges when you want to surface a warning to a human reviewer or auto-decline obvious fraud. Idempotent — call as many times as you want without side effects (other than reading velocity counters).",
+  tags: ["Risk"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    query: z.object({
+      amount_cents: z
+        .number()
+        .int()
+        .positive()
+        .openapi({ description: "Hypothetical charge amount in cents. Required." }),
+      customer_id: z
+        .string()
+        .optional()
+        .openapi({ description: "Optional. If provided, customer history factors into the score." }),
+      customer_email: z
+        .string()
+        .email()
+        .optional()
+        .openapi({ description: "Optional. Used for velocity matching when customer_id is unknown." }),
+      card_last4: z
+        .string()
+        .length(4)
+        .optional()
+        .openapi({ description: "Optional. Used for card-velocity (same card across customers) detection." }),
+    }),
+  },
+  responses: {
+    200: {
+      description: "Risk evaluation computed.",
+      content: { "application/json": { schema: RiskCheckResponseSchema } },
+    },
+    400: { description: "Missing or invalid amount_cents.", content: { "application/json": { schema: ErrorResponseSchema } } },
+    404: { description: "Customer not found (when customer_id provided).", content: { "application/json": { schema: ErrorResponseSchema } } },
+    401: { description: "Missing or invalid API key.", content: { "application/json": { schema: ErrorResponseSchema } } },
+  },
+});
+
+// ──────────────────────────────────────────────────────────────────
+// Disputes
+// ──────────────────────────────────────────────────────────────────
+
+const EvidencePackResponseSchema = z
+  .object({
+    object: z.literal("evidence_pack"),
+    dispute_id: z.string(),
+    transaction_id: z.string(),
+    customer: z
+      .object({
+        email: z.string().nullable(),
+        name: z.string().nullable(),
+        phone: z.string().nullable(),
+        first_seen_at: z.string().datetime().nullable(),
+        total_transactions: z.number().int().nullable(),
+      })
+      .nullable()
+      .openapi({ description: "Customer profile if available." }),
+    transaction: z
+      .object({
+        amount_cents: z.number().int(),
+        created_at: z.string().datetime(),
+        description: z.string().nullable(),
+        approval_code: z.string().nullable(),
+        last4: z.string().nullable(),
+        brand: z.string().nullable(),
+      })
+      .openapi({ description: "Transaction details snapshot." }),
+    booking: z
+      .object({
+        scheduled_for: z.string().datetime().nullable(),
+        service_name: z.string().nullable(),
+        stylist_name: z.string().nullable(),
+      })
+      .nullable()
+      .openapi({ description: "Associated booking if the transaction was tied to one." }),
+    related_history: z
+      .object({
+        prior_successful_transactions: z.number().int().nonnegative(),
+        prior_disputes: z.number().int().nonnegative(),
+        days_as_customer: z.number().int().nullable(),
+      })
+      .openapi({ description: "Customer history that bolsters the legitimacy case." }),
+    built_at: z.string().datetime(),
+  })
+  .openapi("EvidencePack");
+
+const EvidencePackCreateRequestSchema = z
+  .object({
+    transaction_id: z
+      .string()
+      .openapi({
+        description:
+          "ID of the disputed charge. Accepts both 'ch_<id>' and bare '<id>' formats.",
+      }),
+  })
+  .openapi("EvidencePackCreateRequest");
+
+registry.registerPath({
+  method: "post",
+  path: "/api/v1/disputes/{id}/evidence-pack",
+  summary: "Build a chargeback evidence pack",
+  description:
+    "Constructs a structured evidence bundle for a chargeback / dispute. Includes the transaction snapshot, customer history, associated booking, and prior-relationship signals. Submit the response to your acquirer to contest the dispute.",
+  tags: ["Disputes"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({
+      id: z
+        .string()
+        .openapi({ description: "Payroc-side dispute ID being contested." }),
+    }),
+    body: {
+      content: {
+        "application/json": {
+          schema: EvidencePackCreateRequestSchema,
+        },
+      },
+      required: true,
+    },
+  },
+  responses: {
+    200: {
+      description: "Evidence pack built.",
+      content: { "application/json": { schema: EvidencePackResponseSchema } },
+    },
+    400: { description: "Missing transaction_id.", content: { "application/json": { schema: ErrorResponseSchema } } },
+    404: { description: "Transaction not found or not owned by this merchant.", content: { "application/json": { schema: ErrorResponseSchema } } },
+    401: { description: "Missing or invalid API key.", content: { "application/json": { schema: ErrorResponseSchema } } },
+  },
+});
+
+// ──────────────────────────────────────────────────────────────────
+// Webhooks domain
+// ──────────────────────────────────────────────────────────────────
+
+const WebhookDeliverySchema = z
+  .object({
+    id: z.string().openapi({ example: "whd_clx7y8z9a0001b2c3d4e5f6g7" }),
+    object: z.literal("webhook_delivery"),
+    webhook_id: z.string().openapi({ example: "whk_clx7y8z9a0001b2c3d4e5f6g7" }),
+    event_id: z.string(),
+    event_type: z.string().openapi({ example: "charge.succeeded" }),
+    status: z.enum(["pending", "succeeded", "failed", "exhausted"]),
+    attempt_count: z.number().int().nonnegative(),
+    response_status: z.number().int().nullable(),
+    response_body: z.string().nullable(),
+    error_message: z.string().nullable(),
+    last_attempt_at: z.string().datetime().nullable(),
+    next_retry_at: z.string().datetime().nullable(),
+    created_at: z.string().datetime(),
+    updated_at: z.string().datetime(),
+  })
+  .openapi("WebhookDelivery");
+
+const WebhookDeliveryListResponseSchema = z
+  .object({
+    data: z.array(WebhookDeliverySchema),
+    has_more: z.boolean(),
+    next_cursor: z.string().nullable(),
+  })
+  .openapi("WebhookDeliveryListResponse");
+
+const WebhookDeliveryReplayResponseSchema = z
+  .object({
+    replay: z.object({
+      succeeded: z.boolean(),
+      attempt_count: z.number().int().nonnegative(),
+      status: z.enum(["pending", "succeeded", "failed", "exhausted"]),
+      response_status: z.number().int().nullable(),
+      error_message: z.string().nullable(),
+    }),
+    delivery: WebhookDeliverySchema.nullable(),
+  })
+  .openapi("WebhookDeliveryReplayResponse");
+
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/webhooks/{id}/deliveries",
+  summary: "List webhook delivery attempts",
+  description:
+    "Returns delivery history for a webhook endpoint, ordered by created_at descending. Filter by status (pending/succeeded/failed/exhausted) or event_type. Use this to debug why your webhook receiver is missing events.",
+  tags: ["Webhooks"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({
+      id: z.string().openapi({ description: "Webhook ID. Accepts both 'whk_<id>' and bare '<id>' formats." }),
+    }),
+    query: z.object({
+      limit: z.number().int().min(1).max(200).optional(),
+      status: z.enum(["pending", "succeeded", "failed", "exhausted"]).optional(),
+      event_type: z.string().optional(),
+      cursor: z.string().optional(),
+    }),
+  },
+  responses: {
+    200: {
+      description: "Delivery history.",
+      content: { "application/json": { schema: WebhookDeliveryListResponseSchema } },
+    },
+    404: { description: "Webhook not found.", content: { "application/json": { schema: ErrorResponseSchema } } },
+    401: { description: "Missing or invalid API key.", content: { "application/json": { schema: ErrorResponseSchema } } },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/api/v1/webhooks/{id}/deliveries/{deliveryId}/replay",
+  summary: "Replay a failed webhook delivery",
+  description:
+    "Manually retries a failed or exhausted webhook delivery. Resets the attempt counter to allow one more delivery attempt. Cannot replay deliveries in 'pending' (still in flight) or 'succeeded' (nothing to replay) states. Returns the replay outcome plus the updated delivery record.",
+  tags: ["Webhooks"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({
+      id: z.string().openapi({ description: "Webhook ID." }),
+      deliveryId: z.string().openapi({ description: "Delivery ID. Accepts both 'whd_<id>' and bare '<id>' formats." }),
+    }),
+  },
+  responses: {
+    200: {
+      description: "Replay attempted (may have succeeded or failed — check replay.succeeded).",
+      content: { "application/json": { schema: WebhookDeliveryReplayResponseSchema } },
+    },
+    422: {
+      description: "Delivery cannot be replayed (already succeeded or still pending).",
+      content: { "application/json": { schema: ErrorResponseSchema } },
+    },
+    404: { description: "Webhook or delivery not found.", content: { "application/json": { schema: ErrorResponseSchema } } },
+    401: { description: "Missing or invalid API key.", content: { "application/json": { schema: ErrorResponseSchema } } },
+  },
+});
+
 // Re-export the registry as default for the generator script
 export default registry;
