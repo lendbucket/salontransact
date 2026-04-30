@@ -209,7 +209,6 @@ export function CheckoutForm() {
               },
               button: {
                 "background-color": "#017ea7",
-                background: "linear-gradient(180deg, #0290be 0%, #017ea7 100%)",
                 color: "#ffffff",
                 border: "none",
                 "border-radius": "10px",
@@ -228,7 +227,6 @@ export function CheckoutForm() {
               },
               "button:hover": {
                 "background-color": "#0290be",
-                background: "linear-gradient(180deg, #03a0d1 0%, #0290be 100%)",
                 "box-shadow": "0 2px 4px rgba(0,0,0,0.2)",
               },
               body: { margin: "0", padding: "0" },
