@@ -194,8 +194,11 @@ p, h1, h2, h3, h4, h5, h6, span, div[contenteditable], input, textarea {
   user-select: auto;
 }
 
-/* No horizontal scroll anywhere */
-html,
+/* No horizontal scroll anywhere. Apply only to body — applying to html
+   combined with html { height: 100% } turns html into a fixed-height
+   scroll container that clips vertical overflow. body alone still kills
+   horizontal scroll on desktop AND mobile, while letting the viewport
+   handle vertical scroll natively. */
 body {
   overflow-x: hidden;
 }
