@@ -495,6 +495,607 @@ components:
           description: >-
             payment (default) = single-use card tokenization for an immediate charge. tokenization =
             card tokenization for storage as a saved card.
+    CustomerListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Customer'
+        has_more:
+          type: boolean
+        next_cursor:
+          type:
+            - string
+            - 'null'
+      required:
+        - data
+        - has_more
+        - next_cursor
+    Customer:
+      type: object
+      properties:
+        id:
+          type: string
+        object:
+          type: string
+          enum:
+            - customer
+        email:
+          type: string
+          format: email
+        name:
+          type:
+            - string
+            - 'null'
+        phone:
+          type:
+            - string
+            - 'null'
+        tier:
+          type: string
+          enum:
+            - new
+            - regular
+            - occasional
+            - lapsed
+          description: >-
+            Customer engagement tier computed from visit history: new (no transactions yet),
+            occasional (1–3 visits in last 365d), regular (4+ visits in last 365d), lapsed (had
+            transactions but last visit was more than 365 days ago).
+        total_transactions:
+          type: integer
+          minimum: 0
+        total_spent_cents:
+          type: integer
+          minimum: 0
+        saved_card_count:
+          type: integer
+          minimum: 0
+        days_since_last_visit:
+          type:
+            - integer
+            - 'null'
+        first_seen_at:
+          type: string
+          format: date-time
+        last_seen_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+      required:
+        - id
+        - object
+        - email
+        - name
+        - phone
+        - tier
+        - total_transactions
+        - total_spent_cents
+        - saved_card_count
+        - days_since_last_visit
+        - first_seen_at
+        - last_seen_at
+        - created_at
+    CustomerDetail:
+      type: object
+      properties:
+        id:
+          type: string
+        object:
+          type: string
+          enum:
+            - customer
+        email:
+          type: string
+          format: email
+        name:
+          type:
+            - string
+            - 'null'
+        phone:
+          type:
+            - string
+            - 'null'
+        tier:
+          type: string
+          enum:
+            - new
+            - regular
+            - occasional
+            - lapsed
+          description: >-
+            Customer engagement tier computed from visit history: new (no transactions yet),
+            occasional (1–3 visits in last 365d), regular (4+ visits in last 365d), lapsed (had
+            transactions but last visit was more than 365 days ago).
+        total_transactions:
+          type: integer
+          minimum: 0
+        total_spent_cents:
+          type: integer
+          minimum: 0
+        saved_card_count:
+          type: integer
+          minimum: 0
+        days_since_last_visit:
+          type:
+            - integer
+            - 'null'
+        first_seen_at:
+          type: string
+          format: date-time
+        last_seen_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        saved_cards:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomerSavedCardInline'
+        recent_transactions:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomerRecentTransactionInline'
+      required:
+        - id
+        - object
+        - email
+        - name
+        - phone
+        - tier
+        - total_transactions
+        - total_spent_cents
+        - saved_card_count
+        - days_since_last_visit
+        - first_seen_at
+        - last_seen_at
+        - created_at
+        - saved_cards
+        - recent_transactions
+    CustomerSavedCardInline:
+      type: object
+      properties:
+        id:
+          type: string
+        last4:
+          type:
+            - string
+            - 'null'
+          minLength: 4
+          maxLength: 4
+        brand:
+          type:
+            - string
+            - 'null'
+        expiry_month:
+          type:
+            - string
+            - 'null'
+        expiry_year:
+          type:
+            - string
+            - 'null'
+        cardholder_name:
+          type:
+            - string
+            - 'null'
+        label:
+          type:
+            - string
+            - 'null'
+        status:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        last_used_at:
+          type:
+            - string
+            - 'null'
+          format: date-time
+      required:
+        - id
+        - last4
+        - brand
+        - expiry_month
+        - expiry_year
+        - cardholder_name
+        - label
+        - status
+        - created_at
+        - last_used_at
+    CustomerRecentTransactionInline:
+      type: object
+      properties:
+        id:
+          type: string
+          example: ch_clx7y8z9a0001b2c3d4e5f6g7
+        amount_cents:
+          type: integer
+          minimum: 0
+        tip_amount_cents:
+          type: integer
+          minimum: 0
+        status:
+          type: string
+        description:
+          type:
+            - string
+            - 'null'
+        stylist_id:
+          type:
+            - string
+            - 'null'
+        booking_id:
+          type:
+            - string
+            - 'null'
+        created_at:
+          type: string
+          format: date-time
+      required:
+        - id
+        - amount_cents
+        - tip_amount_cents
+        - status
+        - description
+        - stylist_id
+        - booking_id
+        - created_at
+    CustomerLtv:
+      type: object
+      properties:
+        customer_id:
+          type: string
+        total_spent_cents:
+          type: integer
+          minimum: 0
+        total_transactions:
+          type: integer
+          minimum: 0
+        average_ticket_cents:
+          type: integer
+          minimum: 0
+        highest_ticket_cents:
+          type: integer
+          minimum: 0
+        by_year:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomerLtvByYear'
+        computed_at:
+          type: string
+          format: date-time
+      required:
+        - customer_id
+        - total_spent_cents
+        - total_transactions
+        - average_ticket_cents
+        - highest_ticket_cents
+        - by_year
+        - computed_at
+    CustomerLtvByYear:
+      type: object
+      properties:
+        year:
+          type: integer
+        spent_cents:
+          type: integer
+          minimum: 0
+        transaction_count:
+          type: integer
+          minimum: 0
+      required:
+        - year
+        - spent_cents
+        - transaction_count
+    CustomerVisits:
+      type: object
+      properties:
+        customer_id:
+          type: string
+        total_visits:
+          type: integer
+          minimum: 0
+        visits_last_30_days:
+          type: integer
+          minimum: 0
+        visits_last_90_days:
+          type: integer
+          minimum: 0
+        visits_last_365_days:
+          type: integer
+          minimum: 0
+        average_days_between_visits:
+          type:
+            - number
+            - 'null'
+        tier:
+          type: string
+          enum:
+            - new
+            - regular
+            - occasional
+            - lapsed
+          description: >-
+            Customer engagement tier computed from visit history: new (no transactions yet),
+            occasional (1–3 visits in last 365d), regular (4+ visits in last 365d), lapsed (had
+            transactions but last visit was more than 365 days ago).
+        first_visit_at:
+          type:
+            - string
+            - 'null'
+          format: date-time
+        last_visit_at:
+          type:
+            - string
+            - 'null'
+          format: date-time
+        visits:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomerVisitInline'
+      required:
+        - customer_id
+        - total_visits
+        - visits_last_30_days
+        - visits_last_90_days
+        - visits_last_365_days
+        - average_days_between_visits
+        - tier
+        - first_visit_at
+        - last_visit_at
+        - visits
+    CustomerVisitInline:
+      type: object
+      properties:
+        transaction_id:
+          type: string
+        visited_at:
+          type: string
+          format: date-time
+        amount_cents:
+          type: integer
+          minimum: 0
+        tip_amount_cents:
+          type: integer
+          minimum: 0
+        description:
+          type:
+            - string
+            - 'null'
+        stylist_id:
+          type:
+            - string
+            - 'null'
+        stylist_name:
+          type:
+            - string
+            - 'null'
+      required:
+        - transaction_id
+        - visited_at
+        - amount_cents
+        - tip_amount_cents
+        - description
+        - stylist_id
+        - stylist_name
+    CardListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Card'
+        has_more:
+          type: boolean
+        next_cursor:
+          type:
+            - string
+            - 'null'
+      required:
+        - data
+        - has_more
+        - next_cursor
+    Card:
+      type: object
+      properties:
+        id:
+          type: string
+          example: card_clx7y8z9a0001b2c3d4e5f6g7
+        object:
+          type: string
+          enum:
+            - card
+        customer_id:
+          type:
+            - string
+            - 'null'
+        customer_email:
+          type: string
+          format: email
+        last4:
+          type:
+            - string
+            - 'null'
+          minLength: 4
+          maxLength: 4
+        brand:
+          type:
+            - string
+            - 'null'
+          description: Visa, Mastercard, AmEx, Discover, etc. Null if unknown.
+        expiry_month:
+          type:
+            - string
+            - 'null'
+        expiry_year:
+          type:
+            - string
+            - 'null'
+        cardholder_name:
+          type:
+            - string
+            - 'null'
+        label:
+          type:
+            - string
+            - 'null'
+        status:
+          type: string
+          description: active, revoked, or expired.
+        last_used_at:
+          type:
+            - string
+            - 'null'
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+      required:
+        - id
+        - object
+        - customer_id
+        - customer_email
+        - last4
+        - brand
+        - expiry_month
+        - expiry_year
+        - cardholder_name
+        - label
+        - status
+        - last_used_at
+        - created_at
+    CardDeleteResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        deleted:
+          type: boolean
+          enum:
+            - true
+      required:
+        - id
+        - deleted
+    Location:
+      type: object
+      properties:
+        id:
+          type: string
+          example: loc_clx7y8z9a0001b2c3d4e5f6g7
+        object:
+          type: string
+          enum:
+            - location
+        name:
+          type: string
+          example: Salon Envy — Corpus Christi
+        address_line1:
+          type:
+            - string
+            - 'null'
+          example: 5601 S Padre Island Dr STE E
+        address_line2:
+          type:
+            - string
+            - 'null'
+        city:
+          type:
+            - string
+            - 'null'
+          example: Corpus Christi
+        state:
+          type:
+            - string
+            - 'null'
+          example: TX
+        zip:
+          type:
+            - string
+            - 'null'
+          example: '78412'
+        phone:
+          type:
+            - string
+            - 'null'
+          example: '+13618891102'
+        timezone:
+          type: string
+          example: America/Chicago
+          description: IANA timezone identifier.
+        status:
+          type: string
+          enum:
+            - active
+            - inactive
+        is_primary:
+          type: boolean
+          description: >-
+            Exactly one location per merchant is primary. The first location created is forced
+            primary regardless of request body. Setting is_primary: true on a new location
+            automatically unmarks the previous primary.
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+        - id
+        - object
+        - name
+        - address_line1
+        - address_line2
+        - city
+        - state
+        - zip
+        - phone
+        - timezone
+        - status
+        - is_primary
+        - created_at
+        - updated_at
+    LocationCreateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+          example: Salon Envy — San Antonio
+        address_line1:
+          type: string
+        address_line2:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+          minLength: 2
+          maxLength: 2
+          description: 2-letter US state code (uppercase). Validated.
+          example: TX
+        zip:
+          type: string
+          description: 5-digit or 9-digit US zip code. Validated by regex.
+          example: '78258'
+        phone:
+          type: string
+        timezone:
+          type: string
+          description: IANA timezone. Defaults to America/Chicago.
+        is_primary:
+          type: boolean
+          description: >-
+            Set true to make this the primary location, automatically demoting the existing primary.
+            The first location for a merchant is always primary regardless of this field.
+      required:
+        - name
   parameters:
     IdempotencyKey:
       schema:
@@ -885,6 +1486,403 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '500':
           description: Failed to create session (e.g., Payroc unreachable).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/customers:
+    get:
+      summary: List customers
+      description: >-
+        Returns a paginated list of customers ordered by most-recent visit descending. Supports
+        filtering by engagement tier and free-text search on email/name/phone.
+      tags:
+        - Customers
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+          required: false
+          name: limit
+          in: query
+        - schema:
+            type: string
+            description: Substring match on email, name, or phone. Case-insensitive.
+          required: false
+          description: Substring match on email, name, or phone. Case-insensitive.
+          name: search
+          in: query
+        - schema:
+            type: string
+            enum:
+              - new
+              - regular
+              - occasional
+              - lapsed
+            description: >-
+              Customer engagement tier computed from visit history: new (no transactions yet),
+              occasional (1–3 visits in last 365d), regular (4+ visits in last 365d), lapsed (had
+              transactions but last visit was more than 365 days ago).
+          required: false
+          description: >-
+            Customer engagement tier computed from visit history: new (no transactions yet),
+            occasional (1–3 visits in last 365d), regular (4+ visits in last 365d), lapsed (had
+            transactions but last visit was more than 365 days ago).
+          name: tier
+          in: query
+        - schema:
+            type: string
+          required: false
+          name: cursor
+          in: query
+      responses:
+        '200':
+          description: List of customers.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerListResponse'
+        '401':
+          description: Missing or invalid API key.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/customers/lookup:
+    get:
+      summary: Look up a customer by email or phone
+      description: >-
+        Finds a single customer matching the provided email or phone. Useful for de-duplication
+        during checkout or walk-in flows. Either email or phone is required.
+      tags:
+        - Customers
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+            format: email
+          required: false
+          name: email
+          in: query
+        - schema:
+            type: string
+          required: false
+          name: phone
+          in: query
+      responses:
+        '200':
+          description: Customer found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+        '400':
+          description: Neither email nor phone provided.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid API key.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Customer not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/customers/{id}:
+    get:
+      summary: Retrieve a customer with saved cards + recent transactions
+      description: >-
+        Returns a customer detail object including up to 50 saved payment methods and the 25 most
+        recent transactions inline. Optimized for checkout / customer profile views — fetches
+        everything needed to display a customer profile in one call.
+      tags:
+        - Customers
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+          required: true
+          name: id
+          in: path
+      responses:
+        '200':
+          description: Customer detail.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerDetail'
+        '401':
+          description: Missing or invalid API key.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Customer not found or not owned by this merchant.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/customers/{id}/lifetime-value:
+    get:
+      summary: Customer lifetime value with annual breakdown
+      description: >-
+        Computes total spend, transaction count, average ticket, highest ticket, and a year-by-year
+        breakdown for the customer. Computed live from successful transactions; cache at the
+        consumer if needed.
+      tags:
+        - Customers
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+          required: true
+          name: id
+          in: path
+      responses:
+        '200':
+          description: Lifetime value computed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerLtv'
+        '401':
+          description: Missing or invalid API key.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Customer not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/customers/{id}/visits:
+    get:
+      summary: Customer visit summary + history
+      description: >-
+        Returns visit cadence statistics (visits in last 30/90/365 days, average days between
+        visits, tier classification) plus the most recent visits with stylist attribution. Use limit
+        query param to control how many visits are returned (default 50, max 200).
+      tags:
+        - Customers
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+          required: true
+          name: id
+          in: path
+        - schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+          required: false
+          name: limit
+          in: query
+      responses:
+        '200':
+          description: Visit summary computed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerVisits'
+        '401':
+          description: Missing or invalid API key.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Customer not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/cards:
+    get:
+      summary: List saved cards
+      description: >-
+        Returns saved payment methods for the merchant. Filter by customer_id, customer_email
+        (substring match), or status. Cursor pagination via next_cursor.
+      tags:
+        - Cards
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+          required: false
+          name: limit
+          in: query
+        - schema:
+            type: string
+          required: false
+          name: customer_id
+          in: query
+        - schema:
+            type: string
+          required: false
+          name: customer_email
+          in: query
+        - schema:
+            type: string
+            enum:
+              - active
+              - revoked
+              - expired
+          required: false
+          name: status
+          in: query
+        - schema:
+            type: string
+          required: false
+          name: cursor
+          in: query
+      responses:
+        '200':
+          description: List of cards.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CardListResponse'
+        '401':
+          description: Missing or invalid API key.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/cards/{id}:
+    get:
+      summary: Retrieve a saved card
+      description: Returns a single saved card. ID accepts both `card_<id>` and bare `<id>` formats.
+      tags:
+        - Cards
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+          required: true
+          name: id
+          in: path
+      responses:
+        '200':
+          description: Card found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Card'
+        '401':
+          description: Missing or invalid API key.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Card not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      summary: Revoke a saved card
+      description: >-
+        Deletes the saved payment method. The Payroc secureToken is deleted on the processor side
+        FIRST; only after Payroc confirms (or returns 404) is the local row marked revoked. This
+        prevents drift between local state and Payroc state. If Payroc is unreachable, returns 502
+        and the card is NOT revoked locally — retry later.
+      tags:
+        - Cards
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+          required: true
+          name: id
+          in: path
+      responses:
+        '200':
+          description: Card revoked.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CardDeleteResponse'
+        '401':
+          description: Missing or invalid API key.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Card not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Card already revoked or expired.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '502':
+          description: Payroc deletion failed; card remains active locally — retry.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/locations:
+    post:
+      summary: Create a location
+      description: >-
+        Creates a new physical location for the merchant. Use for multi-location franchises — Salon
+        Envy operates two locations (Corpus Christi + San Antonio), other franchises operate dozens.
+        The first location created for a merchant is automatically the primary. Subsequent locations
+        can be marked primary via is_primary: true (which demotes the previous primary in a single
+        transaction).
+      tags:
+        - Locations
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LocationCreateRequest'
+      responses:
+        '201':
+          description: Location created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Location'
+        '400':
+          description: Validation error (missing name, invalid state/zip, etc.).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid API key.
           content:
             application/json:
               schema:

@@ -630,5 +630,505 @@ registry.registerPath({
   },
 });
 
+// ──────────────────────────────────────────────────────────────────
+// Customers domain
+// ──────────────────────────────────────────────────────────────────
+
+const CustomerTierSchema = z
+  .enum(["new", "regular", "occasional", "lapsed"])
+  .openapi({
+    description:
+      "Customer engagement tier computed from visit history: new (no transactions yet), occasional (1–3 visits in last 365d), regular (4+ visits in last 365d), lapsed (had transactions but last visit was more than 365 days ago).",
+  });
+
+const CustomerSavedCardInlineSchema = z
+  .object({
+    id: z.string(),
+    last4: z.string().length(4).nullable(),
+    brand: z.string().nullable(),
+    expiry_month: z.string().nullable(),
+    expiry_year: z.string().nullable(),
+    cardholder_name: z.string().nullable(),
+    label: z.string().nullable(),
+    status: z.string(),
+    created_at: z.string().datetime(),
+    last_used_at: z.string().datetime().nullable(),
+  })
+  .openapi("CustomerSavedCardInline");
+
+const CustomerRecentTransactionInlineSchema = z
+  .object({
+    id: z.string().openapi({ example: "ch_clx7y8z9a0001b2c3d4e5f6g7" }),
+    amount_cents: z.number().int().nonnegative(),
+    tip_amount_cents: z.number().int().nonnegative(),
+    status: z.string(),
+    description: z.string().nullable(),
+    stylist_id: z.string().nullable(),
+    booking_id: z.string().nullable(),
+    created_at: z.string().datetime(),
+  })
+  .openapi("CustomerRecentTransactionInline");
+
+const CustomerSchema = z
+  .object({
+    id: z.string(),
+    object: z.literal("customer"),
+    email: z.string().email(),
+    name: z.string().nullable(),
+    phone: z.string().nullable(),
+    tier: CustomerTierSchema,
+    total_transactions: z.number().int().nonnegative(),
+    total_spent_cents: z.number().int().nonnegative(),
+    saved_card_count: z.number().int().nonnegative(),
+    days_since_last_visit: z.number().int().nullable(),
+    first_seen_at: z.string().datetime(),
+    last_seen_at: z.string().datetime(),
+    created_at: z.string().datetime(),
+  })
+  .openapi("Customer");
+
+const CustomerDetailSchema = z
+  .object({
+    id: z.string(),
+    object: z.literal("customer"),
+    email: z.string().email(),
+    name: z.string().nullable(),
+    phone: z.string().nullable(),
+    tier: CustomerTierSchema,
+    total_transactions: z.number().int().nonnegative(),
+    total_spent_cents: z.number().int().nonnegative(),
+    saved_card_count: z.number().int().nonnegative(),
+    days_since_last_visit: z.number().int().nullable(),
+    first_seen_at: z.string().datetime(),
+    last_seen_at: z.string().datetime(),
+    created_at: z.string().datetime(),
+    saved_cards: z.array(CustomerSavedCardInlineSchema),
+    recent_transactions: z.array(CustomerRecentTransactionInlineSchema),
+  })
+  .openapi("CustomerDetail");
+
+const CustomerListResponseSchema = z
+  .object({
+    data: z.array(CustomerSchema),
+    has_more: z.boolean(),
+    next_cursor: z.string().nullable(),
+  })
+  .openapi("CustomerListResponse");
+
+const CustomerLtvByYearSchema = z
+  .object({
+    year: z.number().int(),
+    spent_cents: z.number().int().nonnegative(),
+    transaction_count: z.number().int().nonnegative(),
+  })
+  .openapi("CustomerLtvByYear");
+
+const CustomerLtvSchema = z
+  .object({
+    customer_id: z.string(),
+    total_spent_cents: z.number().int().nonnegative(),
+    total_transactions: z.number().int().nonnegative(),
+    average_ticket_cents: z.number().int().nonnegative(),
+    highest_ticket_cents: z.number().int().nonnegative(),
+    by_year: z.array(CustomerLtvByYearSchema),
+    computed_at: z.string().datetime(),
+  })
+  .openapi("CustomerLtv");
+
+const CustomerVisitInlineSchema = z
+  .object({
+    transaction_id: z.string(),
+    visited_at: z.string().datetime(),
+    amount_cents: z.number().int().nonnegative(),
+    tip_amount_cents: z.number().int().nonnegative(),
+    description: z.string().nullable(),
+    stylist_id: z.string().nullable(),
+    stylist_name: z.string().nullable(),
+  })
+  .openapi("CustomerVisitInline");
+
+const CustomerVisitsSchema = z
+  .object({
+    customer_id: z.string(),
+    total_visits: z.number().int().nonnegative(),
+    visits_last_30_days: z.number().int().nonnegative(),
+    visits_last_90_days: z.number().int().nonnegative(),
+    visits_last_365_days: z.number().int().nonnegative(),
+    average_days_between_visits: z.number().nullable(),
+    tier: CustomerTierSchema,
+    first_visit_at: z.string().datetime().nullable(),
+    last_visit_at: z.string().datetime().nullable(),
+    visits: z.array(CustomerVisitInlineSchema),
+  })
+  .openapi("CustomerVisits");
+
+// Path: GET /api/v1/customers
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/customers",
+  summary: "List customers",
+  description:
+    "Returns a paginated list of customers ordered by most-recent visit descending. Supports filtering by engagement tier and free-text search on email/name/phone.",
+  tags: ["Customers"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    query: z.object({
+      limit: z.number().int().min(1).max(200).optional(),
+      search: z
+        .string()
+        .optional()
+        .openapi({
+          description:
+            "Substring match on email, name, or phone. Case-insensitive.",
+        }),
+      tier: CustomerTierSchema.optional(),
+      cursor: z.string().optional(),
+    }),
+  },
+  responses: {
+    200: {
+      description: "List of customers.",
+      content: {
+        "application/json": { schema: CustomerListResponseSchema },
+      },
+    },
+    401: { description: "Missing or invalid API key.", content: { "application/json": { schema: ErrorResponseSchema } } },
+  },
+});
+
+// Path: GET /api/v1/customers/lookup
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/customers/lookup",
+  summary: "Look up a customer by email or phone",
+  description:
+    "Finds a single customer matching the provided email or phone. Useful for de-duplication during checkout or walk-in flows. Either email or phone is required.",
+  tags: ["Customers"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    query: z
+      .object({
+        email: z.string().email().optional(),
+        phone: z.string().optional(),
+      })
+      .openapi({
+        description: "Provide email OR phone (at least one required).",
+      }),
+  },
+  responses: {
+    200: {
+      description: "Customer found.",
+      content: { "application/json": { schema: CustomerSchema } },
+    },
+    400: {
+      description: "Neither email nor phone provided.",
+      content: { "application/json": { schema: ErrorResponseSchema } },
+    },
+    404: {
+      description: "Customer not found.",
+      content: { "application/json": { schema: ErrorResponseSchema } },
+    },
+    401: { description: "Missing or invalid API key.", content: { "application/json": { schema: ErrorResponseSchema } } },
+  },
+});
+
+// Path: GET /api/v1/customers/{id}
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/customers/{id}",
+  summary: "Retrieve a customer with saved cards + recent transactions",
+  description:
+    "Returns a customer detail object including up to 50 saved payment methods and the 25 most recent transactions inline. Optimized for checkout / customer profile views — fetches everything needed to display a customer profile in one call.",
+  tags: ["Customers"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({ id: z.string() }),
+  },
+  responses: {
+    200: {
+      description: "Customer detail.",
+      content: { "application/json": { schema: CustomerDetailSchema } },
+    },
+    404: {
+      description: "Customer not found or not owned by this merchant.",
+      content: { "application/json": { schema: ErrorResponseSchema } },
+    },
+    401: { description: "Missing or invalid API key.", content: { "application/json": { schema: ErrorResponseSchema } } },
+  },
+});
+
+// Path: GET /api/v1/customers/{id}/lifetime-value
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/customers/{id}/lifetime-value",
+  summary: "Customer lifetime value with annual breakdown",
+  description:
+    "Computes total spend, transaction count, average ticket, highest ticket, and a year-by-year breakdown for the customer. Computed live from successful transactions; cache at the consumer if needed.",
+  tags: ["Customers"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({ id: z.string() }),
+  },
+  responses: {
+    200: {
+      description: "Lifetime value computed.",
+      content: { "application/json": { schema: CustomerLtvSchema } },
+    },
+    404: { description: "Customer not found.", content: { "application/json": { schema: ErrorResponseSchema } } },
+    401: { description: "Missing or invalid API key.", content: { "application/json": { schema: ErrorResponseSchema } } },
+  },
+});
+
+// Path: GET /api/v1/customers/{id}/visits
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/customers/{id}/visits",
+  summary: "Customer visit summary + history",
+  description:
+    "Returns visit cadence statistics (visits in last 30/90/365 days, average days between visits, tier classification) plus the most recent visits with stylist attribution. Use limit query param to control how many visits are returned (default 50, max 200).",
+  tags: ["Customers"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({ id: z.string() }),
+    query: z.object({
+      limit: z.number().int().min(1).max(200).optional(),
+    }),
+  },
+  responses: {
+    200: {
+      description: "Visit summary computed.",
+      content: { "application/json": { schema: CustomerVisitsSchema } },
+    },
+    404: { description: "Customer not found.", content: { "application/json": { schema: ErrorResponseSchema } } },
+    401: { description: "Missing or invalid API key.", content: { "application/json": { schema: ErrorResponseSchema } } },
+  },
+});
+
+// ──────────────────────────────────────────────────────────────────
+// Cards domain (saved payment methods)
+// ──────────────────────────────────────────────────────────────────
+
+const CardSchema = z
+  .object({
+    id: z.string().openapi({ example: "card_clx7y8z9a0001b2c3d4e5f6g7" }),
+    object: z.literal("card"),
+    customer_id: z.string().nullable(),
+    customer_email: z.string().email(),
+    last4: z.string().length(4).nullable(),
+    brand: z.string().nullable().openapi({ description: "Visa, Mastercard, AmEx, Discover, etc. Null if unknown." }),
+    expiry_month: z.string().nullable(),
+    expiry_year: z.string().nullable(),
+    cardholder_name: z.string().nullable(),
+    label: z.string().nullable(),
+    status: z
+      .string()
+      .openapi({
+        description: "active, revoked, or expired.",
+      }),
+    last_used_at: z.string().datetime().nullable(),
+    created_at: z.string().datetime(),
+  })
+  .openapi("Card");
+
+const CardListResponseSchema = z
+  .object({
+    data: z.array(CardSchema),
+    has_more: z.boolean(),
+    next_cursor: z.string().nullable(),
+  })
+  .openapi("CardListResponse");
+
+const CardDeleteResponseSchema = z
+  .object({
+    id: z.string(),
+    deleted: z.literal(true),
+  })
+  .openapi("CardDeleteResponse");
+
+// Path: GET /api/v1/cards
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/cards",
+  summary: "List saved cards",
+  description:
+    "Returns saved payment methods for the merchant. Filter by customer_id, customer_email (substring match), or status. Cursor pagination via next_cursor.",
+  tags: ["Cards"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    query: z.object({
+      limit: z.number().int().min(1).max(200).optional(),
+      customer_id: z.string().optional(),
+      customer_email: z.string().optional(),
+      status: z.enum(["active", "revoked", "expired"]).optional(),
+      cursor: z.string().optional(),
+    }),
+  },
+  responses: {
+    200: {
+      description: "List of cards.",
+      content: { "application/json": { schema: CardListResponseSchema } },
+    },
+    401: { description: "Missing or invalid API key.", content: { "application/json": { schema: ErrorResponseSchema } } },
+  },
+});
+
+// Path: GET /api/v1/cards/{id}
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/cards/{id}",
+  summary: "Retrieve a saved card",
+  description:
+    "Returns a single saved card. ID accepts both `card_<id>` and bare `<id>` formats.",
+  tags: ["Cards"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({ id: z.string() }),
+  },
+  responses: {
+    200: {
+      description: "Card found.",
+      content: { "application/json": { schema: CardSchema } },
+    },
+    404: { description: "Card not found.", content: { "application/json": { schema: ErrorResponseSchema } } },
+    401: { description: "Missing or invalid API key.", content: { "application/json": { schema: ErrorResponseSchema } } },
+  },
+});
+
+// Path: DELETE /api/v1/cards/{id}
+registry.registerPath({
+  method: "delete",
+  path: "/api/v1/cards/{id}",
+  summary: "Revoke a saved card",
+  description:
+    "Deletes the saved payment method. The Payroc secureToken is deleted on the processor side FIRST; only after Payroc confirms (or returns 404) is the local row marked revoked. This prevents drift between local state and Payroc state. If Payroc is unreachable, returns 502 and the card is NOT revoked locally — retry later.",
+  tags: ["Cards"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({ id: z.string() }),
+  },
+  responses: {
+    200: {
+      description: "Card revoked.",
+      content: { "application/json": { schema: CardDeleteResponseSchema } },
+    },
+    404: { description: "Card not found.", content: { "application/json": { schema: ErrorResponseSchema } } },
+    422: {
+      description: "Card already revoked or expired.",
+      content: { "application/json": { schema: ErrorResponseSchema } },
+    },
+    502: {
+      description: "Payroc deletion failed; card remains active locally — retry.",
+      content: { "application/json": { schema: ErrorResponseSchema } },
+    },
+    401: { description: "Missing or invalid API key.", content: { "application/json": { schema: ErrorResponseSchema } } },
+  },
+});
+
+// ──────────────────────────────────────────────────────────────────
+// Locations domain (multi-location franchise support)
+//
+// Currently exposes POST only. GET (list, retrieve) and PATCH (update)
+// are blocked on Phase 10.8 Round 3 Commits 66-68 per docs/engine-roadmap.md
+// blocker annotations.
+// ──────────────────────────────────────────────────────────────────
+
+const LocationSchema = z
+  .object({
+    id: z.string().openapi({ example: "loc_clx7y8z9a0001b2c3d4e5f6g7" }),
+    object: z.literal("location"),
+    name: z.string().openapi({ example: "Salon Envy — Corpus Christi" }),
+    address_line1: z.string().nullable().openapi({ example: "5601 S Padre Island Dr STE E" }),
+    address_line2: z.string().nullable(),
+    city: z.string().nullable().openapi({ example: "Corpus Christi" }),
+    state: z.string().nullable().openapi({ example: "TX" }),
+    zip: z.string().nullable().openapi({ example: "78412" }),
+    phone: z.string().nullable().openapi({ example: "+13618891102" }),
+    timezone: z
+      .string()
+      .openapi({ example: "America/Chicago", description: "IANA timezone identifier." }),
+    status: z.enum(["active", "inactive"]),
+    is_primary: z
+      .boolean()
+      .openapi({
+        description:
+          "Exactly one location per merchant is primary. The first location created is forced primary regardless of request body. Setting is_primary: true on a new location automatically unmarks the previous primary.",
+      }),
+    created_at: z.string().datetime(),
+    updated_at: z.string().datetime(),
+  })
+  .openapi("Location");
+
+const LocationCreateRequestSchema = z
+  .object({
+    name: z
+      .string()
+      .min(1)
+      .max(200)
+      .openapi({ example: "Salon Envy — San Antonio" }),
+    address_line1: z.string().optional(),
+    address_line2: z.string().optional(),
+    city: z.string().optional(),
+    state: z
+      .string()
+      .length(2)
+      .optional()
+      .openapi({
+        description: "2-letter US state code (uppercase). Validated.",
+        example: "TX",
+      }),
+    zip: z
+      .string()
+      .optional()
+      .openapi({
+        description: "5-digit or 9-digit US zip code. Validated by regex.",
+        example: "78258",
+      }),
+    phone: z.string().optional(),
+    timezone: z
+      .string()
+      .optional()
+      .openapi({
+        description: "IANA timezone. Defaults to America/Chicago.",
+      }),
+    is_primary: z
+      .boolean()
+      .optional()
+      .openapi({
+        description:
+          "Set true to make this the primary location, automatically demoting the existing primary. The first location for a merchant is always primary regardless of this field.",
+      }),
+  })
+  .openapi("LocationCreateRequest");
+
+// Path: POST /api/v1/locations
+registry.registerPath({
+  method: "post",
+  path: "/api/v1/locations",
+  summary: "Create a location",
+  description:
+    "Creates a new physical location for the merchant. Use for multi-location franchises — Salon Envy operates two locations (Corpus Christi + San Antonio), other franchises operate dozens. The first location created for a merchant is automatically the primary. Subsequent locations can be marked primary via is_primary: true (which demotes the previous primary in a single transaction).",
+  tags: ["Locations"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    body: {
+      content: {
+        "application/json": { schema: LocationCreateRequestSchema },
+      },
+      required: true,
+    },
+  },
+  responses: {
+    201: {
+      description: "Location created.",
+      content: { "application/json": { schema: LocationSchema } },
+    },
+    400: {
+      description: "Validation error (missing name, invalid state/zip, etc.).",
+      content: { "application/json": { schema: ErrorResponseSchema } },
+    },
+    401: { description: "Missing or invalid API key.", content: { "application/json": { schema: ErrorResponseSchema } } },
+  },
+});
+
 // Re-export the registry as default for the generator script
 export default registry;
