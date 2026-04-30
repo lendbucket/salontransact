@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 export async function POST(request: Request) {
   const { userId } = await requireMaster();
 
-  let body: { name?: unknown; description?: unknown; merchantId?: unknown; apiKeyId?: unknown };
+  let body: { name?: unknown; description?: unknown; merchantId?: unknown; apiKeyId?: unknown; terminalSerial?: unknown };
   try {
     body = await request.json();
   } catch {
@@ -41,6 +41,20 @@ export async function POST(request: Request) {
   const description = typeof body.description === "string" ? body.description.trim().slice(0, 1000) : null;
   const merchantId = body.merchantId;
   const apiKeyId = body.apiKeyId;
+  let terminalSerial: string | null = null;
+  if (typeof body.terminalSerial === "string" && body.terminalSerial.trim().length > 0) {
+    terminalSerial = body.terminalSerial.trim().slice(0, 50);
+    const device = await prisma.device.findUnique({
+      where: { serialNumber: terminalSerial },
+      select: { merchantId: true, status: true },
+    });
+    if (!device || device.merchantId !== merchantId) {
+      return NextResponse.json({ error: "Terminal serial does not belong to chosen merchant" }, { status: 400 });
+    }
+    if (device.status !== "active") {
+      return NextResponse.json({ error: `Terminal is ${device.status}, must be active` }, { status: 400 });
+    }
+  }
 
   const session = await prisma.$transaction(async (tx) => {
     const created = await tx.certTestSession.create({
@@ -50,6 +64,7 @@ export async function POST(request: Request) {
         status: "in_progress",
         merchantId,
         apiKeyId,
+        terminalSerial,
         createdByUserId: userId,
         totalTests: ALL_TEST_CASES.length,
       },

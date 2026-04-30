@@ -21,6 +21,12 @@ export default async function NewCertSessionPage() {
         select: { id: true, name: true, keyPrefix: true },
         take: 5,
       },
+      devices: {
+        where: { status: "active" },
+        select: { id: true, serialNumber: true, label: true, model: true },
+        orderBy: { pairedAt: "desc" },
+        take: 10,
+      },
     },
     orderBy: { businessName: "asc" },
     take: 50,
@@ -32,6 +38,12 @@ export default async function NewCertSessionPage() {
       id: m.id,
       businessName: m.businessName,
       apiKeys: m.apiKeys.map((k) => ({ id: k.id, name: k.name, keyPrefix: k.keyPrefix })),
+      devices: m.devices.map((d) => ({
+        id: d.id,
+        serialNumber: d.serialNumber,
+        label: d.label,
+        model: d.model,
+      })),
     }));
 
   return (

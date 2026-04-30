@@ -11,10 +11,18 @@ interface Stats {
   optional: number;
 }
 
+interface DeviceOption {
+  id: string;
+  serialNumber: string;
+  label: string | null;
+  model: string | null;
+}
+
 interface MerchantOption {
   id: string;
   businessName: string;
   apiKeys: { id: string; name: string; keyPrefix: string | null }[];
+  devices: DeviceOption[];
 }
 
 interface Props {
@@ -30,6 +38,7 @@ export function NewCertSessionClient({ stats, merchants }: Props) {
   );
   const [merchantId, setMerchantId] = useState(merchants[0]?.id ?? "");
   const [apiKeyId, setApiKeyId] = useState(merchants[0]?.apiKeys[0]?.id ?? "");
+  const [terminalSerial, setTerminalSerial] = useState(merchants[0]?.devices[0]?.serialNumber ?? "");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,6 +48,7 @@ export function NewCertSessionClient({ stats, merchants }: Props) {
     setMerchantId(newMerchantId);
     const m = merchants.find((mm) => mm.id === newMerchantId);
     setApiKeyId(m?.apiKeys[0]?.id ?? "");
+    setTerminalSerial(m?.devices[0]?.serialNumber ?? "");
   }
 
   async function handleSubmit() {
@@ -48,7 +58,13 @@ export function NewCertSessionClient({ stats, merchants }: Props) {
       const res = await fetch("/api/master/cert-tests/sessions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, description, merchantId, apiKeyId }),
+        body: JSON.stringify({
+          name,
+          description,
+          merchantId,
+          apiKeyId,
+          terminalSerial: terminalSerial || null,
+        }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -67,11 +83,13 @@ export function NewCertSessionClient({ stats, merchants }: Props) {
       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
         <h3 className="font-medium text-yellow-900 mb-2">No merchants with API keys found</h3>
         <p className="text-sm text-yellow-800">
-          Cert tests run as a specific merchant + API key. Create a test merchant with an active API key first.
+          Cert tests run as a specific merchant + API key. Create a test merchant with an active API key first, then return here.
         </p>
       </div>
     );
   }
+
+  const hasDevices = (selectedMerchant?.devices.length ?? 0) > 0;
 
   return (
     <div className="space-y-6">
@@ -125,7 +143,7 @@ export function NewCertSessionClient({ stats, merchants }: Props) {
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Test merchant</label>
           <p className="text-xs text-gray-500 mb-2">
-            All cert charges attribute to this merchant. Use a dedicated test merchant.
+            All cert charges attribute to this merchant. Use a dedicated test merchant — these transactions will appear in their reporting.
           </p>
           <select
             value={merchantId}
@@ -152,6 +170,33 @@ export function NewCertSessionClient({ stats, merchants }: Props) {
               </option>
             ))}
           </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Pax terminal (optional)
+          </label>
+          <p className="text-xs text-gray-500 mb-2">
+            Required for Card Present (CP) tests. Leave empty if running CNP-only.
+          </p>
+          {hasDevices ? (
+            <select
+              value={terminalSerial}
+              onChange={(e) => setTerminalSerial(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#017ea7]"
+              disabled={submitting}
+            >
+              <option value="">{"\u2014"} No terminal (CNP-only run) {"\u2014"}</option>
+              {selectedMerchant?.devices.map((d) => (
+                <option key={d.id} value={d.serialNumber}>
+                  {d.label ?? d.model ?? "Unnamed"} {"\u2014"} {d.serialNumber}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-xs text-gray-600">
+              No paired devices for this merchant. CP tests will need to be marked manually. Pair a Pax via /master/devices to enable CP automation.
+            </div>
+          )}
         </div>
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
