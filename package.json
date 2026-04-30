@@ -8,10 +8,12 @@
     "start": "next start",
     "lint": "eslint",
     "postinstall": "prisma generate",
-    "register-webhook": "node scripts/register-webhook.mjs"
+    "register-webhook": "node scripts/register-webhook.mjs",
+    "openapi:generate": "tsx scripts/generate-openapi.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.88.0",
+    "@asteasolutions/zod-to-openapi": "^8.5.0",
     "@auth/prisma-adapter": "^2.11.1",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.7.0",
@@ -22,6 +24,7 @@
     "@supabase/supabase-js": "^2.105.1",
     "bcryptjs": "^3.0.3",
     "date-fns": "^4.1.0",
+    "js-yaml": "^4.1.1",
     "jspdf": "^4.2.1",
     "lucide-react": "^1.8.0",
     "next": "16.2.3",
@@ -33,11 +36,13 @@
     "react-dom": "19.2.4",
     "recharts": "^3.8.1",
     "resend": "^6.10.0",
-    "stripe": "^22.0.1"
+    "stripe": "^22.0.1",
+    "zod": "^4.4.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/bcryptjs": "^2.4.6",
+    "@types/js-yaml": "^4.0.9",
     "@types/node": "^20",
     "@types/nodemailer": "^8.0.0",
     "@types/pg": "^8.20.0",

@@ -1,0 +1,89 @@
+openapi: 3.1.0
+info:
+  title: Reyna Pay Engine API
+  version: v1
+  description: |-
+    The Reyna Pay engine processes payments, manages customers,
+    tokenizes cards, tracks risk, and exposes reporting.
+
+    All endpoints under /api/v1/* require an API key passed via
+    the `Authorization: Bearer <key>` header. POST endpoints
+    additionally require an `Idempotency-Key: <UUID v4>` header
+    to prevent duplicate processing.
+
+    See https://docs.reynapay.com for integration guides.
+  contact:
+    name: Reyna Pay Engineering
+    email: engineering@reynapay.com
+servers:
+  - url: https://portal.salontransact.com
+    description: Production
+components:
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              enum:
+                - unauthorized
+                - forbidden
+                - not_found
+                - validation_error
+                - idempotency_conflict
+                - rate_limit_exceeded
+                - payment_failed
+                - internal_error
+                - method_not_allowed
+              description: Machine-readable error code
+            message:
+              type: string
+              description: Human-readable error message
+            details:
+              type: object
+              additionalProperties: {}
+              description: Optional structured error details (e.g. failed field name)
+          required:
+            - code
+            - message
+      required:
+        - error
+    HealthResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          enum:
+            - true
+          example: true
+        service:
+          type: string
+          example: salontransact-engine
+        version:
+          type: string
+          example: '2026-04-29'
+      required:
+        - ok
+        - service
+        - version
+  parameters: {}
+paths:
+  /api/v1/health:
+    get:
+      summary: Health check
+      description: >-
+        Returns the engine's liveness status. Does not require authentication. Use this endpoint for
+        uptime monitoring and to verify the engine is reachable.
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Engine is healthy and accepting requests.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+webhooks: {}
