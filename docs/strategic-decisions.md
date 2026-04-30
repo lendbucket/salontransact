@@ -259,6 +259,58 @@ NOT inline with active work.
 
 ---
 
+## SD-010: Hosted Fields SDK version pinned to whatever Payroc confirms
+
+**Date locked:** 2026-04-30
+**Status:** ACTIVE — version-pin policy
+
+**Decision:** Do NOT upgrade the Payroc Hosted Fields SDK
+(`lib/payroc/hosted-fields.ts`) without explicit confirmation from
+Payroc that the new version is compatible with our processing
+terminal config. Stay on the version Payroc confirms works for
+terminal `6535001` until Matt or Chris explicitly approves an
+upgrade path.
+
+**Reasoning:**
+
+- On 2026-04-27, commit `6d06f75` upgraded SDK from `1.6.0.172429`
+  → `1.7.0.261457` to pick up the `destroy()` method documented at
+  https://docs.payroc.com/guides/take-payments/hosted-fields/extend-your-integration/close-a-session
+- The `destroy()` method works, BUT 1.7.0.261457 sends a different
+  request shape to `testpayments.worldnettps.com/.../single-use-tokens`
+  — specifically `content-length: 0` (empty body POST).
+- Our terminal config was provisioned against the older SDK request
+  shape. Result: gateway returns 400 "Missing required field" on
+  every tokenization attempt.
+- Real production charge from earlier (the $56.65 AmEx) was processed
+  on 1.6.0 and worked fine. The 1.7.0 upgrade silently broke UAT
+  tokenization without any error in our build pipeline.
+- Slack message sent to Chris/Matt 2026-04-30 with cURL evidence
+  asking what 1.7.0 expects from the terminal side.
+
+**Application:**
+
+- Before any Hosted Fields SDK version bump, post the proposed
+  version + integrity hash to Payroc in Slack and wait for written
+  confirmation that terminal `6535001` (UAT) and the production
+  terminal config support that version.
+- If a documented SDK feature requires a version bump (e.g.
+  `destroy()` requires 1.7.0+), get terminal-config approval
+  BEFORE merging the bump.
+- Pin the SDK version in `lib/payroc/hosted-fields.ts` with the
+  exact integrity hash. Do not use floating versions or "latest".
+- Treat any "Unsupported property" or `400 Missing required field`
+  console errors as cert blockers. Investigate before shipping.
+
+**Revisit triggers:**
+
+- Payroc explicitly recommends an upgrade path for our terminal
+- Payroc deprecates the version we're pinned to
+- A Hosted Fields feature we genuinely need requires a newer SDK
+  AND Payroc has confirmed terminal support
+
+---
+
 ## How to use this document
 
 When proposing a change that touches infrastructure providers, product 

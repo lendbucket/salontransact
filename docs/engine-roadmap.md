@@ -283,34 +283,34 @@ Robert
 - Commit 64 (git 54): Chargeback alerting cron ✅ **FIXED (f9ee651):** 
   Ratio now cross-checks Payroc `/disputes` as authoritative source.
 
-### Phase 10.8 — Multi-location / franchise (4 commits) — TOMORROW
+### Phase 10.8 — Multi-location / franchise (4 commits) — ⏸️ BLOCKED ON SDK 1.7.0 (see SD-010)
 Engine-only Location model. Each location can have its own Payroc MID 
 (per Chris's note). Honest.
 
-### Phase 10.9 — Money movement (3 commits, REVISED) — TOMORROW
+### Phase 10.9 — Money movement (3 commits, REVISED) — ⏸️ BLOCKED ON SDK 1.7.0 (see SD-010)
 **DESCOPED from original 4 commits.** Real instant payouts removed (no Treasury).
 - Same-day-payout (wraps Payroc same-day funding) ✅ Real
 - Stylist allocation tracking (engine ledger only) ✅ Engine-only
 - End-of-day batch close (calls Payroc batch close) ⚠️ NEEDS PAYROC VERIFY
 
-### Phase 10.10 — Compliance / risk surface (3 commits) — TOMORROW
+### Phase 10.10 — Compliance / risk surface (3 commits) — ⏸️ BLOCKED ON SDK 1.7.0 (see SD-010)
 - PCI status query ⚠️ NEEDS AUDIT (what data is real vs synthetic)
 - Audit log query ✅ Engine-only, real
 - Velocity alerts feed ✅ Engine-only, real
 
-### Phase 10.11 — Integration ecosystem (5 commits) — TOMORROW
+### Phase 10.11 — Integration ecosystem (5 commits) — ✅ UNBLOCKED (no tokenization dependency)
 - QuickBooks GL sync (build with QB OAuth) ✅ Real if built correctly
 - Mailchimp/Klaviyo customer export ✅ Real if built correctly
 - Statement parser ✅ Real (extracts from PDF/CSV)
 - Switching wizard ✅ Real
 - Kasse SDK foundation ✅ Real (TypeScript wrapper of v1 API)
 
-### Phase 10.12 — Feature flags + env split (3 commits) — TOMORROW
+### Phase 10.12 — Feature flags + env split (3 commits) — ⏸️ BLOCKED ON SDK 1.7.0 (see SD-010)
 - sk_test_* vs sk_live_* keys ✅ Real
 - Per-merchant feature flags ✅ Real
 - Test mode for charge/customer endpoints ✅ Real
 
-### Phase 10.13 — IMPLEMENTATION KIT (5 commits) — TOMORROW
+### Phase 10.13 — IMPLEMENTATION KIT (5 commits) — ✅ UNBLOCKED ⭐ HIGHEST LEVERAGE (see SD-007)
 The IMPLEMENTATION KIT will be HONEST about every capability per the 
 payroc-capability-matrix.md doc. No aspirational claims. No "instant 
 payouts" without Treasury asterisk. Real engine, honestly documented.
@@ -502,6 +502,31 @@ These are watching items. None are committed Phases.
 - Documentation (Phase 10.13 IMPLEMENTATION KIT)
 
 ## What's actually blocked
+
+### As of 2026-04-30 — SDK 1.7.0 tokenization regression
+
+Hosted Fields SDK upgrade in commit `6d06f75` (4/27) broke the
+`/single-use-tokens` POST against terminal `6535001` UAT — gateway
+returns 400 "Missing required field" on empty-body POSTs.
+
+Slack message with cURL evidence sent to Chris Boutwell + Matt Perry
+at Payroc on 2026-04-30. Awaiting their input on whether:
+
+1. SDK 1.7.0 requires a different `Payroc.hostedFields(...)` config
+2. Terminal `6535001` needs a config update on Payroc's side
+3. We should rollback to 1.6.0.172429 (known-working version)
+
+**Phases blocked by this:** Phase 10.8 (Round 3 commits 66-68),
+Phase 10.9 (Round 4 commits 69-71), Phase 10.10 (Round 5 commits
+73-75), Phase 10.12 (Round 6 commits 81-83), Phase 9.1 production
+cert run.
+
+**Phases NOT blocked:** Phase 10.11 (integration ecosystem),
+Phase 10.13 (IMPLEMENTATION KIT — HIGHEST LEVERAGE per SD-007),
+Phase 11 Kasse (separate repo `lendbucket/kasse` already in flight).
+
+See `docs/strategic-decisions.md` SD-010 for the version-pin policy
+locked from this incident.
 
 - Production cutover (Payroc cert + ERF)
 - Apple Pay production validation (Payroc operations side)
