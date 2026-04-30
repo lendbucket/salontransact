@@ -86,14 +86,22 @@ These are real products built on top of our database, NOT Payroc:
 5. What's the Payroc disputes API shape — are we pulling correctly?
 6. Can Payroc split settlement to multiple merchant bank accounts?
 
-## Reyna Pay's roadmap to add Treasury (out of Phase 10 scope)
+## Treasury / Banking Reality (locked)
 
-If we want real instant payouts (Stripe-style) someday, the path is:
+**Reyna Pay corporate finance:** Mercury bank account only. No Stripe 
+Treasury, no Wise. See SD-002, SD-003 in strategic-decisions.md.
 
-1. Sign with a Treasury/Issuing partner (Modern Treasury, Lithic, Cross River, Evolve)
-2. Get state money-transmitter analysis from counsel
-3. Visa Direct certification (months of work via partner)
-4. Reserve capital for float (30-60 days of merchant volume)
-5. Build new endpoints alongside existing — not replacing same-day-payout
+**Real instant payouts (push-to-card):** Not offered. Same-day funding 
+via Payroc is the fastest payout option. See SD-005.
 
-This is Phase 14+ if we go this way. Not committed.
+**Card issuing for merchants/stylists:** Not offered. No Issuing 
+partner. Future exploration only, no commitment.
+
+**Cross-border:** Not offered. US-only operations. Future exploration 
+only, no commitment.
+
+**Payroll rails:** Not built. Stripe Treasury and Wise both prohibit 
+nested third-party sender use, so neither could serve as ACH 
+origination for merchant payroll. When payroll is added (post-Phase 
+10/11), the path is embedded provider (Check/Gusto/ADP), not native 
+build. See SD-004.

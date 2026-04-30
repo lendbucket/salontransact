@@ -314,6 +314,28 @@ The IMPLEMENTATION KIT will be HONEST about every capability per the
 payroc-capability-matrix.md doc. No aspirational claims. No "instant 
 payouts" without Treasury asterisk. Real engine, honestly documented.
 
+**AI agent integration notes (per SD-007):**
+
+The IMPLEMENTATION KIT explicitly documents the Reyna Pay v1 API as 
+agent-friendly:
+
+- OpenAPI 3.1 spec is machine-readable for Claude Code, Cursor, ChatGPT 
+  operators, custom agents (e.g., Kasse voice receptionist)
+- Master integration prompt is written in plain markdown that ANY agent 
+  can consume in one read to produce a working integration
+- Vertical quick-starts include "AI agent flows" sections showing 
+  common agent patterns (lookup customer, charge saved card, refund, 
+  confirm idempotency)
+- All endpoints support Idempotency-Key for safe retry by agents
+- Standard error format with machine-parseable codes lets agents 
+  recover from failures without human intervention
+- Webhook signatures use Stripe-compatible HMAC format that agents 
+  can verify
+
+This is NOT building agent-specific products. This is making the 
+existing engine consumable by agents that downstream products (Kasse, 
+RestaurantTransact, third-party POS) will build.
+
 ## TODO list (audit fixes, ship FIRST tomorrow before Phase 10.8)
 
 1. **HIGH:** Replace chargeback ratio source — Payroc disputes API not Transaction.refunded
@@ -406,112 +428,50 @@ After Phase 10.13 ships, the engine isn't just code — it's a productized integ
 
 ---
 
-## Phase 11 — Kasse iPad POS (parallel with Phase 10 if resources allow)
+## Future Phases (post-Phase 10/11)
 
-**Goal:** Native iPad POS that integrates with SalonTransact processing, with iPhone stylist app for individual login.
+### Phase 11 — Kasse iPad POS
+Separate project, separate repo, ~70-80% UI wrapping the v1 API surface.
+Estimated 8-12 weeks for v1 once Phase 10 closes.
 
-Per memory: "Build React Native iPad POS + iPhone stylist app on Stripe Terminal — this permanently fixes payroll attribution (once stylists log in with individual profiles, attribution is automatic)."
+### Phase 12 — Multi-tenant engine foundation
+Brand model, super-master role, brand switcher UI, theme system. 8-12 
+weeks. Required before launching new vertical brands.
 
-Note: Despite the memory saying Stripe Terminal, given Reyna Pay processes on Payroc, **Kasse will use Payroc's terminal SDK**, not Stripe Terminal. Update the memory once Payroc Terminal SDK details are confirmed (likely separate Phase 11 unblock from Payroc).
+### Phase 13 — RestaurantTransact launch
+Proves multi-tenant works on a second vertical. Same engine, different 
+brand. ~4 weeks once Phase 12 closes.
 
-### Core scope
-- Native React Native app (iPad primary, iPhone for stylist tip-pickup)
-- Stylist login with individual profiles
-- Cart, item builder, ticket flow
-- Payroc Pax A920 Pro device integration (already have device serial 1854592644 in UAT)
-- Tip selection (preset percentages + custom)
-- Card-present + card-on-file flows
-- Receipt printing or email/SMS
-- End-of-day close + tip distribution
-- Sync to SalonTransact backend (uses API keys from Phase 8)
+### Phase 14 — External reseller program
+Branded partner portals. After counsel review on FTC Business Opportunity 
+Rule + state laws. Already deferred.
 
-### Why this matters
-- Without Kasse: salons share one terminal login → no automatic stylist attribution → manual payroll reconciliation at end of day → errors and disputes
-- With Kasse: each stylist logs into the iPhone app, taps to start a sale, the iPad terminal processes → automatic attribution via stylist ID → payroll runs itself
-- This is the operational killer feature that makes Reyna Pay/SalonTransact materially different from anything else on the market for salons
+### Phase 15 — Payroll (DEFERRED, see SD-004)
+Revisit ONLY when:
+- Phase 10 complete
+- Phase 11 (Kasse v1) live
+- First merchant live on production Payroc
+- Real merchant demand validated
 
-### Build estimate
-- Kasse v1: 8–12 weeks
-- Smaller team can ship in 6 weeks if focused
-- Parallelizable with Phase 10
+When revisited, options are:
+- (A) Embed Check or Gusto, wrap in salon-specific UI (8-12 weeks)
+- (B) Embed first, build native replacement over 18-24 months in parallel 
+  (Square/Toast pattern)
+- Building from scratch immediately ruled out per SD-004 (NACHA + IRS + 
+  state compliance + ODFI relationships + bonding + insurance > $200K 
+  Year 1 hard cost, ~12+ months timeline, asymmetric Trust Fund Recovery 
+  Penalty risk)
 
-### Vertical-specific POS for other brands
-- RestaurantTransact will get a different POS (table layouts, modifiers, tabs, splits, kitchen display systems) — separate codebase, but uses the same Reyna Pay backend SDK
-- Book stores would use a third POS variant
-- All POS apps share the same Reyna Pay backend, just different frontends per vertical
+### Phase 16+ — Future explorations (NO COMMITMENT)
+- Real instant payouts (requires Treasury partner relationship — see 
+  SD-005, SD-002)
+- Card issuing (requires Issuing partner)
+- AI agent commerce features (Link wallet integration, etc. — requires 
+  Stripe ecosystem entry, see SD-002)
+- Cross-border / multi-currency (requires Wise or alternative — see 
+  SD-003)
 
----
-
-## Phase 12 — Multi-tenant engine foundation (8–12 weeks after Phase 10)
-
-**Goal:** Convert SalonTransact's single-brand architecture into a multi-tenant engine where multiple branded products run on the same codebase.
-
-This is the biggest architectural shift in the roadmap. Done correctly, it makes RestaurantTransact a 4-week launch instead of a 6-month rebuild.
-
-### Scope
-- Add `Brand` model: id, name, slug, primaryDomain, logoUrl, primaryColorHex, supportEmail, fromAddressOverride, payrocConfigOverride (terminal IDs, etc.), featureFlags
-- Add `brandId` foreign key to all major models: User, Merchant, MerchantApplication, Transaction, Customer, Notification, AuditLog, etc.
-- Add `User.role` extension: "super_master" (you, see all brands) vs "master" (single-brand scope)
-- Brand switcher UI: dropdown next to profile icon, shows brands the user has access to, click switches context
-- Brand context middleware: every request scoped to active brand, even at the database query level
-- Per-brand subdomain routing: `master.salontransact.com` shows SalonTransact, `master.restauranttransact.com` shows RestaurantTransact, etc.
-- Theme system: CSS variables override per brand (logo URL, primary color, accent color, font choice)
-- Email template overrides per brand: from-address, header logo, footer text
-- PDF document overrides: agreement, statements, receipts get the active brand's logo + colors
-
-### Migration risk
-- Every existing query needs `WHERE brandId = activeBrand` or it leaks data across brands
-- Audit log needs brand context to prevent one brand's master from seeing another brand's audit entries
-- Notifications need to be brand-scoped (RestaurantTransact merchant doesn't get SalonTransact alerts)
-- This is a 4-week migration done carefully, with tests, with backfill scripts. Do NOT rush it.
-
-### Prerequisites
-- SalonTransact must be live with paying merchants
-- Phase 10 must be substantially complete (otherwise we're migrating a moving target)
-- Real demand validated for second brand (e.g., 1+ restaurant willing to pilot RestaurantTransact)
-
----
-
-## Phase 13 — Launch RestaurantTransact (4 weeks after Phase 12)
-
-**Goal:** Prove the multi-tenant engine by launching a second branded product.
-
-### Scope
-- New brand record: RestaurantTransact, restauranttransact.com, distinct logo + colors
-- Vertical-specific UI changes: terms ("table service" instead of "stylist service"), reporting categories (food vs beverage vs alcohol), tax handling (sales tax vs service tax)
-- Restaurant-specific features:
-  - Tab/check management
-  - Course timing
-  - Modifier handling
-  - Tip-out among servers/bartenders/kitchen
-  - Split checks
-  - Kitchen display system integration
-- Different POS app (Phase 11 forks — RestaurantTransact uses ResTablet, not Kasse)
-- Marketing site at restauranttransact.com (mirrors Reyna Pay site structure)
-
-### Exit criteria
-- 5+ restaurant merchants live on RestaurantTransact
-- Same Reyna Pay engine code, different brand context
-- Owner (Robert) switches between SalonTransact and RestaurantTransact via brand dropdown
-
----
-
-## Phase 14 — External reseller program (after counsel review)
-
-**Goal:** Enable external entrepreneurs to onboard as branded resellers under the Reyna Pay engine.
-
-See `docs/reseller-program.md` for full details.
-
-Key distinction from Robert's own brands:
-- **Robert's brands** (SalonTransact, RestaurantTransact, etc.): Robert is the legal merchant services provider, owns the brand, controls Payroc relationship for that brand. Multi-tenant engine has Robert as super-master.
-- **External resellers**: Robert is STILL the legal merchant services provider. Reseller is a referral partner with branded portal. Different commission structure. Counsel-reviewed agreements.
-
-Both use the same multi-tenant engine. The architectural difference is access scope (resellers can only see their own merchants and commissions; can't switch brand context to other brands).
-
-### Prerequisites
-- Counsel review of reseller agreement, marketing language, state compliance (FTC business opportunity rule, state MTL exposure)
-- Phase 12 (multi-tenant) must be live
-- Robert's own brands must be live (resellers want to join an established platform, not pre-launch)
+These are watching items. None are committed Phases.
 
 ---
 
@@ -520,14 +480,16 @@ Both use the same multi-tenant engine. The architectural difference is access sc
 1. **Phase 9.1** — Payroc production cert (BLOCKED, parallel)
 2. **Phase 9.2** — Apple Pay UAT cert (can start NOW, parallel with Payroc cert)
 3. **Phase 9.3** — Google Pay setup (can start NOW, parallel)
-4. **Phase 10.8-10.13** — Tomorrow's engine build (NOT BLOCKED, ship in parallel)
-5. **Phase 10 audit fixes** — Tomorrow morning, before 10.8
+4. **Phase 10.8-10.13** — Engine build (NOT BLOCKED, ship in parallel)
+5. **Phase 10 audit fixes** — Before 10.8
 6. **Phase 9.4** — Production cutover (after Payroc cert + ERF received)
 7. **Phase 9.5** — First merchant live (validation gate)
 8. **Phase 11** — Kasse iPad POS (separate project, after Phase 9 + Phase 10 close)
 9. **Phase 12** — Multi-tenant engine foundation (Brand model, super-master)
 10. **Phase 13** — RestaurantTransact launch (proves multi-tenant)
 11. **Phase 14** — External reseller program (after counsel review)
+12. **Phase 15** — Payroll (DEFERRED, see SD-004)
+13. **Phase 16+** — Future explorations (NO COMMITMENT)
 
 ## What we can ship without Matt/Chris answers
 
