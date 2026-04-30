@@ -59,29 +59,172 @@ Single-brand SalonTransact with one Payroc relationship. NOT yet multi-tenant. N
 
 ---
 
-## Phase 9 — Merchant boarding (CURRENT, blocked on transcript)
+## Phase 9 — Path to Production (CRITICAL — gates live revenue)
 
-**Goal:** First paying merchants on Reyna Pay's House Account.
+**Status:** In progress. Engine works in UAT. NOT yet processing real 
+money for real merchants.
 
-Per Chris #7 (Payroc Boarding API is early beta, NOT GA), Phase 9 uses ERF/manual submission, not API integration.
+This phase is the difference between "we built a thing" and "we have a 
+payments business." Until Phase 9 closes, all the v1 API surface in 
+Phase 10 only works against Payroc UAT. No revenue, no merchant 
+billing, no chargeback exposure, no real risk.
 
-### Unblock items
-1. Full Matt/Chris call transcript (covers minutes 3:16 → 17:30)
-2. Matt's reply with specific idempotency UUIDs and transaction IDs
-3. Hosted Fields missing parent div field name (from Matt's email)
-4. Production cert questions (expected tomorrow night)
+### Phase 9.1 — Payroc production cert (BLOCKED on Matt + Chris)
 
-### Build scope (after unblock)
-- ERF generation: web form OR PDF that captures all required Payroc fields, signed and submitted by master
-- "Submit ERF to Payroc" button → fires email to Reyna Pay's Payroc rep with ERF attached
-- Email parsing: when Payroc sends back the cert letter with the MID, master clicks "Mark Active" and enters the MID (already built in Phase 9 prep)
-- Merchant notification flow: when merchant transitions to "active," they get a "you can now process payments" email with login link
-- Cert workflow: production cert via abridged Matt-runs-scripts approach (per memory)
-- Apple Pay production cert workflow (UAT cert already needs sandbox; production cert is consumer Apple device per Chris)
+**Open items:**
+1. Matt: Hosted Fields parent div field name (he was emailing exact name)
+2. Matt: Idempotency UUID format confirmation (we send crypto.randomUUID() per request)
+3. Matt: Confirm capture/void endpoints work on House Account config 
+   (added during audit — Phase 10.3 capture/void shipped but unverified against real Payroc)
+4. Chris: Production cert Option 2 details — Reyna Pay live House Account, 
+   abridged scripts, real cards, 1-2 business days for cert letter
+5. Chris: ERF form for batch close time — where to send it once filled
+6. Chris: Confirm same-day funding setup (also via ERF)
 
-### Exit criteria
-- 1+ merchant successfully boarded end-to-end (application → approved → submitted_to_payroc → active → first live transaction)
-- Documented runbook for boarding subsequent merchants
+**What we ship after answers come in:**
+- Production cert run-through (real cards, real auth, real capture, real refund, real void on Reyna Pay live House Account)
+- ERF form filled out + submitted
+- Cert letter received from Payroc Operations (1-2 business days)
+
+### Phase 9.2 — Apple Pay integration
+
+**Status:** DEFERRED at end of Phase 10.4 because cert path was unclear.
+Now scoped properly:
+
+**Apple Pay UAT cert (do FIRST, before production):**
+- Apple Developer account active (Robert has one)
+- Generate Payment Processing Certificate Signing Request (CSR)
+- Upload to Apple Developer dashboard, get .cer file
+- Submit cert to Payroc UAT for sandbox setup
+- Test in UAT with sandbox Apple Pay environment
+- Verify token exchange works through our existing Hosted Fields tokenization path
+
+**Apple Pay production cert:**
+Per Chris (Memory #14): Production uses consumer Apple device for verification, NOT sandbox. Sandbox cert only needed for UAT testing.
+- Production CSR generated separately
+- Submitted to Payroc Operations as part of Production Cert Option 2
+- Activated alongside production credentials
+
+**Build work (engine side, ~3 commits):**
+- Apple Pay button component for consumer-facing card-entry page (/c/[token])
+- Apple Pay session creation endpoint that calls Apple's validation server
+- Token-exchange flow: Apple Pay token → Hosted Fields tokenization → Payroc secureToken → POST /api/v1/charges with source.type=single_use_token
+
+### Phase 9.3 — Google Pay integration
+
+**Same architecture as Apple Pay** — wallet token flows through Hosted Fields tokenization. Easier than Apple Pay because no per-app cert (uses merchant ID + Google Pay business profile).
+
+**Setup:**
+- Register Google Pay Business Profile (Robert)
+- Get Google Pay merchant ID
+- Configure Payroc UAT to accept Google Pay tokens
+- Test in UAT (Google Pay TEST environment)
+- Same architecture as Apple Pay for token exchange
+
+**Build work (~2 commits):**
+- Google Pay button component for /c/[token] page
+- Token-exchange flow same pattern as Apple Pay
+
+### Phase 9.4 — Production cutover
+
+After cert + ERF + wallets:
+
+**Environment swap:**
+- Vercel production env vars updated:
+  - `PAYROC_API_URL` → production URL (replace UAT)
+  - `PAYROC_API_KEY` → production House Account key
+  - `PAYROC_TERMINAL_ID` → production terminal ID (real merchant terminals)
+  - `PAYROC_ENV` → "production"
+- Idempotency keys flagged with environment so test data and live data don't collide
+- Apple Pay + Google Pay merchant IDs configured
+
+**Database considerations:**
+- UAT test data stays in production DB (it's labeled with merchantId scoping; no cross-contamination)
+- Real merchants get separate Merchant rows from any UAT test merchants
+- All audit logs preserved
+
+### Phase 9.5 — First merchant live
+
+The validation gate. Real revenue moment.
+
+**Happy path:**
+1. First real merchant submits application via /apply
+2. Master operator (you) reviews + approves in master portal
+3. Application goes through boarding state machine: submitted → approved → submitted_to_payroc → active
+4. Merchant gets API keys generated
+5. Merchant runs first real charge via Hosted Fields or device
+6. Real money settles via Payroc same-day (or T+1 standard)
+7. Webhook fires charge.succeeded to subscriber endpoints
+8. Audit log records the full flow
+
+**Validation checklist:**
+- [ ] First charge succeeded (real card, real money, real merchant)
+- [ ] Charge appears in master portal transactions list
+- [ ] Customer record auto-created
+- [ ] Stylist attribution worked (if booking attached)
+- [ ] Webhook fired to merchant's subscribed endpoint
+- [ ] Receipt sent (email + SMS if configured)
+- [ ] Payroc dashboard shows transaction
+- [ ] Audit log entry written
+- [ ] Risk score computed and stored
+- [ ] Velocity check ran without false positive
+
+### Phase 9 commit estimate
+
+3-5 build commits (production env swap, Apple Pay button + flow, Google 
+Pay button + flow, cutover documentation, first-merchant runbook).
+
+### Phase 9 timing
+
+**BLOCKED on Matt + Chris responses.** Targeting first merchant live 2-3 weeks once unblocked. Apple Pay UAT cert can run in parallel with waiting for Payroc cert.
+
+### Slack message to bug Matt + Chris (send Friday morning April 30)
+
+```
+Hey Matt + Chris,
+
+Hope you both had a solid week. Quick check-in on a few items I'm 
+tracking for SalonTransact's production cert:
+
+1. Matt — did you get a chance to email me the exact Hosted Fields 
+   parent div field name? I have the rest of my CNP integration ready 
+   to test against UAT.
+
+2. Matt — any thoughts on my UUID v4 idempotency-key format? My 
+   process.ts uses crypto.randomUUID() per-request. Want to confirm 
+   that works server-side before I run a production batch.
+
+3. Matt — also need to confirm: does Payroc support separate auth/capture 
+   and void endpoints on Reyna Pay's House Account config? I have those 
+   built but want to verify they work against real Payroc before going 
+   live.
+
+4. Chris — re: Production Cert Option 2 (Reyna Pay live House Account, 
+   abridged scripts, real cards). What's the next step from my side? 
+   Should I email Matt the test plan or is there a specific request 
+   form?
+
+5. Chris — for the ERF form to set batch close time at boarding, where 
+   do I send it once filled? Does it go through you or directly to 
+   Payroc Operations? Same question for the same-day funding ERF setup.
+
+6. Chris — for Apple Pay, can you confirm the UAT cert path? My 
+   understanding from our last call: I generate a Payment Processing 
+   CSR via my Apple Developer account, submit the .cer to Payroc UAT 
+   sandbox, then for production I use a consumer Apple device. Is 
+   that right?
+
+7. Chris — Google Pay setup — same path through Payroc? I need to 
+   register a Google Pay Business Profile, get merchant ID, configure 
+   in Payroc?
+
+I've shipped 50+ engine commits this week and want to time the 
+production cert work right. Targeting first live merchant in 2-3 weeks 
+if everything aligns. Let me know what you need from me.
+
+Thanks,
+Robert
+```
 
 ---
 
@@ -372,18 +515,34 @@ Both use the same multi-tenant engine. The architectural difference is access sc
 
 ---
 
-## Phase architecture summary
+## Updated phase ordering — official sequence
 
-```
-Phase 9   → Real merchants on SalonTransact (single brand, manual ERF)
-Phase 10  → Engine v1 API build-out (47 commits, 10.3-10.13)
-Phase 11  → Kasse iPad POS (parallel with 10)
-Phase 12  → Multi-tenant engine foundation (Brand model, switcher, theming)
-Phase 13  → RestaurantTransact launches (proves multi-tenant works)
-Phase 14  → External reseller program (after counsel)
-```
+1. **Phase 9.1** — Payroc production cert (BLOCKED, parallel)
+2. **Phase 9.2** — Apple Pay UAT cert (can start NOW, parallel with Payroc cert)
+3. **Phase 9.3** — Google Pay setup (can start NOW, parallel)
+4. **Phase 10.8-10.13** — Tomorrow's engine build (NOT BLOCKED, ship in parallel)
+5. **Phase 10 audit fixes** — Tomorrow morning, before 10.8
+6. **Phase 9.4** — Production cutover (after Payroc cert + ERF received)
+7. **Phase 9.5** — First merchant live (validation gate)
+8. **Phase 11** — Kasse iPad POS (separate project, after Phase 9 + Phase 10 close)
+9. **Phase 12** — Multi-tenant engine foundation (Brand model, super-master)
+10. **Phase 13** — RestaurantTransact launch (proves multi-tenant)
+11. **Phase 14** — External reseller program (after counsel review)
 
-Year 1 = Phases 9, 10, 11. Year 2 = Phases 12, 13, 14.
+## What we can ship without Matt/Chris answers
+
+- All of Phase 10 build (engine work, no Payroc cert dependency)
+- Apple Pay UAT cert work (Apple Developer account is independent of Payroc)
+- Google Pay Business Profile setup (independent of Payroc)
+- Apple Pay + Google Pay button components (UI work)
+- Documentation (Phase 10.13 IMPLEMENTATION KIT)
+
+## What's actually blocked
+
+- Production cutover (Payroc cert + ERF)
+- Apple Pay production validation (Payroc operations side)
+- First merchant live (everything above must be done)
+- Capture/void endpoint verification (Matt confirmation)
 
 ---
 
