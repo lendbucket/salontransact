@@ -7,6 +7,14 @@ import { createSecureToken } from "@/lib/payroc/tokens";
 import { isPayrocApiError } from "@/lib/payroc/errors";
 import crypto from "crypto";
 
+// UUID v4 format per RFC 4122. Payroc requires this format for Idempotency-Key.
+// https://docs.payroc.com/api/idempotency
+const UUID_V4_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function isValidUuidV4(value: unknown): value is string {
+  return typeof value === "string" && UUID_V4_REGEX.test(value);
+}
+
 export async function POST(request: Request) {
   console.log("\n=== PAYMENT REQUEST DEBUG START ===");
 
@@ -42,6 +50,7 @@ export async function POST(request: Request) {
       orderId,
       saveCard,
       secureTokenId,
+      chargeIdempotencyKey: clientIdempotencyKey,
     } = body;
 
     console.log("[PAYMENT-DEBUG] Token:", token?.substring(0, 30) + "...");
@@ -305,8 +314,18 @@ export async function POST(request: Request) {
     // Get bearer token and send directly so we can capture raw response
     const bearerToken = await getPayrocToken();
     const apiUrl = process.env.PAYROC_API_URL;
-    const paymentIdempotencyKey = crypto.randomUUID();
-    console.log(`[PAYROC-IDEMPOTENCY] key=${paymentIdempotencyKey} path=/payments method=POST orderId=${finalOrderId} amount=${amountInCents} merchantId=${merchant.id} usingSecureToken=${secureTokenIdForPayment ? "yes" : "no"}`);
+    // Prefer client-supplied chargeIdempotencyKey when valid UUID v4. Same logical Pay click on the
+    // client = same key here = Payroc dedups duplicate calls. https://docs.payroc.com/api/idempotency
+    let paymentIdempotencyKey: string;
+    let idempotencyKeySource: "client" | "server";
+    if (isValidUuidV4(clientIdempotencyKey)) {
+      paymentIdempotencyKey = clientIdempotencyKey;
+      idempotencyKeySource = "client";
+    } else {
+      paymentIdempotencyKey = crypto.randomUUID();
+      idempotencyKeySource = "server";
+    }
+    console.log(`[PAYROC-IDEMPOTENCY] key=${paymentIdempotencyKey} source=${idempotencyKeySource} path=/payments method=POST orderId=${finalOrderId} amount=${amountInCents} merchantId=${merchant.id} usingSecureToken=${secureTokenIdForPayment ? "yes" : "no"}`);
 
     const payrRes = await fetch(`${apiUrl}/payments`, {
       method: "POST",

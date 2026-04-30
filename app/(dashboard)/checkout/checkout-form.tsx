@@ -46,6 +46,28 @@ export function CheckoutForm() {
   customerEmailRef.current = customerEmail;
   saveCardRef.current = saveCard;
 
+  // Per-logical-click idempotency. Generated once per Pay attempt, reset on success/declined.
+  // See: https://docs.payroc.com/api/idempotency
+  const chargeIdempotencyKeyRef = useRef<string | null>(null);
+  const chargeOrderIdRef = useRef<string | null>(null);
+  const submittedRef = useRef(false);
+
+  function ensureChargeIdempotencyKey(): { key: string; orderId: string } {
+    if (!chargeIdempotencyKeyRef.current) {
+      chargeIdempotencyKeyRef.current = crypto.randomUUID();
+    }
+    if (!chargeOrderIdRef.current) {
+      chargeOrderIdRef.current = crypto.randomUUID().slice(0, 8).toUpperCase();
+    }
+    return { key: chargeIdempotencyKeyRef.current, orderId: chargeOrderIdRef.current };
+  }
+
+  function resetChargeIdempotency() {
+    chargeIdempotencyKeyRef.current = null;
+    chargeOrderIdRef.current = null;
+    submittedRef.current = false;
+  }
+
   // Fetch saved cards when customerEmail is set + valid format
   useEffect(() => {
     const email = customerEmail.trim().toLowerCase();
@@ -218,6 +240,27 @@ export function CheckoutForm() {
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         cardForm.on("submissionSuccess", async (evt: any) => {
+          // GUARD: SDK can fire submissionSuccess multiple times in edge cases (network blips, race conditions).
+          // Per Payroc docs, destroy() prevents duplicate event handling but cannot prevent in-flight duplicate fires.
+          // First fire wins; all subsequent fires are no-ops.
+          if (submittedRef.current) {
+            console.warn("[HF] submissionSuccess fired again after first submission — ignoring duplicate");
+            return;
+          }
+          submittedRef.current = true;
+
+          // Destroy the form immediately so the SDK cannot fire submissionSuccess from this instance again.
+          // https://docs.payroc.com/guides/take-payments/hosted-fields/extend-your-integration/close-a-session
+          if (cardFormRef.current) {
+            try {
+              cardFormRef.current.destroy();
+              cardFormRef.current = null;
+              console.log("[HF] destroy() called after submissionSuccess");
+            } catch (destroyErr) {
+              console.error("[HF] destroy() after submissionSuccess failed:", destroyErr);
+            }
+          }
+
           const token = evt?.token;
           console.log("[HF] submissionSuccess, token:", token?.substring(0, 20));
           setStatus("processing");
@@ -226,8 +269,11 @@ export function CheckoutForm() {
           if (amt <= 0) {
             setError("Enter an amount first");
             setStatus("ready");
+            submittedRef.current = false; // allow retry after fixing amount
             return;
           }
+
+          const { key: chargeIdempotencyKey, orderId } = ensureChargeIdempotencyKey();
 
           try {
             const pr = await fetch("/api/payroc/checkout", {
@@ -237,7 +283,8 @@ export function CheckoutForm() {
                 token,
                 amount: amt,
                 description: descriptionRef.current || "Payment",
-                orderId: crypto.randomUUID().slice(0, 8).toUpperCase(),
+                orderId,
+                chargeIdempotencyKey,
                 ...(saveCardRef.current && customerEmailRef.current
                   ? {
                       saveCard: true,
@@ -255,15 +302,18 @@ export function CheckoutForm() {
               setLast4(result.last4 || "");
               setSavedCardConfirmed(Boolean(result.savedCardId));
               setStatus("success");
-              // Session token is single-use — reload after 3s for fresh session
+              // Reload after 3s for fresh session token + fresh idempotency state
               setTimeout(() => window.location.reload(), 3000);
             } else {
               setError(result.declineReason || result.error || "Declined");
               setStatus("declined");
+              // Decline = same logical attempt is over. Fresh UUID for the next try (if user retries via reload).
+              resetChargeIdempotency();
             }
           } catch {
             setError("Network error");
             setStatus("declined");
+            resetChargeIdempotency();
           }
         });
 
@@ -331,6 +381,12 @@ export function CheckoutForm() {
 
   // Charge a selected saved card (bypasses Hosted Fields)
   async function handleSavedCardCharge() {
+    // GUARD: prevent double-click double-charge.
+    if (submittedRef.current) {
+      console.warn("[SAVED-CARD] charge already in flight — ignoring duplicate click");
+      return;
+    }
+
     const amt = parseFloat(amount) || 0;
     if (amt <= 0) {
       setError("Enter an amount first");
@@ -341,8 +397,11 @@ export function CheckoutForm() {
       return;
     }
 
+    submittedRef.current = true;
     setError("");
     setStatus("processing");
+
+    const { key: chargeIdempotencyKey, orderId } = ensureChargeIdempotencyKey();
 
     try {
       const pr = await fetch("/api/payroc/checkout", {
@@ -351,7 +410,8 @@ export function CheckoutForm() {
         body: JSON.stringify({
           amount: amt,
           description: description || "Payment",
-          orderId: crypto.randomUUID().slice(0, 8).toUpperCase(),
+          orderId,
+          chargeIdempotencyKey,
           secureTokenId: selectedSavedCardId,
           customerEmail: customerEmail.trim().toLowerCase() || undefined,
         }),
@@ -368,10 +428,12 @@ export function CheckoutForm() {
       } else {
         setError(result.declineReason || result.error || "Declined");
         setStatus("declined");
+        resetChargeIdempotency();
       }
     } catch {
       setError("Network error");
       setStatus("declined");
+      resetChargeIdempotency();
     }
   }
 
