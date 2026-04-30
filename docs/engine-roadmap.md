@@ -2,7 +2,7 @@
 
 **Status:** Active reference document. Updated as phases ship.
 
-**Last updated:** 2026-04-29 (after Commit 40 shipped Customer Intelligence; Phase 10 master plan locked in: 47 commits across sub-phases 10.3 through 10.13)
+**Last updated:** 2026-04-29 (Phase 10.7 complete: velocity controls, risk scoring, pre-charge risk check, evidence pack builder, chargeback alerting cron)
 
 ---
 
@@ -119,12 +119,12 @@ Phase 10.6 — Webhook delivery completion (3 commits)
   58: GET /api/v1/webhooks/[id]/deliveries (delivery history)
   59: POST manual replay endpoint
 
-Phase 10.7 — Operational intelligence (5 commits)
-  60: Velocity controls (server-side suspicious-pattern flagging)
-  61: Fraud scoring (riskScore on every charge)
-  62: Predictive chargeback risk
-  63: Chargeback evidence pack auto-builder
-  64: Smart deposit hold expansion + alerting (Twilio + Resend)
+Phase 10.7 — Operational intelligence (5 commits) ✅ COMPLETE
+  60: Velocity controls (commit 50 in git)
+  61: Risk scoring on every charge (commit 51 in git)
+  62: Pre-charge risk check API (commit 52 in git)
+  63: Chargeback evidence pack auto-builder (commit 53 in git)
+  64: Smart deposit hold + chargeback alerting (commit 54 in git)
 
 Phase 10.8 — Multi-location / franchise (4 commits)
   65: Location model + POST /api/v1/locations
@@ -181,9 +181,14 @@ The reporting surface that Kasse, accounting integrations, and merchant dashboar
 
 Today's webhook delivery is single-attempt fire-and-forget (Commit 39). Production needs retry with exponential backoff (5 attempts over 24 hours), delivery history queries, and manual replay for failed deliveries. Cron-based retry queue.
 
-### Phase 10.7 — Operational intelligence
+### Phase 10.7 — Operational intelligence ✅ COMPLETE
 
-The "engine knows things" surface. Server-side velocity controls (flag 5+ uses of same card in 1 hour). Fraud scoring on every charge. Predictive chargeback risk. Auto-built dispute evidence pack (one-click pulls transaction record, customer profile, signed receipts, IP/geo, prior visit history). Smart deposit hold alerting via Twilio + Resend when chargeback ratio approaches Visa thresholds.
+The "engine knows things" surface. Shipped 5 commits (50-54 in git):
+- **Velocity controls** (5 rules): customer 10+/24h, email 5+/1h, merchant 100+ failed/1h (card testing), amount 10x outlier, new customer > $500. Evaluated on every charge before Payroc call. VelocityAlert model persists all triggers.
+- **Risk scoring**: 0-100 score computed on every Transaction with factor breakdown stored in riskFactors JSON. Bands: low/medium/high/critical.
+- **Pre-charge risk check API**: GET /api/v1/risk/check — Kasse/POS systems call before submitting a charge to get score + band + recommendation + velocity alerts without actually charging.
+- **Evidence pack builder**: POST /api/v1/disputes/[id]/evidence-pack — one call pulls transaction, customer profile, card details, customer history (25 prior charges), booking details, and full audit trail into structured JSON for dispute response.
+- **Chargeback alerting cron**: Daily 9am UTC scan of all active merchants. Computes 90-day chargeback ratio, sends email (Resend) + SMS (Twilio) alerts at warning (≥0.4%) and excessive (≥0.65%) thresholds. ChargebackAlert model tracks all alerts with notification audit trail. Deduplicates per merchant per threshold per day.
 
 ### Phase 10.8 — Multi-location / franchise
 
