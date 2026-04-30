@@ -135,6 +135,8 @@ model Transaction {
   refunded         Boolean   @default(false)
   refundAmount     Float     @default(0)
   metadata         Json?
+  riskScore        Int       @default(0)
+  riskFactors      Json?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
   merchant         Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)

@@ -103,6 +103,7 @@ export async function processCharge(ctx: ProcessChargeContext): Promise<ProcessC
   catch (e) { return { ...failResult(`Auth failed: ${e instanceof Error ? e.message : "unknown"}`), sourceLast4: last4, sourceBrand: brand, sourceSavedPaymentMethodId: savedPaymentMethodId }; }
 
   // Velocity check — logs alerts, only blocks if VELOCITY_STRICT_MODE=true AND severity=block
+  let velocityAlerts: Array<{ severity: "info" | "warn" | "high" | "block" }> = [];
   try {
     const { runVelocityChecks } = await import("@/lib/velocity/check");
     const { logVelocityAlerts } = await import("@/lib/velocity/log");
@@ -123,12 +124,39 @@ export async function processCharge(ctx: ProcessChargeContext): Promise<ProcessC
         alerts: velocityResult.alerts,
       });
     }
+    velocityAlerts = velocityResult.alerts.map(a => ({ severity: a.severity }));
     if (process.env.VELOCITY_STRICT_MODE === "true" && velocityResult.shouldBlock) {
       console.warn(`[VELOCITY-BLOCK] requestId=${ctx.requestId} merchantId=${ctx.merchantId} alerts=${velocityResult.alerts.map(a => a.ruleCode).join(",")}`);
       return { ...failResult("Charge blocked by velocity controls"), sourceLast4: last4, sourceBrand: brand, sourceSavedPaymentMethodId: savedPaymentMethodId };
     }
   } catch (e) {
     console.error(`[VELOCITY-CHECK] Failed (allow-through): requestId=${ctx.requestId}`, e);
+  }
+
+  // Risk score computation
+  let riskScore = 0;
+  let riskFactors: object = { band: "low", factors: [] };
+  try {
+    const { computeRiskScore } = await import("@/lib/risk/score");
+    let customerAgeMs: number | null = null;
+    let customerTotalTxns = 0;
+    if (ctx.parsed.customerId) {
+      const cust = await prisma.customer.findUnique({ where: { id: ctx.parsed.customerId }, select: { firstSeenAt: true, totalTransactions: true } });
+      if (cust) { customerAgeMs = Date.now() - cust.firstSeenAt.getTime(); customerTotalTxns = cust.totalTransactions; }
+    }
+    const result = computeRiskScore({
+      amountCents: ctx.parsed.amountCents,
+      customerId: ctx.parsed.customerId ?? null,
+      customerEmail: ctx.parsed.customerEmail ?? null,
+      customerAgeMs,
+      customerTotalTransactions: customerTotalTxns,
+      isFirstTimeCard: ctx.parsed.source.type === "single_use_token",
+      velocityAlerts,
+    });
+    riskScore = result.score;
+    riskFactors = { band: result.band, factors: result.factors };
+  } catch (e) {
+    console.error(`[RISK-SCORE] Failed (continuing): requestId=${ctx.requestId}`, e);
   }
 
   const orderId = `V1-${ctx.parsed.bookingId ? ctx.parsed.bookingId.slice(0, 6).toUpperCase() : Date.now().toString(36).toUpperCase()}`;
@@ -209,6 +237,8 @@ export async function processCharge(ctx: ProcessChargeContext): Promise<ProcessC
         bookingId: ctx.parsed.bookingId,
         tipAmount: ctx.parsed.tipAmountCents / 100,
         items: ctx.parsed.items ? (ctx.parsed.items as unknown as object) : undefined,
+        riskScore,
+        riskFactors: riskFactors as object,
         metadata: {
           ...((ctx.parsed.metadata ?? {}) as object),
           payrocPaymentId,

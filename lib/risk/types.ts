@@ -29,3 +29,29 @@ export function statusForRatio(ratio: number): RiskStatus {
   if (ratio >= SAFE_THRESHOLD) return "warning";
   return "safe";
 }
+
+// ── Risk scoring types (Commit 51) ──
+
+export type RiskBand = "low" | "medium" | "high" | "critical";
+
+export interface RiskFactor {
+  code: string;
+  description: string;
+  points: number;
+}
+
+export interface RiskScoreResult {
+  score: number;
+  band: RiskBand;
+  factors: RiskFactor[];
+}
+
+export interface RiskScoreInput {
+  amountCents: number;
+  customerId: string | null;
+  customerEmail: string | null;
+  customerAgeMs: number | null;
+  customerTotalTransactions: number;
+  isFirstTimeCard: boolean;
+  velocityAlerts: Array<{ severity: "info" | "warn" | "high" | "block" }>;
+}
