@@ -2,11 +2,10 @@
 
 This file tracks bugs we've intentionally deferred. Each entry has a
 trigger condition for revisiting. **Read this file at the start of any
-session that touches checkout, saved-cards, or the merchant onboarding
-flow.**
+session that touches checkout, saved-cards, or merchant onboarding.**
 
-When SDK 1.7.0 is unblocked by Payroc and tokenization works again, walk
-this list top-down before resuming Phase 10.8 Commit 66.
+When SDK 1.7.0 is unblocked by Payroc and tokenization works again,
+walk this list top-down before resuming Phase 10.8 Commit 66.
 
 ---
 
@@ -32,19 +31,21 @@ lookup never returns results because the request is rejected.
 
 ### Root cause
 
-`app/api/saved-cards/route.ts` line 286 + `resolveMerchantId` line 110-130:
+`app/api/saved-cards/route.ts` line 286 + `resolveMerchantId` line
+110-130:
 
-When `user.role === "master portal"`, the route requires a `merchantId`
-query param. There can be many merchants, so the route refuses to guess.
-`app/(dashboard)/checkout/checkout-form.tsx` line 86 calls the endpoint
-without `merchantId`:
+- When `user.role === "master portal"`, the route requires a
+  `merchantId` query param. There can be many merchants, so the route
+  refuses to guess.
+- `app/(dashboard)/checkout/checkout-form.tsx` line 86 calls the
+  endpoint without `merchantId`:
 
 ```
 /api/saved-cards?customerEmail=${encodeURIComponent(email)}
 ```
 
-Result: 400 for master portal, works fine for merchant role users
-(they auto-resolve via userId).
+- Result: 400 for master portal, works fine for `merchant` role users
+  (they auto-resolve via `userId`).
 
 ### Recommended fix (Option C)
 
@@ -67,5 +68,22 @@ Single commit, single file (plus prop wiring in `app/(dashboard)/checkout/page.t
 
 - Do NOT fix this before SDK 1.7.0 is unblocked. It's not a real-merchant
   bug and we don't validate fixes on broken tokenization.
-- Do NOT switch to Option A or B without revisiting the trade-offs in
-  this session's chat history.
+- Do NOT switch to Option A or B without revisiting the trade-offs
+  in the 2026-04-30 chat history.
+
+---
+
+## How to use this file
+
+When a deferred fix is created:
+1. Add a new `DEF-NNN` entry below the most recent one
+2. Fill in: Logged date, Severity, Revisit trigger, Owner, Symptom,
+   Root cause, Recommended fix, DO NOT
+3. Reference DEF-NNN in the deferring commit message
+
+When a deferred fix is resolved:
+1. Move the entry to a `## Resolved` section at the bottom (don't
+   delete — keeps audit trail)
+2. Add the resolving commit hash
+3. Add resolution notes if the actual fix differed from
+   "Recommended fix"
