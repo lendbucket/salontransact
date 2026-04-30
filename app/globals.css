@@ -210,8 +210,10 @@ body {
   padding-right: env(safe-area-inset-right);
 }
 
-/* Disable iOS native input styling */
-input,
+/* Disable iOS native input styling — but NOT for checkboxes/radios.
+   Native rendering for those is required when JSX uses accentColor.
+   Without native rendering, checkboxes collapse to 0x0px. */
+input:not([type="checkbox"]):not([type="radio"]),
 textarea,
 select {
   -webkit-appearance: none;
