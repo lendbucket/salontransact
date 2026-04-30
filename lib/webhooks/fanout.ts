@@ -106,6 +106,8 @@ async function deliverOneWebhook(
   }
 
   try {
+    const now = new Date();
+    const nextRetryAt = succeeded ? null : new Date(now.getTime() + 60_000);
     await prisma.webhookDelivery.update({
       where: { id: deliveryId },
       data: {
@@ -114,7 +116,8 @@ async function deliverOneWebhook(
         responseBody: responseBodySnippet,
         errorMessage,
         attemptCount: 1,
-        lastAttemptAt: new Date(),
+        lastAttemptAt: now,
+        nextRetryAt,
       },
     });
     if (succeeded) {
