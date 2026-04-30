@@ -1,6 +1,6 @@
 # Payroc Capability Matrix — Source of Truth
 
-**Last updated:** 2026-04-29 (honest audit after Phase 10.7)
+**Last updated:** 2026-04-30 (Round 2 audit closeout — all 3 fixes resolved)
 
 This document is the source of truth for what Payroc actually supports for 
 Reyna Pay. It supersedes any feature claim in the engine roadmap or 
@@ -85,6 +85,68 @@ These are real products built on top of our database, NOT Payroc:
 4. What's the Payroc batch close endpoint + recommended schedule?
 5. What's the Payroc disputes API shape — are we pulling correctly?
 6. Can Payroc split settlement to multiple merchant bank accounts?
+
+## Audit Fix Status (Round 2 closeout, 2026-04-30)
+
+All three audit items raised in commit 42ae023 (Honest Capability Audit) 
+are now resolved.
+
+### ✅ Audit Fix #1 — Chargeback ratio source (commit f9ee651)
+
+**Issue:** `lib/risk/chargeback-alerts.ts` counted `Transaction.status="disputed"` 
+rows for the daily ratio calculation. This local field is set by webhook 
+ingestion or manual ops — if a webhook is delayed or fails, the count is 
+too low and we under-report risk to merchants approaching Visa monitoring 
+thresholds.
+
+**Fix:** Cross-check against Payroc's `/disputes` API for the same 90-day 
+window. Use `Math.max(localCount, payrocCount)` as authoritative count. 
+Log a warning when they disagree so we can investigate webhook drift.
+
+**Future hardening (Phase 9.4 cutover):** Tighten dispute filter to 
+match merchantId via Payroc metadata once Reyna Pay has per-merchant 
+Payroc MIDs (currently single House Account on UAT).
+
+### ✅ Audit Fix #2 — DELETE /cards Payroc deletion (commit 6e0c8d5)
+
+**Issue:** `DELETE /api/v1/cards/[id]` marked local `SavedPaymentMethod` 
+rows as `status=revoked` but never called Payroc to delete the 
+secureToken. Payroc-side tokens stayed alive indefinitely — a real PCI/
+compliance gap because customers calling "delete my card" expect the 
+card to be GONE from the payment processor, not just hidden in our UI.
+
+**Fix:** DELETE handler now calls `deleteSecureToken()` (already 
+implemented in `lib/payroc/tokens.ts`) BEFORE marking the row revoked. 
+Error handling:
+
+- Payroc 404 → treat as already-deleted, proceed with local revoke (warn)
+- Other Payroc errors → return 502, do NOT update local row (keeps 
+  state consistent between Payroc and our DB)
+- No secureTokenId on row (legacy) → proceed with local revoke (warn)
+
+A separate audit log entry (`card.revoke.v1.payroc_failed`) is written 
+when Payroc returns a hard error, for incident response.
+
+### ✅ Audit Fix #3 — sync-payouts data source (no fix needed)
+
+**Concern raised:** Reports/payouts and reports/cash-flow depend on 
+the `/api/cron/sync-payouts` job; if it wasn't actually pulling from 
+Payroc, those reports were empty/wrong.
+
+**Investigation result:** `lib/payouts/sync.ts` is real and correct. 
+It calls `payrocRequest("GET", "/batches?date=YYYY-MM-DD&limit=100")` 
+day-by-day across the configured `daysBack` window (UAT quirk: 
+startDate/endDate query params get rejected with HTTP 400). It then 
+upserts Payout records per Payroc batchId.
+
+**Production data state:** 0 Payouts, 0 ChargebackAlerts, 0 
+VelocityAlerts, 0 refunded transactions. This is the expected state 
+for a clean engine before real merchant volume — not a sync-payouts 
+failure.
+
+**No code change needed.** This audit item is closed as phantom concern.
+
+---
 
 ## Treasury / Banking Reality (locked)
 

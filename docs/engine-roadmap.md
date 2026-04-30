@@ -2,7 +2,7 @@
 
 **Status:** Active reference document. Updated as phases ship.
 
-**Last updated:** 2026-04-29 (Phase 10.7 complete: velocity controls, risk scoring, pre-charge risk check, evidence pack builder, chargeback alerting cron)
+**Last updated:** 2026-04-30 (Round 2 audit closeout — Phase 10.1/10.4/10.5/10.7 all verified Real)
 
 ---
 
@@ -234,11 +234,11 @@ Robert
 
 ## Phase 10 Master Commit List — HONEST AUDIT
 
-### Phase 10.1 — Chargeback monitoring (1 commit) ⚠️ NEEDS FIX
+### Phase 10.1 — Chargeback monitoring (1 commit) ✅ Real (audit fix shipped: f9ee651 cross-checks Payroc /disputes)
 - Commit 35: Chargeback ratio computation 
-  ⚠️ **AUDIT ISSUE:** Currently computes ratio from `Transaction.refunded`, 
-  not real chargebacks from Payroc disputes API. Refunds ≠ chargebacks. 
-  **TODO:** Replace data source with Payroc disputes endpoint.
+  ✅ **FIXED (f9ee651):** Now cross-checks Payroc `/disputes` API for 
+  authoritative chargeback count. Uses `Math.max(localCount, payrocCount)` 
+  and logs warning on drift.
 
 ### Phase 10.2 — Customer intelligence (1 commit) ✅ ENGINE-ONLY (HONEST)
 - Commit 40: GET /customers list, lookup, detail, LTV, visits
@@ -252,35 +252,36 @@ Robert
 - Commit 45: POST .../void ⚠️ NEEDS PAYROC VERIFY
   **TODO:** Confirm with Matt that capture/void endpoints work on House Account config.
 
-### Phase 10.4 — Saved cards + wallets (3 code commits, 2 deferred)
+### Phase 10.4 — Saved cards + wallets (3 code commits, 2 deferred) ✅ Real (audit fix shipped: 6e0c8d5 deletes Payroc secureToken)
 - Commit 47: GET /cards + GET /cards/[id] ✅ Real
-- Commit 48: DELETE /cards/[id] ⚠️ AUDIT ISSUE
-  **TODO:** Verify route also calls Payroc to delete secureToken, not just our row.
+- Commit 48: DELETE /cards/[id] ✅ **FIXED (6e0c8d5):** Now calls 
+  `deleteSecureToken()` before local revoke. Payroc 404 = already-deleted, 
+  other errors = 502 + no local update.
 - Commit 49: POST /tokenization/sessions ⚠️ NEEDS AUDIT
   **TODO:** Confirm what this endpoint actually does vs what's documented.
 - Commits 50-51: Apple Pay + Google Pay 🚧 DEFERRED (per Chris cert requirement)
 
-### Phase 10.5 — Reporting (5 commits)
+### Phase 10.5 — Reporting (5 commits) ✅ Real
 - Commit 52: GET /reports/transactions ✅ Engine-only, real
-- Commit 53: GET /reports/payouts ⚠️ DEPENDS ON DATA SOURCE
-  **TODO:** Verify /api/cron/sync-payouts actually pulls from Payroc.
+- Commit 53: GET /reports/payouts ✅ Real (audit verified: sync-payouts 
+  correctly pulls from Payroc `/batches` day-by-day, no fix needed)
 - Commit 54: GET /reports/stylist-attribution ✅ Engine-only, real
-- Commit 55: GET /reports/cash-flow ⚠️ DEPENDS ON PAYOUT DATA
-  Same as payouts.
+- Commit 55: GET /reports/cash-flow ✅ Real (depends on payout data, 
+  which is confirmed correct per audit fix #3)
 - Commit 56: GET /reports/risk ✅ Engine-only, real
 
 ### Phase 10.6 — Webhook delivery (3 commits) ✅ FULLY ENGINE-OWNED
 - Commits 57-59 (git 47-49): Retry with backoff, delivery history, manual replay
   All our infrastructure. No Payroc dependency. Honest.
 
-### Phase 10.7 — Operational intelligence (5 commits) ⚠️ ONE FIX NEEDED
+### Phase 10.7 — Operational intelligence (5 commits) ✅ Real
 - Commit 60 (git 50): Velocity controls ✅ Engine-only
 - Commit 61 (git 51): Risk scoring ✅ Engine-only
 - Commit 62 (git 52): Pre-charge risk check API ✅ Engine-only
 - Commit 63 (git 53): Evidence pack ⚠️ Engine timestamps, not card-network
   Acceptable but should be documented in IMPLEMENTATION KIT.
-- Commit 64 (git 54): Chargeback alerting cron ⚠️ SAME ISSUE AS PHASE 10.1
-  **TODO:** Replace refund-based ratio with Payroc disputes data.
+- Commit 64 (git 54): Chargeback alerting cron ✅ **FIXED (f9ee651):** 
+  Ratio now cross-checks Payroc `/disputes` as authoritative source.
 
 ### Phase 10.8 — Multi-location / franchise (4 commits) — TOMORROW
 Engine-only Location model. Each location can have its own Payroc MID 
@@ -336,11 +337,12 @@ This is NOT building agent-specific products. This is making the
 existing engine consumable by agents that downstream products (Kasse, 
 RestaurantTransact, third-party POS) will build.
 
-## TODO list (audit fixes, ship FIRST tomorrow before Phase 10.8)
+## TODO list (remaining items, post-audit)
 
-1. **HIGH:** Replace chargeback ratio source — Payroc disputes API not Transaction.refunded
-2. **MEDIUM:** Verify DELETE /cards calls Payroc to delete secureToken
-3. **MEDIUM:** Verify /api/cron/sync-payouts actually pulls from Payroc payouts/funding API
+~~1. **HIGH:** Replace chargeback ratio source~~ ✅ DONE (f9ee651)
+~~2. **MEDIUM:** Verify DELETE /cards calls Payroc to delete secureToken~~ ✅ DONE (6e0c8d5)
+~~3. **MEDIUM:** Verify sync-payouts data source~~ ✅ CLOSED (phantom concern, no fix needed)
+
 4. **LOW:** Verify capture/void endpoints work on Payroc House Account config (Matt question)
 5. **LOW:** Verify /tokenization/sessions endpoint behavior vs documentation
 6. **LOW:** Check evidence-pack 400 vs 404 issue (likely PowerShell, but verify)
