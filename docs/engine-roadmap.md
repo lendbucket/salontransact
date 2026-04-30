@@ -89,79 +89,96 @@ Per Chris #7 (Payroc Boarding API is early beta, NOT GA), Phase 9 uses ERF/manua
 
 **Goal:** Build out SalonTransact's v1 API surface so Kasse and third-party POS systems can build rich integrations. API-first: every capability ships as a `/api/v1/*` endpoint. Merchant portal stays thin (payment ops only).
 
-### Master commit list
+## Phase 10 Master Commit List — HONEST AUDIT
 
-```
-Phase 10.3 — Charge endpoint expansions (5 commits)
-  41: Roadmap doc update (this commit)
-  42: GET /api/v1/charges/[id]
-  43: GET /api/v1/charges (list with filters)
-  44: POST /api/v1/charges/[id]/refund (full + partial)
-  45: POST /api/v1/charges/[id]/capture
-  46: POST /api/v1/charges/[id]/void
+### Phase 10.1 — Chargeback monitoring (1 commit) ⚠️ NEEDS FIX
+- Commit 35: Chargeback ratio computation 
+  ⚠️ **AUDIT ISSUE:** Currently computes ratio from `Transaction.refunded`, 
+  not real chargebacks from Payroc disputes API. Refunds ≠ chargebacks. 
+  **TODO:** Replace data source with Payroc disputes endpoint.
 
-Phase 10.4 — Saved cards + wallets (5 commits)
-  47: GET /api/v1/cards + /api/v1/cards/[id]
-  48: DELETE /api/v1/cards/[id]
-  49: POST /api/v1/tokenization/sessions
-  50: Apple Pay integration (production cert + Hosted Fields wallet path)
-  51: Google Pay integration (Hosted Fields wallet path)
+### Phase 10.2 — Customer intelligence (1 commit) ✅ ENGINE-ONLY (HONEST)
+- Commit 40: GET /customers list, lookup, detail, LTV, visits
+  All endpoints query our database. No Payroc dependency. Real product.
 
-Phase 10.5 — Reporting APIs (5 commits)
-  52: GET /api/v1/reports/transactions (flexible query)
-  53: GET /api/v1/reports/payouts
-  54: GET /api/v1/reports/stylist-attribution (Kasse uses for payroll)
-  55: GET /api/v1/reports/cash-flow
-  56: GET /api/v1/reports/risk
+### Phase 10.3 — Charge lifecycle (5 commits)
+- Commit 41: GET /charges/[id] ✅ Real (reads Transaction)
+- Commit 42: GET /charges list ✅ Real (reads Transaction)
+- Commit 43: POST .../refund ✅ Real (calls Payroc /payments/{id}/refunds)
+- Commit 44: POST .../capture ⚠️ NEEDS PAYROC VERIFY
+- Commit 45: POST .../void ⚠️ NEEDS PAYROC VERIFY
+  **TODO:** Confirm with Matt that capture/void endpoints work on House Account config.
 
-Phase 10.6 — Webhook delivery completion (3 commits)
-  57: Webhook delivery retry with exponential backoff
-  58: GET /api/v1/webhooks/[id]/deliveries (delivery history)
-  59: POST manual replay endpoint
+### Phase 10.4 — Saved cards + wallets (3 code commits, 2 deferred)
+- Commit 47: GET /cards + GET /cards/[id] ✅ Real
+- Commit 48: DELETE /cards/[id] ⚠️ AUDIT ISSUE
+  **TODO:** Verify route also calls Payroc to delete secureToken, not just our row.
+- Commit 49: POST /tokenization/sessions ⚠️ NEEDS AUDIT
+  **TODO:** Confirm what this endpoint actually does vs what's documented.
+- Commits 50-51: Apple Pay + Google Pay 🚧 DEFERRED (per Chris cert requirement)
 
-Phase 10.7 — Operational intelligence (5 commits) ✅ COMPLETE
-  60: Velocity controls (commit 50 in git)
-  61: Risk scoring on every charge (commit 51 in git)
-  62: Pre-charge risk check API (commit 52 in git)
-  63: Chargeback evidence pack auto-builder (commit 53 in git)
-  64: Smart deposit hold + chargeback alerting (commit 54 in git)
+### Phase 10.5 — Reporting (5 commits)
+- Commit 52: GET /reports/transactions ✅ Engine-only, real
+- Commit 53: GET /reports/payouts ⚠️ DEPENDS ON DATA SOURCE
+  **TODO:** Verify /api/cron/sync-payouts actually pulls from Payroc.
+- Commit 54: GET /reports/stylist-attribution ✅ Engine-only, real
+- Commit 55: GET /reports/cash-flow ⚠️ DEPENDS ON PAYOUT DATA
+  Same as payouts.
+- Commit 56: GET /reports/risk ✅ Engine-only, real
 
-Phase 10.8 — Multi-location / franchise (4 commits)
-  65: Location model + POST /api/v1/locations
-  66: GET /api/v1/locations + per-location scoping on existing endpoints
-  67: Multi-location reporting roll-ups
-  68: Per-location stylist/customer scoping
+### Phase 10.6 — Webhook delivery (3 commits) ✅ FULLY ENGINE-OWNED
+- Commits 57-59 (git 47-49): Retry with backoff, delivery history, manual replay
+  All our infrastructure. No Payroc dependency. Honest.
 
-Phase 10.9 — Money movement (4 commits)
-  69: POST /api/v1/payouts/instant (T+0, ~1% fee)
-  70: POST /api/v1/payouts/split
-  71: Per-stylist payout method preferences
-  72: End-of-day batch close
+### Phase 10.7 — Operational intelligence (5 commits) ⚠️ ONE FIX NEEDED
+- Commit 60 (git 50): Velocity controls ✅ Engine-only
+- Commit 61 (git 51): Risk scoring ✅ Engine-only
+- Commit 62 (git 52): Pre-charge risk check API ✅ Engine-only
+- Commit 63 (git 53): Evidence pack ⚠️ Engine timestamps, not card-network
+  Acceptable but should be documented in IMPLEMENTATION KIT.
+- Commit 64 (git 54): Chargeback alerting cron ⚠️ SAME ISSUE AS PHASE 10.1
+  **TODO:** Replace refund-based ratio with Payroc disputes data.
 
-Phase 10.10 — Compliance / risk surface (3 commits)
-  73: GET /api/v1/compliance/pci-status
-  74: POST /api/v1/disputes/[id]/evidence-pack
-  75: GET /api/v1/audit + GET /api/v1/risk/velocity-alerts
+### Phase 10.8 — Multi-location / franchise (4 commits) — TOMORROW
+Engine-only Location model. Each location can have its own Payroc MID 
+(per Chris's note). Honest.
 
-Phase 10.11 — Integration ecosystem (5 commits)
-  76: QuickBooks GL sync
-  77: Mailchimp/Klaviyo customer export
-  78: Statement parser (PDF/CSV upload)
-  79: Switching wizard (auto-populate application from competitor statement)
-  80: Kasse SDK foundation (TypeScript npm package)
+### Phase 10.9 — Money movement (3 commits, REVISED) — TOMORROW
+**DESCOPED from original 4 commits.** Real instant payouts removed (no Treasury).
+- Same-day-payout (wraps Payroc same-day funding) ✅ Real
+- Stylist allocation tracking (engine ledger only) ✅ Engine-only
+- End-of-day batch close (calls Payroc batch close) ⚠️ NEEDS PAYROC VERIFY
 
-Phase 10.12 — Feature flags + environment split (3 commits)
-  81: sk_test_* vs sk_live_* keys (UAT vs production routing)
-  82: Per-merchant feature flags (Brand model preview for Phase 12)
-  83: Test mode for charge/customer endpoints (predictable test data)
+### Phase 10.10 — Compliance / risk surface (3 commits) — TOMORROW
+- PCI status query ⚠️ NEEDS AUDIT (what data is real vs synthetic)
+- Audit log query ✅ Engine-only, real
+- Velocity alerts feed ✅ Engine-only, real
 
-Phase 10.13 — IMPLEMENTATION KIT (final phase, 5 commits)
-  84: OpenAPI 3.1 spec auto-generated for /api/v1/*
-  85: Interactive docs page at /api/v1/docs (Scalar)
-  86: Master integration prompt for Claude Code/Cursor (single .md file)
-  87: Vertical quick-starts (salon, restaurant, tire shop, computer store, gym, wellness)
-  88: Solution review template (Payroc-style architectural overview)
-```
+### Phase 10.11 — Integration ecosystem (5 commits) — TOMORROW
+- QuickBooks GL sync (build with QB OAuth) ✅ Real if built correctly
+- Mailchimp/Klaviyo customer export ✅ Real if built correctly
+- Statement parser ✅ Real (extracts from PDF/CSV)
+- Switching wizard ✅ Real
+- Kasse SDK foundation ✅ Real (TypeScript wrapper of v1 API)
+
+### Phase 10.12 — Feature flags + env split (3 commits) — TOMORROW
+- sk_test_* vs sk_live_* keys ✅ Real
+- Per-merchant feature flags ✅ Real
+- Test mode for charge/customer endpoints ✅ Real
+
+### Phase 10.13 — IMPLEMENTATION KIT (5 commits) — TOMORROW
+The IMPLEMENTATION KIT will be HONEST about every capability per the 
+payroc-capability-matrix.md doc. No aspirational claims. No "instant 
+payouts" without Treasury asterisk. Real engine, honestly documented.
+
+## TODO list (audit fixes, ship FIRST tomorrow before Phase 10.8)
+
+1. **HIGH:** Replace chargeback ratio source — Payroc disputes API not Transaction.refunded
+2. **MEDIUM:** Verify DELETE /cards calls Payroc to delete secureToken
+3. **MEDIUM:** Verify /api/cron/sync-payouts actually pulls from Payroc payouts/funding API
+4. **LOW:** Verify capture/void endpoints work on Payroc House Account config (Matt question)
+5. **LOW:** Verify /tokenization/sessions endpoint behavior vs documentation
+6. **LOW:** Check evidence-pack 400 vs 404 issue (likely PowerShell, but verify)
 
 After Phase 10.13 ships, any new vertical brand or external reseller can be onboarded in days, not weeks. Drop a single markdown file into Claude Code or Cursor and the entire Reyna Pay engine integrates against any platform.
 
