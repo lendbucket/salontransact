@@ -114,6 +114,7 @@ model Merchant {
   cardEntryTokens       CardEntryToken[]
   velocityAlerts        VelocityAlert[]
   chargebackAlerts      ChargebackAlert[]
+  locations             Location[]
 }
 
 model Transaction {
@@ -735,4 +736,39 @@ model ChargebackAlert {
   @@index([merchantId])
   @@index([threshold])
   @@index([createdAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Location — Phase 10.8 multi-location support
+//
+// A salon owner with multiple physical locations gets one Merchant row
+// and N Location rows. Charges, customers, stylists, bookings, and
+// reports can be scoped per-location.
+//
+// payrocTerminalId is reserved for Phase 9.4 cutover when each location
+// gets its own Payroc MID. For now (UAT, single House Account), this
+// stays nullable.
+// ─────────────────────────────────────────────────────────────────────
+model Location {
+  id                  String    @id @default(cuid())
+  merchantId          String
+  name                String
+  addressLine1        String?
+  addressLine2        String?
+  city                String?
+  state               String?
+  zip                 String?
+  phone               String?
+  timezone            String    @default("America/Chicago")
+  payrocTerminalId    String?
+  status              String    @default("active")
+  isPrimary           Boolean   @default(false)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  merchant            Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@index([merchantId])
+  @@index([merchantId, status])
+  @@index([payrocTerminalId])
 }
