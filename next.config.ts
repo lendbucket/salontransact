@@ -2,6 +2,11 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: false,
+  // Include docs/openapi.yaml in the deployed bundle so the
+  // /api/v1/openapi.yaml route can read it at runtime on Vercel.
+  outputFileTracingIncludes: {
+    "/api/v1/openapi.yaml": ["./docs/openapi.yaml"],
+  },
 };
 
 export default nextConfig;

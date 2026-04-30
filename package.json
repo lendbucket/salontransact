@@ -20,6 +20,7 @@
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-dropdown-menu": "^2.1.16",
     "@radix-ui/react-tabs": "^1.1.13",
+    "@scalar/api-reference-react": "^0.9.32",
     "@stripe/stripe-js": "^9.1.0",
     "@supabase/supabase-js": "^2.105.1",
     "bcryptjs": "^3.0.3",
