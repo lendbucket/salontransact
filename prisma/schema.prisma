@@ -113,6 +113,7 @@ model Merchant {
   bookings              Booking[]
   cardEntryTokens       CardEntryToken[]
   velocityAlerts        VelocityAlert[]
+  chargebackAlerts      ChargebackAlert[]
 }
 
 model Transaction {
@@ -713,4 +714,25 @@ model VelocityAlert {
   @@index([status])
   @@index([detectedAt])
   @@index([customerId])
+}
+
+model ChargebackAlert {
+  id               String   @id @default(cuid())
+  merchantId       String
+  threshold        String
+  ratioPercent     Float
+  chargebackCount  Int
+  totalCharges     Int
+  windowDays       Int      @default(90)
+  emailSentTo      String?
+  smsSentTo        String?
+  emailSentAt      DateTime?
+  smsSentAt        DateTime?
+  createdAt        DateTime @default(now())
+
+  merchant         Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@index([merchantId])
+  @@index([threshold])
+  @@index([createdAt])
 }
