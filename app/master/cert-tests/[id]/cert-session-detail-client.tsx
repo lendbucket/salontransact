@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 
 interface SessionData {
   id: string;
@@ -129,30 +130,7 @@ export function CertSessionDetailClient({ session, runs }: Props) {
               <table className="w-full">
                 <tbody className="divide-y divide-gray-100">
                   {sectionRuns.map((r) => (
-                    <tr key={r.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-3 align-top w-56">
-                        <div className="text-sm font-medium text-gray-900">{r.transactionType}</div>
-                        {r.required && (
-                          <span className="inline-flex px-1.5 py-0.5 text-[10px] font-medium rounded bg-[#017ea7] text-white mt-1">
-                            REQUIRED
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-6 py-3 align-top">
-                        <div className="text-sm text-gray-700">{r.scenario}</div>
-                        <div className="text-xs text-gray-500 mt-1">
-                          Expected: <span className="text-gray-700">{r.expectedResult}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-3 align-top w-32 text-right">
-                        <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded ${statusPillClasses(r.status)}`}>
-                          {r.status}
-                        </span>
-                        {r.paymentId && (
-                          <div className="text-[10px] text-gray-500 mt-1 font-mono break-all">{r.paymentId}</div>
-                        )}
-                      </td>
-                    </tr>
+                    <CertTestRow key={r.id} run={r} />
                   ))}
                 </tbody>
               </table>
@@ -160,15 +138,131 @@ export function CertSessionDetailClient({ session, runs }: Props) {
           ))}
         </div>
       </div>
-
-      <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-900">
-        <div className="font-medium mb-1">Test execution coming next commit</div>
-        <div className="text-blue-800">
-          The &quot;Run&quot; buttons and &quot;Export to Spreadsheet&quot; feature ship in Commits 18 and 19. CNP test execution is currently
-          blocked on the SDK 1.7.0 regression (see SD-010). Once Payroc resolves, the runner will execute tests against UAT,
-          capture paymentIds, and export Matt&apos;s exact spreadsheet format ready to email back.
-        </div>
-      </div>
     </div>
+  );
+}
+
+function CertTestRow({ run }: { run: RunData }) {
+  const router = useRouter();
+  const [running, setRunning] = useState(false);
+  const [showManual, setShowManual] = useState(false);
+  const [manualPaymentId, setManualPaymentId] = useState(run.paymentId ?? "");
+  const [manualNotes, setManualNotes] = useState(run.notes ?? "");
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleRun() {
+    setRunning(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/master/cert-tests/runs/${run.id}/run`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "Run failed");
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Run failed");
+    } finally {
+      setRunning(false);
+      router.refresh();
+    }
+  }
+
+  async function handleMarkManual(status: "passed" | "failed" | "skipped") {
+    setRunning(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/master/cert-tests/runs/${run.id}/mark`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status, paymentId: manualPaymentId || null, notes: manualNotes || null }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.error ?? "Mark failed");
+      } else {
+        setShowManual(false);
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Mark failed");
+    } finally {
+      setRunning(false);
+      router.refresh();
+    }
+  }
+
+  return (
+    <>
+      <tr className="hover:bg-gray-50">
+        <td className="px-6 py-3 align-top w-56">
+          <div className="text-sm font-medium text-gray-900">{run.transactionType}</div>
+          {run.required && (
+            <span className="inline-flex px-1.5 py-0.5 text-[10px] font-medium rounded bg-[#017ea7] text-white mt-1">
+              REQUIRED
+            </span>
+          )}
+        </td>
+        <td className="px-6 py-3 align-top">
+          <div className="text-sm text-gray-700">{run.scenario}</div>
+          <div className="text-xs text-gray-500 mt-1">
+            Expected: <span className="text-gray-700">{run.expectedResult}</span>
+          </div>
+          {error && <div className="text-xs text-red-600 mt-1">{error}</div>}
+          {run.notes && <div className="text-xs text-gray-600 mt-1 italic">{run.notes}</div>}
+        </td>
+        <td className="px-6 py-3 align-top w-44 text-right">
+          <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded ${statusPillClasses(run.status)}`}>
+            {run.status}
+          </span>
+          {run.paymentId && (
+            <div className="text-[10px] text-gray-500 mt-1 font-mono break-all">{run.paymentId}</div>
+          )}
+          <div className="mt-2 flex flex-col gap-1">
+            <button
+              type="button"
+              onClick={handleRun}
+              disabled={running}
+              className="px-2 py-1 bg-[#017ea7] text-white text-xs font-medium rounded hover:bg-[#016690] disabled:opacity-50"
+            >
+              {running ? "Running\u2026" : "Run"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowManual((v) => !v)}
+              disabled={running}
+              className="px-2 py-1 bg-gray-100 text-gray-700 text-xs font-medium rounded hover:bg-gray-200 disabled:opacity-50"
+            >
+              {showManual ? "Hide" : "Mark manually"}
+            </button>
+          </div>
+        </td>
+      </tr>
+      {showManual && (
+        <tr>
+          <td colSpan={3} className="px-6 py-3 bg-gray-50 border-t border-gray-100">
+            <div className="space-y-2">
+              <input
+                type="text"
+                placeholder="Payroc paymentId (optional)"
+                value={manualPaymentId}
+                onChange={(e) => setManualPaymentId(e.target.value)}
+                className="w-full px-2 py-1 border border-gray-300 rounded text-xs font-mono"
+              />
+              <input
+                type="text"
+                placeholder="Notes (optional)"
+                value={manualNotes}
+                onChange={(e) => setManualNotes(e.target.value)}
+                className="w-full px-2 py-1 border border-gray-300 rounded text-xs"
+              />
+              <div className="flex gap-2">
+                <button type="button" onClick={() => handleMarkManual("passed")} disabled={running} className="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 disabled:opacity-50">Mark passed</button>
+                <button type="button" onClick={() => handleMarkManual("failed")} disabled={running} className="px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 disabled:opacity-50">Mark failed</button>
+                <button type="button" onClick={() => handleMarkManual("skipped")} disabled={running} className="px-3 py-1 bg-gray-500 text-white text-xs rounded hover:bg-gray-600 disabled:opacity-50">Mark skipped</button>
+              </div>
+            </div>
+          </td>
+        </tr>
+      )}
+    </>
   );
 }

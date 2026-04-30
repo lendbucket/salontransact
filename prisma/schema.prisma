@@ -793,6 +793,7 @@ model CertTestSession {
   description     String?
   status          String          @default("in_progress")  // in_progress | complete | abandoned
   merchantId      String?
+  apiKeyId        String?
   createdByUserId String
 
   totalTests      Int             @default(0)
