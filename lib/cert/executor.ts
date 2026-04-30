@@ -22,6 +22,7 @@ import { processRefund } from "@/lib/api/v1/charges/refund";
 import { processVoid } from "@/lib/api/v1/charges/void";
 import {
   createSecureToken,
+  createSingleUseToken,
   updateSecureToken,
   deleteSecureToken,
 } from "@/lib/payroc/tokens";
@@ -69,9 +70,9 @@ export async function executeCardSale(
   ctx: ExecutorContext,
   params: CardSaleParams
 ): Promise<ExecutorResult> {
-  // Create a secure token from test card (keyed), then use its token for the charge.
-  // This bypasses Hosted Fields — for cert testing only.
-  const sutResult = await createSingleUseTokenFromTestCard(params.testCardNumber, ctx.merchantId);
+  // Mirror production: get a Payroc single-use token from the test card.
+  // processCharge will convert it to a permanent secureToken and charge it.
+  const sutResult = await createSingleUseTokenFromTestCard(params.testCardNumber);
   if (!sutResult.ok) {
     return {
       ok: false,
@@ -95,7 +96,7 @@ export async function executeCardSale(
       amountCents: params.amountCents,
       currency: "usd",
       description: `Cert test ${ctx.testRunId}`,
-      source: { type: "saved_card", id: sutResult.savedPaymentMethodId },
+      source: { type: "single_use_token", id: sutResult.token },
       customerId: null,
       customerEmail: null,
       customerName: null,
@@ -156,7 +157,7 @@ export async function executePreAuth(
   ctx: ExecutorContext,
   params: PreAuthParams
 ): Promise<ExecutorResult> {
-  const sutResult = await createSingleUseTokenFromTestCard(params.testCardNumber, ctx.merchantId);
+  const sutResult = await createSingleUseTokenFromTestCard(params.testCardNumber);
   if (!sutResult.ok) {
     return {
       ok: false,
@@ -180,7 +181,7 @@ export async function executePreAuth(
       amountCents: params.amountCents,
       currency: "usd",
       description: `Cert pre-auth test ${ctx.testRunId}`,
-      source: { type: "saved_card", id: sutResult.savedPaymentMethodId },
+      source: { type: "single_use_token", id: sutResult.token },
       customerId: null,
       customerEmail: null,
       customerName: null,
@@ -229,23 +230,20 @@ export async function executePreAuth(
 // ─────────────────────────────────────────────────────────────────
 
 export async function executeSecureTokenCreate(
-  ctx: ExecutorContext,
+  _ctx: ExecutorContext,
   params: { testCardNumber: string }
 ): Promise<ExecutorResult> {
+  // Two-step: SUT from test card → permanent secureToken from SUT.
+  // Mirrors production exactly (lib/api/v1/charges/process.ts:44-55).
   try {
+    const sut = await createSingleUseToken({
+      cardNumber: params.testCardNumber,
+      expiryDate: "1227",
+      cvv: TEST_CVV,
+    });
+
     const result = await createSecureToken({
-      source: {
-        type: "card",
-        cardDetails: {
-          type: "keyed",
-          keyedData: {
-            type: "plainText",
-            cardNumber: params.testCardNumber,
-            expiryDate: "1227",
-            cvv: TEST_CVV,
-          },
-        },
-      },
+      source: { type: "singleUseToken", token: sut.token },
       mitAgreement: "unscheduled",
       operator: "Cert Test",
     });
@@ -320,49 +318,25 @@ export async function executeSecureTokenDelete(
 }
 
 // ─────────────────────────────────────────────────────────────────
-// Helper: Create a keyed secure token from a test card, then use
-// its payrocToken for charges via the saved_card source path.
+// Helper: Create a single-use token from a test card via Payroc.
 //
-// We create a real SavedPaymentMethod row so processCharge can
-// resolve it via the standard saved_card flow.
+// Mirror production tokenization path: POST to /single-use-tokens.
+// processCharge then converts the SUT to a permanent secureToken
+// inside resolveSource() — see lib/api/v1/charges/process.ts:44-55.
+//
+// No DB side-effects. Cert testing does not create SavedPaymentMethod rows.
 // ─────────────────────────────────────────────────────────────────
 
 async function createSingleUseTokenFromTestCard(
-  cardNumber: string,
-  merchantId?: string
-): Promise<{ ok: true; savedPaymentMethodId: string } | { ok: false; error: string }> {
+  cardNumber: string
+): Promise<{ ok: true; token: string } | { ok: false; error: string }> {
   try {
-    const result = await createSecureToken({
-      source: {
-        type: "card",
-        cardDetails: {
-          type: "keyed",
-          keyedData: {
-            type: "plainText",
-            cardNumber,
-            expiryDate: "1227",
-            cvv: TEST_CVV,
-          },
-        },
-      },
-      mitAgreement: "unscheduled",
-      operator: "Cert SUT",
+    const result = await createSingleUseToken({
+      cardNumber,
+      expiryDate: "1227",
+      cvv: TEST_CVV,
     });
-
-    // Create a temporary SavedPaymentMethod row so processCharge can use the saved_card path
-    const row = await prisma.savedPaymentMethod.create({
-      data: {
-        merchantId: merchantId ?? "cert-temp",
-        customerEmail: "cert-test@reynapay.com",
-        payrocSecureTokenId: result.secureTokenId,
-        payrocToken: result.token,
-        last4: cardNumber.slice(-4),
-        status: "active",
-        mitAgreement: "unscheduled",
-      },
-    });
-
-    return { ok: true, savedPaymentMethodId: row.id };
+    return { ok: true, token: result.token };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "unknown" };
   }
