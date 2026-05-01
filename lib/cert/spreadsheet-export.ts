@@ -44,6 +44,28 @@ const CP_COL = {
 };
 
 /**
+ * Section name aliases. Maps Matt's xlsx section name (normalized) to
+ * one or more DB section names. DB names were chosen for UI clarity;
+ * exporter translates back at export time.
+ */
+const SECTION_ALIASES: Record<string, string[]> = {
+  // CNP + CP: Matt's single "Credit Card Pre-Auth | Capture" section
+  // maps to both the basic and adjust DB sections
+  "credit card pre-auth | capture": [
+    "credit card pre-auth | capture",
+    "credit card pre-auth | capture (with adjust)",
+  ],
+  // CP: Matt's verbose token section title (broken across lines)
+  "create a credit card secure token without processing a sale * if there are scenarios where a customer is adding or updating a secure token through the hardware terminal.":
+    ["create a credit card secure token via terminal"],
+};
+
+function resolveDbSections(mattSection: string): string[] {
+  const key = norm(mattSection);
+  return SECTION_ALIASES[key] ?? [key];
+}
+
+/**
  * Extract plain text from an ExcelJS cell value.
  * Handles: plain strings, richText arrays, numbers, booleans, null.
  */
@@ -68,32 +90,31 @@ function findMatch(
   transactionType: string,
   scenario: string
 ): CertRunData | null {
-  const targetSection = norm(sectionName);
+  const acceptableDbSections = new Set(resolveDbSections(sectionName));
   const targetTxn = norm(transactionType);
   const targetScenario = norm(scenario);
 
-  // Exact match on all three
+  // Pass 1: exact match on (sheet, alias-resolved section, txn, scenario)
   for (const r of runs) {
     if (r.sheetName !== sheetCode) continue;
-    if (norm(r.sectionName) !== targetSection) continue;
+    if (!acceptableDbSections.has(norm(r.sectionName))) continue;
     if (norm(r.transactionType) !== targetTxn) continue;
     if (norm(r.scenario) !== targetScenario) continue;
     return r;
   }
 
-  // Fallback: section + transactionType + scenario starts-with (handle truncation)
+  // Pass 2: section + txn + scenario starts-with (handle truncation)
   for (const r of runs) {
     if (r.sheetName !== sheetCode) continue;
-    if (norm(r.sectionName) !== targetSection) continue;
+    if (!acceptableDbSections.has(norm(r.sectionName))) continue;
     if (norm(r.transactionType) !== targetTxn) continue;
     if (targetScenario.startsWith(norm(r.scenario).slice(0, 40))) return r;
   }
 
-  // Last resort: section + transactionType only (may produce wrong match for
-  // same-section same-type tests with different amounts, but better than nothing)
+  // Pass 3: section + txn only (last resort)
   for (const r of runs) {
     if (r.sheetName !== sheetCode) continue;
-    if (norm(r.sectionName) !== targetSection) continue;
+    if (!acceptableDbSections.has(norm(r.sectionName))) continue;
     if (norm(r.transactionType) !== targetTxn) continue;
     return r;
   }
