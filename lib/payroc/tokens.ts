@@ -68,11 +68,24 @@ export async function deleteSecureToken(secureTokenId: string): Promise<void> {
 }
 
 /**
- * Create a Single-Use Token for raw card data.
- * For Hosted Fields integrations, single-use tokens are produced client-side by the SDK,
- * not by this function. This is here for server-side scenarios (MOTO, batch enrollment).
+ * Create a single-use token (SUT) from raw card details.
  *
- * https://docs.payroc.com/api/schema/tokenization/single-use-tokens/create
+ * Payroc API: https://docs.payroc.com/api/schema/payments/single-use-tokens/create
+ *
+ * Body shape required by Payroc:
+ *   {
+ *     channel: 'pos' | 'web' | 'moto',
+ *     source: { type: 'card', cardNumber, expiryDate, cvv, cardholderName? }
+ *   }
+ *
+ * Channel mapping:
+ *   - 'web': server-to-server tokenization for ecommerce flows (cert testing path)
+ *   - 'pos': used when a terminal/POS device tokenizes
+ *   - 'moto': mail/telephone order keyed entries
+ *
+ * NOTE: Hosted Fields tokenization in the browser doesn't go through this
+ * function — it uses the Payroc Hosted Fields SDK directly. This function
+ * is for server-side keyed-card tokenization (currently used by cert tests).
  */
 export async function createSingleUseToken(request: {
   cardNumber: string
@@ -83,6 +96,15 @@ export async function createSingleUseToken(request: {
   return payrocRequest(
     'POST',
     `/processing-terminals/${TERMINAL_ID}/single-use-tokens`,
-    request
+    {
+      channel: 'web',
+      source: {
+        type: 'card',
+        cardNumber: request.cardNumber,
+        expiryDate: request.expiryDate,
+        cvv: request.cvv,
+        cardholderName: request.cardholderName,
+      },
+    }
   )
 }
