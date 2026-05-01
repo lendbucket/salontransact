@@ -158,28 +158,28 @@ export function CheckoutForm() {
           fields: {
             card: {
               cardholderName: {
-                target: ".hf-cardholder",
-                errorTarget: ".hf-cardholder-error",
+                target: ".card-holder-name",
+                errorTarget: ".card-holder-name-error",
                 placeholder: "Cardholder Name",
               },
               cardNumber: {
-                target: ".hf-cardnumber",
-                errorTarget: ".hf-cardnumber-error",
+                target: ".card-number",
+                errorTarget: ".card-number-error",
                 placeholder: "Card Number",
               },
               expiryDate: {
-                target: ".hf-expiry",
-                errorTarget: ".hf-expiry-error",
+                target: ".card-expiry",
+                errorTarget: ".card-expiry-error",
                 placeholder: "MM/YY",
               },
               cvv: {
-                target: ".hf-cvv",
-                wrapperTarget: ".hf-cvv-wrapper",
-                errorTarget: ".hf-cvv-error",
+                target: ".card-cvv",
+                wrapperTarget: ".card-cvv-wrapper",
+                errorTarget: ".card-cvv-error",
                 placeholder: "CVV",
               },
               submit: {
-                target: ".hf-submit",
+                target: ".submit-button",
                 value: "Pay Now",
               },
             },
@@ -736,31 +736,31 @@ export function CheckoutForm() {
             </div>
           )}
 
-          <div className="space-y-3">
+          <div className="card-container payroc-form space-y-3">
             <div>
               <label className="block text-[13px] font-medium text-[#4A4A4A] mb-1">Name on Card</label>
-              <div className="hf-cardholder" style={{ minHeight: 44, background: "#F4F5F7", border: "1px solid #E8EAED", borderRadius: 8, overflow: "hidden" }} />
-              <div className="hf-cardholder-error" style={{ fontSize: 12, color: "#ef4444", marginTop: 4, minHeight: 0 }} />
+              <div className="card-holder-name" style={{ minHeight: 44, background: "#F4F5F7", border: "1px solid #E8EAED", borderRadius: 8, overflow: "hidden" }} />
+              <div className="card-holder-name-error" style={{ fontSize: 12, color: "#ef4444", marginTop: 4, minHeight: 0 }} />
             </div>
             <div>
               <label className="block text-[13px] font-medium text-[#4A4A4A] mb-1">Card Number</label>
-              <div className="hf-cardnumber" style={{ minHeight: 44, background: "#F4F5F7", border: "1px solid #E8EAED", borderRadius: 8, overflow: "hidden" }} />
-              <div className="hf-cardnumber-error" style={{ fontSize: 12, color: "#ef4444", marginTop: 4, minHeight: 0 }} />
+              <div className="card-number" style={{ minHeight: 44, background: "#F4F5F7", border: "1px solid #E8EAED", borderRadius: 8, overflow: "hidden" }} />
+              <div className="card-number-error" style={{ fontSize: 12, color: "#ef4444", marginTop: 4, minHeight: 0 }} />
             </div>
             <div className="flex gap-3">
               <div className="flex-1">
                 <label className="block text-[13px] font-medium text-[#4A4A4A] mb-1">Expiry</label>
-                <div className="hf-expiry" style={{ minHeight: 44, background: "#F4F5F7", border: "1px solid #E8EAED", borderRadius: 8, overflow: "hidden" }} />
-                <div className="hf-expiry-error" style={{ fontSize: 12, color: "#ef4444", marginTop: 4, minHeight: 0 }} />
+                <div className="card-expiry" style={{ minHeight: 44, background: "#F4F5F7", border: "1px solid #E8EAED", borderRadius: 8, overflow: "hidden" }} />
+                <div className="card-expiry-error" style={{ fontSize: 12, color: "#ef4444", marginTop: 4, minHeight: 0 }} />
               </div>
-              <div className="hf-cvv-wrapper flex-1">
+              <div className="card-cvv-wrapper flex-1">
                 <label className="block text-[13px] font-medium text-[#4A4A4A] mb-1">CVV</label>
-                <div className="hf-cvv" style={{ minHeight: 44, background: "#F4F5F7", border: "1px solid #E8EAED", borderRadius: 8, overflow: "hidden" }} />
-                <div className="hf-cvv-error" style={{ fontSize: 12, color: "#ef4444", marginTop: 4, minHeight: 0 }} />
+                <div className="card-cvv" style={{ minHeight: 44, background: "#F4F5F7", border: "1px solid #E8EAED", borderRadius: 8, overflow: "hidden" }} />
+                <div className="card-cvv-error" style={{ fontSize: 12, color: "#ef4444", marginTop: 4, minHeight: 0 }} />
               </div>
             </div>
             {/* SDK submit button */}
-            <div className="hf-submit" style={{ minHeight: 52, marginTop: 8, borderRadius: 10, overflow: "hidden" }} />
+            <div className="card-submit submit-button" style={{ minHeight: 52, marginTop: 8, borderRadius: 10, overflow: "hidden" }} />
           </div>
         </div>
 

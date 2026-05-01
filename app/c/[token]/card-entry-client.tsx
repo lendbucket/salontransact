@@ -51,10 +51,10 @@ export function CardEntryClient({ signedToken, merchantName, customerName }: Pro
           mode: "tokenization",
           fields: {
             card: {
-              cardholderName: { target: ".ce-cardholder", placeholder: "Name on card" },
-              cardNumber: { target: ".ce-cardnumber", placeholder: "Card number" },
-              expiryDate: { target: ".ce-expiry", placeholder: "MM/YY" },
-              cvv: { target: ".ce-cvv", placeholder: "CVV" },
+              cardholderName: { target: ".card-holder-name", errorTarget: ".card-holder-name-error", placeholder: "Name on card" },
+              cardNumber: { target: ".card-number", errorTarget: ".card-number-error", placeholder: "Card number" },
+              expiryDate: { target: ".card-expiry", errorTarget: ".card-expiry-error", placeholder: "MM/YY" },
+              cvv: { target: ".card-cvv", errorTarget: ".card-cvv-error", placeholder: "CVV" },
             },
           },
         });
@@ -133,23 +133,27 @@ export function CardEntryClient({ signedToken, merchantName, customerName }: Pro
               {greeting}, please enter your card details below. Your card will be securely saved for your appointment with {merchantName}.
             </p>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 20 }}>
+            <div className="card-container payroc-form" style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 20 }}>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 600, color: "#1A1313", marginBottom: 6, display: "block" }}>Name on card</label>
-                <div className="ce-cardholder" style={{ minHeight: 44, border: "1px solid #E8EAED", borderRadius: 8, background: "#F4F5F7", overflow: "hidden" }} />
+                <div className="card-holder-name" style={{ minHeight: 44, border: "1px solid #E8EAED", borderRadius: 8, background: "#F4F5F7", overflow: "hidden" }} />
+                <div className="card-holder-name-error" style={{ fontSize: 12, color: "#DC2626", marginTop: 4, minHeight: 0 }} />
               </div>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 600, color: "#1A1313", marginBottom: 6, display: "block" }}>Card number</label>
-                <div className="ce-cardnumber" style={{ minHeight: 44, border: "1px solid #E8EAED", borderRadius: 8, background: "#F4F5F7", overflow: "hidden" }} />
+                <div className="card-number" style={{ minHeight: 44, border: "1px solid #E8EAED", borderRadius: 8, background: "#F4F5F7", overflow: "hidden" }} />
+                <div className="card-number-error" style={{ fontSize: 12, color: "#DC2626", marginTop: 4, minHeight: 0 }} />
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 600, color: "#1A1313", marginBottom: 6, display: "block" }}>Expiry</label>
-                  <div className="ce-expiry" style={{ minHeight: 44, border: "1px solid #E8EAED", borderRadius: 8, background: "#F4F5F7", overflow: "hidden" }} />
+                  <div className="card-expiry" style={{ minHeight: 44, border: "1px solid #E8EAED", borderRadius: 8, background: "#F4F5F7", overflow: "hidden" }} />
+                  <div className="card-expiry-error" style={{ fontSize: 12, color: "#DC2626", marginTop: 4, minHeight: 0 }} />
                 </div>
-                <div>
+                <div className="card-cvv-wrapper">
                   <label style={{ fontSize: 12, fontWeight: 600, color: "#1A1313", marginBottom: 6, display: "block" }}>CVV</label>
-                  <div className="ce-cvv" style={{ minHeight: 44, border: "1px solid #E8EAED", borderRadius: 8, background: "#F4F5F7", overflow: "hidden" }} />
+                  <div className="card-cvv" style={{ minHeight: 44, border: "1px solid #E8EAED", borderRadius: 8, background: "#F4F5F7", overflow: "hidden" }} />
+                  <div className="card-cvv-error" style={{ fontSize: 12, color: "#DC2626", marginTop: 4, minHeight: 0 }} />
                 </div>
               </div>
             </div>
