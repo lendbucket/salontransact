@@ -100,10 +100,16 @@ export async function createSingleUseToken(request: {
       channel: 'web',
       source: {
         type: 'card',
-        cardNumber: request.cardNumber,
-        expiryDate: request.expiryDate,
-        cvv: request.cvv,
-        cardholderName: request.cardholderName,
+        cardDetails: {
+          entryMethod: 'keyed',
+          keyedData: {
+            dataFormat: 'plainText',
+            cardNumber: request.cardNumber,
+            expiryDate: request.expiryDate,
+            cvv: request.cvv,
+            cardholderName: request.cardholderName,
+          },
+        },
       },
     }
   )
