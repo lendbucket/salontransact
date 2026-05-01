@@ -73,6 +73,8 @@ export function CertSessionDetailClient({ session, runs }: Props) {
       <h1 className="text-2xl font-semibold tracking-tight">{session.name}</h1>
       {session.description && <p className="text-sm text-gray-500 mt-1">{session.description}</p>}
 
+      <BatchRunButtons sessionId={session.id} />
+
       <div className="bg-white border border-gray-200 rounded-lg p-6 mt-6">
         <div className="flex items-center justify-between mb-4">
           <div className="text-sm font-medium text-gray-900">Progress</div>
@@ -264,5 +266,64 @@ function CertTestRow({ run }: { run: RunData }) {
         </tr>
       )}
     </>
+  );
+}
+
+function BatchRunButtons({ sessionId }: { sessionId: string }) {
+  const router = useRouter();
+  const [running, setRunning] = useState<"CNP" | "CP" | null>(null);
+  const [result, setResult] = useState<string | null>(null);
+
+  async function runBatch(sheetName: "CNP" | "CP") {
+    setRunning(sheetName);
+    setResult(null);
+    try {
+      const res = await fetch(`/api/master/cert-tests/sessions/${sessionId}/run-batch`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sheetName }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setResult(`Failed: ${data.error ?? "Unknown error"}`);
+      } else {
+        setResult(
+          `${sheetName} batch complete: ${data.executed} executed (${data.passed} passed, ${data.failed} failed, ${data.skipped} skipped/manual)`
+        );
+      }
+    } catch (e) {
+      setResult(`Failed: ${e instanceof Error ? e.message : "Network error"}`);
+    } finally {
+      setRunning(null);
+      router.refresh();
+    }
+  }
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-lg p-4 mt-4 flex items-center gap-3 flex-wrap">
+      <span className="text-sm font-medium text-gray-700">Batch run:</span>
+      <button
+        type="button"
+        onClick={() => runBatch("CNP")}
+        disabled={running !== null}
+        className="px-3 py-1.5 bg-[#017ea7] text-white text-sm font-medium rounded-lg hover:bg-[#016690] disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {running === "CNP" ? "Running CNP\u2026" : "Run all pending CNP"}
+      </button>
+      <button
+        type="button"
+        onClick={() => runBatch("CP")}
+        disabled={running !== null}
+        className="px-3 py-1.5 bg-[#017ea7] text-white text-sm font-medium rounded-lg hover:bg-[#016690] disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {running === "CP" ? "Running CP\u2026 (tap card on each prompt)" : "Run all pending CP"}
+      </button>
+      {result && (
+        <span className="text-xs text-gray-700 ml-2">{result}</span>
+      )}
+      <span className="text-xs text-gray-500 ml-auto">
+        Note: CP tests prompt the Pax for each test
+      </span>
+    </div>
   );
 }
