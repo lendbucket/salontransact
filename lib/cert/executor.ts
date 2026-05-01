@@ -340,7 +340,9 @@ export async function executeCardPresentSale(
     return { ok: false, paymentId: null, status: "failed", errorMessage: "CP test requires a Pax terminal", notes: "" };
   }
 
-  const orderId = `cert-${ctx.testRunId.slice(0, 20)}-${Date.now().toString(36)}`;
+  // Payroc orderId max is 24 chars. cuid first 8 chars are time-based
+  // with enough entropy. Date.now() base36 adds uniqueness. ~23 chars total.
+  const orderId = `cert-${ctx.testRunId.slice(0, 8)}-${Date.now().toString(36)}`;
   let instructionId: string;
   try {
     const instruction = await sendPaymentInstruction(ctx.terminalSerial, {
@@ -395,7 +397,8 @@ export async function executeCardPresentPreAuth(
     return { ok: false, paymentId: null, status: "failed", errorMessage: "CP test requires a Pax terminal", notes: "" };
   }
 
-  const orderId = `cert-pa-${ctx.testRunId.slice(0, 18)}-${Date.now().toString(36)}`;
+  // Payroc orderId max 24 chars.
+  const orderId = `cert-pa-${ctx.testRunId.slice(0, 6)}-${Date.now().toString(36)}`;
   let instructionId: string;
   try {
     const instruction = await sendPaymentInstruction(ctx.terminalSerial, {
@@ -476,7 +479,8 @@ export async function executeCardPresentTokenCreate(ctx: ExecutorContext): Promi
   if (!ctx.terminalSerial) {
     return { ok: false, paymentId: null, status: "failed", errorMessage: "CP token create requires a Pax terminal", notes: "" };
   }
-  const orderId = `cert-tok-${ctx.testRunId.slice(0, 17)}-${Date.now().toString(36)}`;
+  // Payroc orderId max 24 chars.
+  const orderId = `cert-tok-${ctx.testRunId.slice(0, 5)}-${Date.now().toString(36)}`;
   let instructionId: string;
   try {
     const instruction = await sendPaymentInstruction(ctx.terminalSerial, {
