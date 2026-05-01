@@ -25,6 +25,7 @@ export async function GET(
   const runs = await prisma.certTestRun.findMany({
     where: { sessionId },
     select: {
+      id: true,
       sheetName: true,
       sectionName: true,
       transactionType: true,

@@ -3,6 +3,7 @@ import path from "path";
 import { promises as fs } from "fs";
 
 interface CertRunData {
+  id: string;
   sheetName: string;
   sectionName: string;
   transactionType: string;
@@ -66,6 +67,23 @@ function resolveDbSections(mattSection: string): string[] {
 }
 
 /**
+ * Transaction type aliases. Matt's xlsx contains typos in some transaction
+ * type labels (column B). Map Matt's value (after normalization) to the
+ * corresponding DB-spelled value.
+ */
+const TRANSACTION_TYPE_ALIASES: Record<string, string> = {
+  "caprture (pre-auth completion)": "capture (pre-auth completion)",
+  "recurrnig sale - first trans": "recurring sale - first trans",
+  "recurrnig sale - subsequent trans": "recurring sale - subsequent trans",
+  "void/ reversal (same day)": "void/reversal (same day)",
+};
+
+function resolveDbTxnType(mattTxn: string): string {
+  const key = mattTxn.replace(/\n/g, " ").trim().toLowerCase().replace(/\s+/g, " ");
+  return TRANSACTION_TYPE_ALIASES[key] ?? key;
+}
+
+/**
  * Extract plain text from an ExcelJS cell value.
  * Handles: plain strings, richText arrays, numbers, booleans, null.
  */
@@ -81,41 +99,40 @@ function cellText(value: ExcelJS.CellValue): string {
   return String(value);
 }
 
-const norm = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
+const norm = (s: string) =>
+  s.replace(/\n/g, " ").trim().toLowerCase().replace(/\s+/g, " ");
 
 function findMatch(
   runs: CertRunData[],
   sheetCode: "CNP" | "CP",
   sectionName: string,
   transactionType: string,
-  scenario: string
+  scenario: string,
+  consumedIds: Set<string>
 ): CertRunData | null {
   const acceptableDbSections = new Set(resolveDbSections(sectionName));
-  const targetTxn = norm(transactionType);
+  const targetTxn = resolveDbTxnType(transactionType);
   const targetScenario = norm(scenario);
 
-  // Pass 1: exact match on (sheet, alias-resolved section, txn, scenario)
+  const available = (r: CertRunData) =>
+    !consumedIds.has(r.id) && r.sheetName === sheetCode;
+
+  // Pass 1: exact match on (sheet, alias-resolved section, alias-resolved txn, scenario)
   for (const r of runs) {
-    if (r.sheetName !== sheetCode) continue;
+    if (!available(r)) continue;
     if (!acceptableDbSections.has(norm(r.sectionName))) continue;
     if (norm(r.transactionType) !== targetTxn) continue;
     if (norm(r.scenario) !== targetScenario) continue;
+    consumedIds.add(r.id);
     return r;
   }
 
-  // Pass 2: section + txn + scenario starts-with (handle truncation)
+  // Pass 2: section + txn only (fallback when scenario text drifted)
   for (const r of runs) {
-    if (r.sheetName !== sheetCode) continue;
+    if (!available(r)) continue;
     if (!acceptableDbSections.has(norm(r.sectionName))) continue;
     if (norm(r.transactionType) !== targetTxn) continue;
-    if (targetScenario.startsWith(norm(r.scenario).slice(0, 40))) return r;
-  }
-
-  // Pass 3: section + txn only (last resort)
-  for (const r of runs) {
-    if (r.sheetName !== sheetCode) continue;
-    if (!acceptableDbSections.has(norm(r.sectionName))) continue;
-    if (norm(r.transactionType) !== targetTxn) continue;
+    consumedIds.add(r.id);
     return r;
   }
 
@@ -144,7 +161,7 @@ function fillSheet(
   let currentSection = "";
   let matched = 0;
   let total = 0;
-  const usedRuns = new Set<CertRunData>();
+  const consumedIds = new Set<string>();
 
   for (let r = 4; r <= worksheet.rowCount; r++) {
     const row = worksheet.getRow(r);
@@ -168,10 +185,8 @@ function fillSheet(
 
     total += 1;
 
-    const match = findMatch(runs, sheetCode, currentSection, colB, colC);
-    if (!match || usedRuns.has(match)) continue;
-
-    usedRuns.add(match);
+    const match = findMatch(runs, sheetCode, currentSection, colB, colC, consumedIds);
+    if (!match) continue;
     matched += 1;
 
     if (match.paymentId) {
