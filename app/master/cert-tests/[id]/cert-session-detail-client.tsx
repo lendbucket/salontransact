@@ -321,9 +321,13 @@ function BatchRunButtons({ sessionId }: { sessionId: string }) {
       {result && (
         <span className="text-xs text-gray-700 ml-2">{result}</span>
       )}
-      <span className="text-xs text-gray-500 ml-auto">
-        Note: CP tests prompt the Pax for each test
-      </span>
+      <a
+        href={`/api/master/cert-tests/sessions/${sessionId}/export`}
+        download
+        className="px-3 py-1.5 bg-gray-100 text-gray-800 text-sm font-medium rounded-lg hover:bg-gray-200 ml-auto"
+      >
+        Export to spreadsheet
+      </a>
     </div>
   );
 }
