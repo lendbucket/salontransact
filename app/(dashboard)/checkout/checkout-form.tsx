@@ -42,6 +42,7 @@ export function CheckoutForm() {
   const descriptionRef = useRef("");
   const customerEmailRef = useRef("");
   const saveCardRef = useRef(false);
+  const sessionTokenPrefixRef = useRef<string | null>(null);
   amountRef.current = amount;
   descriptionRef.current = description;
   customerEmailRef.current = customerEmail;
@@ -152,6 +153,7 @@ export function CheckoutForm() {
           return;
         }
         console.log("[HF] Session OK, token length:", data.sessionToken.length);
+        sessionTokenPrefixRef.current = data.sessionToken.slice(0, 8);
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if (!(window as any).Payroc) {
@@ -302,6 +304,7 @@ export function CheckoutForm() {
                 description: descriptionRef.current || "Payment",
                 orderId,
                 chargeIdempotencyKey,
+                sessionTokenPrefix: sessionTokenPrefixRef.current,
                 ...(saveCardRef.current && customerEmailRef.current
                   ? {
                       saveCard: true,
