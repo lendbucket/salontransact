@@ -33,6 +33,7 @@ export function CheckoutForm() {
   const [savedCards, setSavedCards] = useState<SavedCardOption[]>([]);
   const [selectedSavedCardId, setSelectedSavedCardId] = useState<string | null>(null);
   const [savedCardsLoading, setSavedCardsLoading] = useState(false);
+  const [sessionVersion, setSessionVersion] = useState(0);
 
   const initRef = useRef(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -66,6 +67,24 @@ export function CheckoutForm() {
     chargeIdempotencyKeyRef.current = null;
     chargeOrderIdRef.current = null;
     submittedRef.current = false;
+  }
+
+  function startNewPayment() {
+    setStatus("loading");
+    setAmount("");
+    setDescription("");
+    setError("");
+    setPaymentId("");
+    setApprovalCode("");
+    setLast4("");
+    setCustomerEmail("");
+    setSaveCard(false);
+    setSavedCardConfirmed(false);
+    setSavedCards([]);
+    setSelectedSavedCardId(null);
+    resetChargeIdempotency();
+    initRef.current = false;
+    setSessionVersion((v) => v + 1);
   }
 
   // Fetch saved cards when customerEmail is set + valid format
@@ -300,12 +319,9 @@ export function CheckoutForm() {
               setLast4(result.last4 || "");
               setSavedCardConfirmed(Boolean(result.savedCardId));
               setStatus("success");
-              // Reload after 3s for fresh session token + fresh idempotency state
-              setTimeout(() => window.location.reload(), 3000);
             } else {
               setError(result.declineReason || result.error || "Declined");
               setStatus("declined");
-              // Decline = same logical attempt is over. Fresh UUID for the next try (if user retries via reload).
               resetChargeIdempotency();
             }
           } catch {
@@ -375,7 +391,8 @@ export function CheckoutForm() {
       }
       initRef.current = false;
     };
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionVersion]);
 
   // Charge a selected saved card (bypasses Hosted Fields)
   async function handleSavedCardCharge() {
@@ -422,7 +439,6 @@ export function CheckoutForm() {
         setApprovalCode(result.approvalCode || "");
         setLast4(result.last4 || "");
         setStatus("success");
-        setTimeout(() => window.location.reload(), 3000);
       } else {
         setError(result.declineReason || result.error || "Declined");
         setStatus("declined");
@@ -458,7 +474,7 @@ export function CheckoutForm() {
           {paymentId && <p className="text-xs text-[#ABABAB] font-mono">ID: {paymentId}</p>}
           <div className="flex flex-col gap-3 w-full mt-8">
             <button
-              onClick={() => window.location.reload()}
+              onClick={startNewPayment}
               className="w-full h-[52px] text-white text-base font-medium rounded-[10px] border border-[#015f80] cursor-pointer hover:-translate-y-px active:translate-y-0 transition-all"
               style={{ background: "linear-gradient(180deg, #0290be 0%, #017ea7 100%)", boxShadow: "0 1px 2px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.12)" }}
             >
@@ -482,7 +498,7 @@ export function CheckoutForm() {
           <h2 className="text-xl font-semibold text-[#1A1313] mb-2">Payment Declined</h2>
           <p className="text-sm text-[#4A4A4A] mb-6">{error}</p>
           <button
-            onClick={() => window.location.reload()}
+            onClick={startNewPayment}
             className="w-full max-w-[280px] h-10 bg-[#017ea7] hover:bg-[#0290be] text-white text-sm font-medium rounded-lg border border-[#015f80] cursor-pointer transition-all"
           >
             Try Again
@@ -736,7 +752,7 @@ export function CheckoutForm() {
             </div>
           )}
 
-          <div className="card-container payroc-form space-y-3">
+          <div key={sessionVersion} className="card-container payroc-form space-y-3">
             <div>
               <label className="block text-[13px] font-medium text-[#4A4A4A] mb-1">Name on Card</label>
               <div className="card-holder-name" style={{ minHeight: 44, background: "#F4F5F7", border: "1px solid #E8EAED", borderRadius: 8, overflow: "hidden" }} />
