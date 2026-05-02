@@ -51,7 +51,6 @@ export async function POST(request: Request) {
       saveCard,
       secureTokenId,
       chargeIdempotencyKey: clientIdempotencyKey,
-      sessionTokenPrefix,
     } = body;
 
     console.log("[PAYMENT-DEBUG] Token:", token?.substring(0, 30) + "...");
@@ -326,7 +325,7 @@ export async function POST(request: Request) {
       paymentIdempotencyKey = crypto.randomUUID();
       idempotencyKeySource = "server";
     }
-    console.log(`[PAYROC-IDEMPOTENCY] key=${paymentIdempotencyKey} source=${idempotencyKeySource} path=/payments method=POST orderId=${finalOrderId} amount=${amountInCents} merchantId=${merchant.id} usingSecureToken=${secureTokenIdForPayment ? "yes" : "no"} session=${typeof sessionTokenPrefix === "string" ? sessionTokenPrefix : "unknown"}`);
+    console.log(`[PAYROC-IDEMPOTENCY] key=${paymentIdempotencyKey} source=${idempotencyKeySource} path=/payments method=POST orderId=${finalOrderId} amount=${amountInCents} merchantId=${merchant.id} usingSecureToken=${secureTokenIdForPayment ? "yes" : "no"}`);
 
     const payrRes = await fetch(`${apiUrl}/payments`, {
       method: "POST",
@@ -429,7 +428,9 @@ export async function POST(request: Request) {
           }),
         ]);
         console.log(
-          `[CHECKOUT] Transaction saved + merchant counters incremented (amount: ${amountDollars}) session=${typeof sessionTokenPrefix === "string" ? sessionTokenPrefix : "unknown"} paymentId=${paymentId}`
+          "[CHECKOUT] Transaction saved + merchant counters incremented (amount:",
+          amountDollars,
+          ")"
         );
       } catch (dbErr) {
         dbSaveError =
