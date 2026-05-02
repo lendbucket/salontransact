@@ -21,7 +21,7 @@ export async function GET() {
     }
 
     const sessionCreatedAt = Date.now();
-    const result = await getHostedFieldsSessionToken("payment");
+    const result = await getHostedFieldsSessionToken("tokenization");
     const config = getHostedFieldsConfig();
 
     console.log("[SESSION-DEBUG] Token received in", Date.now() - sessionCreatedAt, "ms");
