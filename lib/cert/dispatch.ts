@@ -161,3 +161,79 @@ export const DISPATCH: Record<string, DispatchEntry> = {
 export function getDispatchEntry(testCaseId: string): DispatchEntry {
   return DISPATCH[testCaseId] ?? { kind: "manual", reason: "No executor configured for this test case." };
 }
+
+// ──────────────────────────────────────────────────────────────────
+// Prerequisite mapping for chained cert tests
+// ──────────────────────────────────────────────────────────────────
+
+export type CertPrereqRule = {
+  needsTransactionType: string;
+  scope: "same-section" | "same-sheet";
+};
+
+export const PREREQ_MAP: Record<string, CertPrereqRule> = {
+  // CNP same-section captures + adjust
+  "cnp-cc-preauth-nst-capture": { needsTransactionType: "Pre-Authorization", scope: "same-section" },
+  "cnp-cc-preauth-cst-capture": { needsTransactionType: "Pre-Authorization", scope: "same-section" },
+  "cnp-cc-preauth-pst-capture": { needsTransactionType: "Pre-Authorization", scope: "same-section" },
+  "cnp-cc-preauth-adjust-adjust": { needsTransactionType: "Pre-Authorization", scope: "same-section" },
+  "cnp-cc-preauth-adjust-capture": { needsTransactionType: "Pre-Authorization", scope: "same-section" },
+
+  // CNP cross-section voids/refunds
+  "cnp-cc-void-same-day": { needsTransactionType: "Sale", scope: "same-sheet" },
+  "cnp-cc-refund-next-day": { needsTransactionType: "Sale", scope: "same-sheet" },
+
+  // CP same-section captures + adjust
+  "cp-cc-preauth-capture": { needsTransactionType: "Pre-Authorization", scope: "same-section" },
+  "cp-cc-preauth-adjust-adjust": { needsTransactionType: "Pre-Authorization", scope: "same-section" },
+  "cp-cc-preauth-adjust-capture": { needsTransactionType: "Pre-Authorization", scope: "same-section" },
+
+  // CP cross-section voids/refunds
+  "cp-cc-void-same-day": { needsTransactionType: "Sale", scope: "same-sheet" },
+  "cp-cc-refund-next-day": { needsTransactionType: "Sale", scope: "same-sheet" },
+
+  // ACH chained
+  "cnp-ach-void-same-day": { needsTransactionType: "ACH", scope: "same-sheet" },
+  "cnp-ach-refund-7-days": { needsTransactionType: "ACH", scope: "same-sheet" },
+};
+
+/**
+ * Resolve the prerequisite payment for a chained cert test.
+ * Picks OLDEST passed match (ranAt asc), excludes consumed ids.
+ */
+export async function resolvePrereq(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  prisma: any,
+  testCaseId: string,
+  sessionId: string,
+  sheetName: string,
+  sectionName: string,
+  consumedIds: Set<string>
+): Promise<{ id: string; paymentId: string } | null> {
+  const rule = PREREQ_MAP[testCaseId];
+  if (!rule) return null;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const where: any = {
+    sessionId,
+    sheetName,
+    transactionType: rule.needsTransactionType,
+    status: "passed",
+    paymentId: { not: null },
+  };
+  if (rule.scope === "same-section") {
+    where.sectionName = sectionName;
+  }
+  if (consumedIds.size > 0) {
+    where.id = { notIn: Array.from(consumedIds) };
+  }
+
+  const candidate = await prisma.certTestRun.findFirst({
+    where,
+    orderBy: { ranAt: "asc" },
+    select: { id: true, paymentId: true },
+  });
+
+  if (!candidate || !candidate.paymentId) return null;
+  return { id: candidate.id, paymentId: candidate.paymentId };
+}

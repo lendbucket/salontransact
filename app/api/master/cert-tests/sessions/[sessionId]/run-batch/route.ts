@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireMaster } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
-import { getDispatchEntry } from "@/lib/cert/dispatch";
+import { getDispatchEntry, resolvePrereq } from "@/lib/cert/dispatch";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -57,6 +57,7 @@ export async function POST(
   let failed = 0;
   let skipped = 0;
   const results: Array<{ testCaseId: string; status: string; paymentId: string | null }> = [];
+  const consumedIds = new Set<string>();
 
   for (const run of pendingRuns) {
     const dispatch = getDispatchEntry(run.testCaseId);
@@ -75,28 +76,16 @@ export async function POST(
       continue;
     }
 
-    let previousPaymentId: string | null = null;
-    const txnLower = run.transactionType.toLowerCase();
-    const needsPrevious =
-      txnLower.includes("capture") ||
-      txnLower.includes("void") ||
-      txnLower.includes("reversal") ||
-      txnLower.includes("refund");
-
-    if (needsPrevious) {
-      const previous = await prisma.certTestRun.findFirst({
-        where: {
-          sessionId: run.sessionId,
-          sectionName: run.sectionName,
-          status: "passed",
-          paymentId: { not: null },
-          id: { not: run.id },
-        },
-        orderBy: { ranAt: "desc" },
-        select: { paymentId: true },
-      });
-      previousPaymentId = previous?.paymentId ?? null;
-    }
+    const prereq = await resolvePrereq(
+      prisma,
+      run.testCaseId,
+      run.sessionId,
+      run.sheetName,
+      run.sectionName,
+      consumedIds
+    );
+    if (prereq) consumedIds.add(prereq.id);
+    const previousPaymentId = prereq?.paymentId ?? null;
 
     await prisma.certTestRun.update({
       where: { id: run.id },

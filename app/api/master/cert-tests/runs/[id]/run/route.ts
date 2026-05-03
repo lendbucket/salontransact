@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireMaster } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
-import { getDispatchEntry } from "@/lib/cert/dispatch";
+import { getDispatchEntry, resolvePrereq } from "@/lib/cert/dispatch";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -45,28 +45,16 @@ export async function POST(
     data: { status: "running" },
   });
 
-  // Look up previousPaymentId for chained tests (capture/void/refund need it)
-  let previousPaymentId: string | null = null;
-  const needsPrevious =
-    run.transactionType.toLowerCase().includes("capture") ||
-    run.transactionType.toLowerCase().includes("void") ||
-    run.transactionType.toLowerCase().includes("reversal") ||
-    run.transactionType.toLowerCase().includes("refund");
-
-  if (needsPrevious) {
-    const previous = await prisma.certTestRun.findFirst({
-      where: {
-        sessionId: run.sessionId,
-        sectionName: run.sectionName,
-        status: "passed",
-        paymentId: { not: null },
-        id: { not: run.id },
-      },
-      orderBy: { ranAt: "desc" },
-      select: { paymentId: true },
-    });
-    previousPaymentId = previous?.paymentId ?? null;
-  }
+  // Resolve prerequisite paymentId for chained tests (capture/void/refund)
+  const prereq = await resolvePrereq(
+    prisma,
+    run.testCaseId,
+    run.sessionId,
+    run.sheetName,
+    run.sectionName,
+    new Set<string>()
+  );
+  const previousPaymentId = prereq?.paymentId ?? null;
 
   try {
     const result = await dispatch.run({
