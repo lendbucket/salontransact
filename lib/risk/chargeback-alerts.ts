@@ -6,7 +6,11 @@ import {
   WARNING_THRESHOLD,
   statusForRatio,
 } from "./types";
-import { listDisputes } from "@/lib/payroc/disputes";
+// TODO: Re-enable when Payroc /disputes query params are confirmed by Matt.
+// Speculatively-written params (startDate/endDate) returned 400 "Unknown query parameter"
+// every cron tick. Disabled to clean logs. Local Transaction.status="disputed" count
+// remains authoritative for chargeback alerts.
+// import { listDisputes } from "@/lib/payroc/disputes";
 
 const WINDOW_DAYS = 90;
 
@@ -35,6 +39,8 @@ export async function checkAndAlertMerchants(): Promise<{
     select: { id: true, businessName: true, email: true, phone: true },
   });
 
+  console.info("[CB-ALERT] Payroc /disputes cross-check disabled (awaiting query param confirmation from Matt). Using local count only.");
+
   const cutoff = new Date(Date.now() - WINDOW_DAYS * 86400000);
   const alerts: AlertResult[] = [];
   const errors: string[] = [];
@@ -52,36 +58,13 @@ export async function checkAndAlertMerchants(): Promise<{
         where: { merchantId: m.id, status: "disputed", createdAt: { gte: cutoff } },
       });
 
-      // Authoritative count: pull from Payroc disputes API for the same window.
-      // Payroc is the source of truth; if our local count is lower (webhook lag,
-      // failed sync, etc.) we use Payroc's count to avoid under-reporting risk.
-      let payrocDisputeCount = 0;
-      try {
-        const startDate = cutoff.toISOString().slice(0, 10); // YYYY-MM-DD
-        const endDate = new Date().toISOString().slice(0, 10);
-        const payrocResp = await listDisputes({ startDate, endDate });
-        // Note: Payroc /disputes returns disputes across all merchants on this
-        // House Account config. Until Reyna Pay has per-merchant Payroc MIDs
-        // (post Phase 9.4 cutover), filter by merchant identifiers we tag at
-        // charge time. For UAT/single-merchant operation we accept the full count.
-        payrocDisputeCount = payrocResp.disputes.length;
-      } catch (e) {
-        // Don't block the alert run on a Payroc API hiccup.
-        // Fall back to local count, but log so we know.
-        console.warn(
-          `[CB-ALERT] Payroc /disputes fetch failed for ${m.id} — using local count only:`,
-          e instanceof Error ? e.message : e
-        );
-      }
+      // TODO: Re-enable Payroc /disputes cross-check once Matt confirms query params.
+      // Previous call used startDate/endDate which Payroc rejects with 400.
+      // For now, local count is the only source. payrocDisputeCount = 0 means
+      // Math.max always returns localDisputedCount.
+      const payrocDisputeCount = 0;
 
-      // Use MAX as authoritative. If they disagree, log so the data team
-      // can investigate webhook drift.
       const chargebackCount = Math.max(localDisputedCount, payrocDisputeCount);
-      if (localDisputedCount !== payrocDisputeCount) {
-        console.warn(
-          `[CB-ALERT] Count drift for ${m.id}: local=${localDisputedCount}, payroc=${payrocDisputeCount}, using=${chargebackCount}`
-        );
-      }
 
       const ratio = (chargebackCount / totalCharges) * 100;
       const riskStatus = statusForRatio(ratio);
