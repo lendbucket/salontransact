@@ -364,8 +364,7 @@ export function CheckoutForm() {
         });
 
         cardForm.on("ready", () => {
-          console.log("[HF] Fields ready — enabling submit");
-          setStatus("ready");
+          console.log("[HF] Fields ready");
         });
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -374,7 +373,8 @@ export function CheckoutForm() {
         });
 
         cardForm.initialize();
-        console.log("[HF] Initialized, waiting for ready event...");
+        console.log("[HF] Initialized");
+        setStatus("ready");
       } catch (err) {
         console.error("[HF] Init failed:", err);
         setStatus("loadError");
