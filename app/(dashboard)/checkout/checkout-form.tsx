@@ -42,6 +42,8 @@ export function CheckoutForm() {
   const descriptionRef = useRef("");
   const customerEmailRef = useRef("");
   const saveCardRef = useRef(false);
+  const observerRef = useRef<MutationObserver | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
   amountRef.current = amount;
   descriptionRef.current = description;
   customerEmailRef.current = customerEmail;
@@ -373,8 +375,50 @@ export function CheckoutForm() {
         });
 
         cardForm.initialize();
-        console.log("[HF] Initialized");
-        setStatus("ready");
+        console.log("[HF] Initialized, watching for iframe binding...");
+
+        // Wait for SDK to inject all 4 iframes + 800ms safety margin for binding.
+        // Without this, first submit fires before iframes are ready and gateway
+        // rejects with "Missing required field: cardholderName, cardNumber".
+        const containerEl = containerRef.current;
+        if (!containerEl) {
+          setTimeout(() => {
+            console.log("[HF] Fields ready (fallback delay)");
+            setStatus("ready");
+          }, 1500);
+        } else {
+          const checkIframes = () => {
+            const iframes = containerEl.querySelectorAll("iframe");
+            if (iframes.length >= 4) {
+              if (observerRef.current) {
+                observerRef.current.disconnect();
+                observerRef.current = null;
+              }
+              setTimeout(() => {
+                console.log("[HF] Fields ready (4 iframes + 800ms margin)");
+                setStatus("ready");
+              }, 800);
+              return true;
+            }
+            return false;
+          };
+
+          if (!checkIframes()) {
+            const observer = new MutationObserver(checkIframes);
+            observer.observe(containerEl, { childList: true, subtree: true });
+            observerRef.current = observer;
+
+            // Hard timeout: if observer never fires after 5 sec, enable anyway
+            setTimeout(() => {
+              if (observerRef.current) {
+                observerRef.current.disconnect();
+                observerRef.current = null;
+                console.log("[HF] Fields ready (observer timeout fallback)");
+                setStatus("ready");
+              }
+            }, 5000);
+          }
+        }
       } catch (err) {
         console.error("[HF] Init failed:", err);
         setStatus("loadError");
@@ -392,6 +436,10 @@ export function CheckoutForm() {
         cardFormRef.current = null;
       }
       initRef.current = false;
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+        observerRef.current = null;
+      }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionVersion]);
@@ -754,7 +802,7 @@ export function CheckoutForm() {
             </div>
           )}
 
-          <div key={sessionVersion} className="card-container payroc-form space-y-3">
+          <div ref={containerRef} key={sessionVersion} className="card-container payroc-form space-y-3">
             <div>
               <label className="block text-[13px] font-medium text-[#4A4A4A] mb-1">Name on Card</label>
               <div className="card-holder-name" style={{ minHeight: 44, background: "#F4F5F7", border: "1px solid #E8EAED", borderRadius: 8, overflow: "hidden" }} />
