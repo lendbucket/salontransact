@@ -333,9 +333,9 @@ export function CheckoutForm() {
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         cardForm.on("submissionError", (evt: any) => {
-          console.error("[HF] submissionError:", evt);
-          setError(evt?.message || "Submission failed");
-          setStatus("ready");
+          console.error("[HF] submissionError, will show Try Again:", evt);
+          setError(evt?.message || "Payment submission failed. Please try again.");
+          setStatus("declined");
         });
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -350,9 +350,9 @@ export function CheckoutForm() {
                 ? errMessage
                 : errField
                   ? `Please check the ${errField} field and try again.`
-                  : "Card submission failed. Please refresh and try again.";
+                  : "Card submission failed. Please try again.";
             setError(userMessage);
-            setStatus("ready");
+            setStatus("declined");
           } else if (errType === "init") {
             setError("Payment fields failed to load. Please refresh.");
             setStatus("loadError");
@@ -363,7 +363,10 @@ export function CheckoutForm() {
           }
         });
 
-        cardForm.on("ready", () => console.log("[HF] Fields ready"));
+        cardForm.on("ready", () => {
+          console.log("[HF] Fields ready — enabling submit");
+          setStatus("ready");
+        });
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         cardForm.on("surcharge-info", (evt: any) => {
@@ -371,8 +374,7 @@ export function CheckoutForm() {
         });
 
         cardForm.initialize();
-        console.log("[HF] Initialized");
-        setStatus("ready");
+        console.log("[HF] Initialized, waiting for ready event...");
       } catch (err) {
         console.error("[HF] Init failed:", err);
         setStatus("loadError");
@@ -776,7 +778,7 @@ export function CheckoutForm() {
               </div>
             </div>
             {/* SDK submit button */}
-            <div className="card-submit submit-button" style={{ minHeight: 52, marginTop: 8, borderRadius: 10, overflow: "hidden" }} />
+            <div className="card-submit submit-button" style={{ minHeight: 52, marginTop: 8, borderRadius: 10, overflow: "hidden", pointerEvents: status === "ready" ? "auto" : "none", opacity: status === "ready" ? 1 : 0.5 }} />
           </div>
         </div>
 
