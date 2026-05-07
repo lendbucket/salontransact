@@ -34,6 +34,8 @@ export function CheckoutForm() {
   const [selectedSavedCardId, setSelectedSavedCardId] = useState<string | null>(null);
   const [savedCardsLoading, setSavedCardsLoading] = useState(false);
   const [sessionVersion, setSessionVersion] = useState(0);
+  const [showSurcharge, setShowSurcharge] = useState(false);
+  const [surchargeMessage, setSurchargeMessage] = useState("");
 
   const initRef = useRef(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -42,8 +44,6 @@ export function CheckoutForm() {
   const descriptionRef = useRef("");
   const customerEmailRef = useRef("");
   const saveCardRef = useRef(false);
-  const observerRef = useRef<MutationObserver | null>(null);
-  const containerRef = useRef<HTMLDivElement | null>(null);
   amountRef.current = amount;
   descriptionRef.current = description;
   customerEmailRef.current = customerEmail;
@@ -374,51 +374,21 @@ export function CheckoutForm() {
           console.log("[HF] Surcharge info:", evt);
         });
 
+        cardForm.on("surchargingAllowed", (evt: { percentage: number; disclosure: string }) => {
+          console.log("[HF] Surcharging allowed:", evt);
+          setShowSurcharge(true);
+          setSurchargeMessage(evt.disclosure);
+        });
+
+        cardForm.on("surchargingNotAllowed", () => {
+          console.log("[HF] Surcharging not allowed");
+          setShowSurcharge(false);
+          setSurchargeMessage("");
+        });
+
         cardForm.initialize();
-        console.log("[HF] Initialized, watching for iframe binding...");
-
-        // Wait for SDK to inject all 4 iframes + 800ms safety margin for binding.
-        // Without this, first submit fires before iframes are ready and gateway
-        // rejects with "Missing required field: cardholderName, cardNumber".
-        const containerEl = containerRef.current;
-        if (!containerEl) {
-          setTimeout(() => {
-            console.log("[HF] Fields ready (fallback delay)");
-            setStatus("ready");
-          }, 1500);
-        } else {
-          const checkIframes = () => {
-            const iframes = containerEl.querySelectorAll("iframe");
-            if (iframes.length >= 4) {
-              if (observerRef.current) {
-                observerRef.current.disconnect();
-                observerRef.current = null;
-              }
-              setTimeout(() => {
-                console.log("[HF] Fields ready (4 iframes + 800ms margin)");
-                setStatus("ready");
-              }, 800);
-              return true;
-            }
-            return false;
-          };
-
-          if (!checkIframes()) {
-            const observer = new MutationObserver(checkIframes);
-            observer.observe(containerEl, { childList: true, subtree: true });
-            observerRef.current = observer;
-
-            // Hard timeout: if observer never fires after 5 sec, enable anyway
-            setTimeout(() => {
-              if (observerRef.current) {
-                observerRef.current.disconnect();
-                observerRef.current = null;
-                console.log("[HF] Fields ready (observer timeout fallback)");
-                setStatus("ready");
-              }
-            }, 5000);
-          }
-        }
+        console.log("[HF] Initialized");
+        setStatus("ready");
       } catch (err) {
         console.error("[HF] Init failed:", err);
         setStatus("loadError");
@@ -436,10 +406,6 @@ export function CheckoutForm() {
         cardFormRef.current = null;
       }
       initRef.current = false;
-      if (observerRef.current) {
-        observerRef.current.disconnect();
-        observerRef.current = null;
-      }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionVersion]);
@@ -802,7 +768,7 @@ export function CheckoutForm() {
             </div>
           )}
 
-          <div ref={containerRef} key={sessionVersion} className="card-container payroc-form space-y-3">
+          <div key={sessionVersion} className="card-container payroc-form space-y-3">
             <div>
               <label className="block text-[13px] font-medium text-[#4A4A4A] mb-1">Name on Card</label>
               <div className="card-holder-name" style={{ minHeight: 44, background: "#F4F5F7", border: "1px solid #E8EAED", borderRadius: 8, overflow: "hidden" }} />
@@ -826,9 +792,15 @@ export function CheckoutForm() {
               </div>
             </div>
             {/* SDK submit button */}
-            <div className="card-submit submit-button" style={{ minHeight: 52, marginTop: 8, borderRadius: 10, overflow: "hidden", pointerEvents: status === "ready" ? "auto" : "none", opacity: status === "ready" ? 1 : 0.5 }} />
+            <div className="card-submit submit-button" style={{ minHeight: 52, marginTop: 8, borderRadius: 10, overflow: "hidden" }} />
           </div>
         </div>
+
+        {showSurcharge && surchargeMessage && (
+          <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 mt-3">
+            <p className="text-sm text-blue-800">{surchargeMessage}</p>
+          </div>
+        )}
 
         {error && (
           <p className="text-[13px] text-[#ef4444] mt-3">{error}</p>

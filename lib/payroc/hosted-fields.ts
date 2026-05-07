@@ -1,3 +1,7 @@
+// TODO: Per Matt at Payroc, libVersion + integrity + script host should be
+// NEXT_PUBLIC_PAYROC_LIBVERSION / NEXT_PUBLIC_PAYROC_INTEGRITY /
+// NEXT_PUBLIC_PAYROC_SCRIPT_HOST env variables so we can swap UAT vs
+// production without code changes. Will refactor in a separate commit.
 export const HOSTED_FIELDS_CONFIG = {
   uat: {
     url: "https://cdn.uat.payroc.com/js/hosted-fields/hosted-fields-1.7.0.261457.js",
