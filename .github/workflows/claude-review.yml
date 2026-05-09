@@ -1,0 +1,115 @@
+name: Claude Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main, master]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout PR
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Get PR diff
+        id: diff
+        run: |
+          git fetch origin ${{ github.event.pull_request.base.ref }}
+          DIFF=$(git diff origin/${{ github.event.pull_request.base.ref }}...HEAD)
+          echo "$DIFF" | head -c 100000 > /tmp/pr_diff.txt
+          echo "diff_size=$(wc -c < /tmp/pr_diff.txt)" >> $GITHUB_OUTPUT
+
+      - name: List changed files
+        id: files
+        run: |
+          git diff --name-only origin/${{ github.event.pull_request.base.ref }}...HEAD > /tmp/changed_files.txt
+          cat /tmp/changed_files.txt
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Anthropic SDK
+        run: npm install @anthropic-ai/sdk@latest
+
+      - name: Run Claude Review
+        id: review
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          REPO_NAME: ${{ github.repository }}
+        run: |
+          cat > review.mjs << 'SCRIPT_EOF'
+          import Anthropic from "@anthropic-ai/sdk";
+          import fs from "fs";
+
+          const SYSTEM_PROMPT = fs.readFileSync(".github/claude-review-prompt.md", "utf8");
+          const diff = fs.readFileSync("/tmp/pr_diff.txt", "utf8");
+          const changedFiles = fs.readFileSync("/tmp/changed_files.txt", "utf8");
+
+          const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+          const message = await client.messages.create({
+            model: "claude-sonnet-4-6",
+            max_tokens: 4096,
+            system: SYSTEM_PROMPT,
+            messages: [{
+              role: "user",
+              content: `Repo: ${process.env.REPO_NAME}
+          PR #${process.env.PR_NUMBER}: ${process.env.PR_TITLE}
+
+          PR description:
+          ${process.env.PR_BODY || "(no description)"}
+
+          Files changed in this PR:
+          ${changedFiles}
+
+          Diff:
+          \`\`\`diff
+          ${diff}
+          \`\`\`
+
+          Review this PR per the priorities in your system prompt. Be specific. Reference exact line ranges and file paths. If you find no real issues, say so plainly — do not invent concerns to seem useful.`
+            }]
+          });
+
+          const review = message.content
+            .filter(block => block.type === "text")
+            .map(block => block.text)
+            .join("\n");
+
+          fs.writeFileSync("/tmp/review_output.md", review);
+          console.log("Review complete. Length:", review.length);
+          SCRIPT_EOF
+          node review.mjs 
+
+      - name: Post review as PR comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const review = fs.readFileSync('/tmp/review_output.md', 'utf8');
+            const body = `## Claude Code Review\n\n${review}\n\n---\n_Automated review. Acknowledge findings before merging. If a finding is wrong, reply explaining why and merge anyway — your judgment overrides this agent._`;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              body: body
+            });
+
+      - name: Set check status
+        if: always()
+        run: echo "Review job complete (status check passes; review is advisory)"
