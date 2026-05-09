@@ -38,7 +38,6 @@ export function CheckoutForm() {
   const [surchargeMessage, setSurchargeMessage] = useState("");
 
   const initRef = useRef(false);
-  const containerId = useRef<string>(`hf-container-${crypto.randomUUID()}`);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const cardFormRef = useRef<any>(null);
   const amountRef = useRef("");
@@ -180,28 +179,28 @@ export function CheckoutForm() {
           fields: {
             card: {
               cardholderName: {
-                target: `#${containerId.current} .card-holder-name`,
-                errorTarget: `#${containerId.current} .card-holder-name-error`,
+                target: ".card-holder-name",
+                errorTarget: ".card-holder-name-error",
                 placeholder: "Cardholder Name",
               },
               cardNumber: {
-                target: `#${containerId.current} .card-number`,
-                errorTarget: `#${containerId.current} .card-number-error`,
+                target: ".card-number",
+                errorTarget: ".card-number-error",
                 placeholder: "Card Number",
               },
               expiryDate: {
-                target: `#${containerId.current} .card-expiry`,
-                errorTarget: `#${containerId.current} .card-expiry-error`,
+                target: ".card-expiry",
+                errorTarget: ".card-expiry-error",
                 placeholder: "MM/YY",
               },
               cvv: {
-                target: `#${containerId.current} .card-cvv`,
-                wrapperTarget: `#${containerId.current} .card-cvv-wrapper`,
-                errorTarget: `#${containerId.current} .card-cvv-error`,
+                target: ".card-cvv",
+                wrapperTarget: ".card-cvv-wrapper",
+                errorTarget: ".card-cvv-error",
                 placeholder: "CVV",
               },
               submit: {
-                target: `#${containerId.current} .submit-button`,
+                target: ".submit-button",
                 value: "Pay Now",
               },
             },
@@ -769,7 +768,7 @@ export function CheckoutForm() {
             </div>
           )}
 
-          <div id={containerId.current} key={sessionVersion} className="card-container payroc-form space-y-3">
+          <div key={sessionVersion} className="card-container payroc-form space-y-3">
             <div>
               <label className="block text-[13px] font-medium text-[#4A4A4A] mb-1">Name on Card</label>
               <div className="card-holder-name" style={{ minHeight: 44, background: "#F4F5F7", border: "1px solid #E8EAED", borderRadius: 8, overflow: "hidden" }} />
