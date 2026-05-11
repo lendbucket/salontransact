@@ -47,8 +47,8 @@ export function PayrocCheckOut({
   const initRef = useRef(false);
   const submittedRef = useRef(false);
 
-  const chargeIdempotencyKeyRef = useRef<string | null>(null);
-  const chargeOrderIdRef = useRef<string | null>(null);
+  const chargeIdempotencyKeyRef = useRef<string>(crypto.randomUUID());
+  const chargeOrderIdRef = useRef<string>(crypto.randomUUID().slice(0, 8).toUpperCase());
 
   // Mirror props to refs so SDK event closures always read current values
   const amountRef = useRef(amount);
@@ -76,7 +76,8 @@ export function PayrocCheckOut({
           if (!cancelled) {
             setStatus("loadError");
             setError("No session token received");
-            onLoadError("No session token received");
+            console.error("[HF] Load error: no session token received");
+            onLoadError("Unable to load the payment form. Please refresh the page and try again.");
           }
           return;
         }
@@ -208,13 +209,6 @@ export function PayrocCheckOut({
 
           onProcessing();
 
-          if (!chargeIdempotencyKeyRef.current) {
-            chargeIdempotencyKeyRef.current = crypto.randomUUID();
-          }
-          if (!chargeOrderIdRef.current) {
-            chargeOrderIdRef.current = crypto.randomUUID().slice(0, 8).toUpperCase();
-          }
-
           const amt = parseFloat(amountRef.current) || 0;
           if (amt <= 0) {
             onSubmissionDeclined("Enter an amount first");
@@ -280,22 +274,19 @@ export function PayrocCheckOut({
           } else if (errType === "init") {
             setStatus("loadError");
             setError("Payment fields failed to load. Please refresh.");
-            onLoadError("Payment fields failed to load. Please refresh.");
+            console.error("[HF] Load error (init):", errMessage);
+            onLoadError("Unable to load the payment form. Please refresh the page and try again.");
           } else if (errType === "config") {
             console.error("[HF] CONFIG ERROR — this is a code bug:", errMessage);
             setStatus("loadError");
             setError("Payment system configuration error. Please refresh.");
-            onLoadError("Payment system configuration error. Please refresh.");
+            console.error("[HF] Load error (config):", errMessage);
+            onLoadError("Unable to load the payment form. Please refresh the page and try again.");
           }
         });
 
         cardForm.on("ready", () => {
           console.log("[HF] Fields ready");
-        });
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        cardForm.on("surcharge-info", (evt: any) => {
-          console.log("[HF] Surcharge info:", evt);
         });
 
         cardForm.on("surchargingAllowed", (evt: { percentage: number; disclosure: string }) => {
@@ -315,9 +306,10 @@ export function PayrocCheckOut({
         console.error("[HF] Init failed:", err);
         if (!cancelled) {
           const msg = err instanceof Error ? err.message : "Failed to load payment form";
+          console.error("[HF] Load error raw message:", msg);
           setStatus("loadError");
           setError(msg);
-          onLoadError(msg);
+          onLoadError("Unable to load the payment form. Please refresh the page and try again.");
         }
       }
     })();
@@ -384,9 +376,11 @@ export function PayrocCheckOut({
         </div>
       </div>
 
-      <p className="flex items-center gap-1.5 text-[11px] text-[#878787] mt-4">
-        <Lock size={10} strokeWidth={1.5} /> 256-bit encrypted · Powered by SalonTransact
-      </p>
+      {status !== "loadError" && (
+        <p className="flex items-center gap-1.5 text-[11px] text-[#878787] mt-4">
+          <Lock size={10} strokeWidth={1.5} /> 256-bit encrypted · Powered by SalonTransact
+        </p>
+      )}
     </div>
   );
 }
