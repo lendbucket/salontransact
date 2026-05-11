@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Loader2, Lock } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 export type PayrocSuccessResult = {
   paymentId: string;
@@ -275,13 +275,17 @@ export function PayrocCheckOut({
             setStatus("loadError");
             setError("Payment fields failed to load. Please refresh.");
             console.error("[HF] Load error (init):", errMessage);
-            onLoadError("Unable to load the payment form. Please refresh the page and try again.");
+            if (!cancelled) {
+              onLoadError("Unable to load the payment form. Please refresh the page and try again.");
+            }
           } else if (errType === "config") {
             console.error("[HF] CONFIG ERROR — this is a code bug:", errMessage);
             setStatus("loadError");
             setError("Payment system configuration error. Please refresh.");
             console.error("[HF] Load error (config):", errMessage);
-            onLoadError("Unable to load the payment form. Please refresh the page and try again.");
+            if (!cancelled) {
+              onLoadError("Unable to load the payment form. Please refresh the page and try again.");
+            }
           }
         });
 
@@ -376,11 +380,6 @@ export function PayrocCheckOut({
         </div>
       </div>
 
-      {status !== "loadError" && (
-        <p className="flex items-center gap-1.5 text-[11px] text-[#878787] mt-4">
-          <Lock size={10} strokeWidth={1.5} /> 256-bit encrypted · Powered by SalonTransact
-        </p>
-      )}
     </div>
   );
 }

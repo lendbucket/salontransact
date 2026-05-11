@@ -515,6 +515,10 @@ export function CheckoutForm() {
           onSurchargingNotAllowed={handleSdkSurchargingNotAllowed}
         />
 
+        <p className="flex items-center gap-1.5 text-[11px] text-[#878787] mt-4">
+          <Lock size={10} strokeWidth={1.5} /> 256-bit encrypted · Powered by SalonTransact
+        </p>
+
         {showSurcharge && surchargeMessage && (
           <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 mt-3">
             <p className="text-sm text-blue-800">{surchargeMessage}</p>
