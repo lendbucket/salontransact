@@ -38,6 +38,7 @@ export function CheckoutForm() {
   const [surchargeMessage, setSurchargeMessage] = useState("");
 
   const initRef = useRef(false);
+  const containerId = useRef<string>(`hf-${crypto.randomUUID()}`);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const cardFormRef = useRef<any>(null);
   const amountRef = useRef("");
@@ -179,28 +180,28 @@ export function CheckoutForm() {
           fields: {
             card: {
               cardholderName: {
-                target: ".card-holder-name",
-                errorTarget: ".card-holder-name-error",
+                target: `${containerId.current}-card-holder-name`,
+                errorTarget: `${containerId.current}-card-holder-name-error`,
                 placeholder: "Cardholder Name",
               },
               cardNumber: {
-                target: ".card-number",
-                errorTarget: ".card-number-error",
+                target: `${containerId.current}-card-number`,
+                errorTarget: `${containerId.current}-card-number-error`,
                 placeholder: "Card Number",
               },
               expiryDate: {
-                target: ".card-expiry",
-                errorTarget: ".card-expiry-error",
+                target: `${containerId.current}-card-expiry`,
+                errorTarget: `${containerId.current}-card-expiry-error`,
                 placeholder: "MM/YY",
               },
               cvv: {
-                target: ".card-cvv",
-                wrapperTarget: ".card-cvv-wrapper",
-                errorTarget: ".card-cvv-error",
+                target: `${containerId.current}-card-cvv`,
+                wrapperTarget: `${containerId.current}-card-cvv-wrapper`,
+                errorTarget: `${containerId.current}-card-cvv-error`,
                 placeholder: "CVV",
               },
               submit: {
-                target: ".submit-button",
+                target: `${containerId.current}-submit-button`,
                 value: "Pay Now",
               },
             },
@@ -771,28 +772,28 @@ export function CheckoutForm() {
           <div key={sessionVersion} className="card-container payroc-form space-y-3">
             <div>
               <label className="block text-[13px] font-medium text-[#4A4A4A] mb-1">Name on Card</label>
-              <div className="card-holder-name" style={{ minHeight: 44, background: "#F4F5F7", border: "1px solid #E8EAED", borderRadius: 8, overflow: "hidden" }} />
-              <div className="card-holder-name-error" style={{ fontSize: 12, color: "#ef4444", marginTop: 4, minHeight: 0 }} />
+              <div className={`${containerId.current}-card-holder-name`} style={{ minHeight: 44, background: "#F4F5F7", border: "1px solid #E8EAED", borderRadius: 8, overflow: "hidden" }} />
+              <div className={`${containerId.current}-card-holder-name-error`} style={{ fontSize: 12, color: "#ef4444", marginTop: 4, minHeight: 0 }} />
             </div>
             <div>
               <label className="block text-[13px] font-medium text-[#4A4A4A] mb-1">Card Number</label>
-              <div className="card-number" style={{ minHeight: 44, background: "#F4F5F7", border: "1px solid #E8EAED", borderRadius: 8, overflow: "hidden" }} />
-              <div className="card-number-error" style={{ fontSize: 12, color: "#ef4444", marginTop: 4, minHeight: 0 }} />
+              <div className={`${containerId.current}-card-number`} style={{ minHeight: 44, background: "#F4F5F7", border: "1px solid #E8EAED", borderRadius: 8, overflow: "hidden" }} />
+              <div className={`${containerId.current}-card-number-error`} style={{ fontSize: 12, color: "#ef4444", marginTop: 4, minHeight: 0 }} />
             </div>
             <div className="flex gap-3">
               <div className="flex-1">
                 <label className="block text-[13px] font-medium text-[#4A4A4A] mb-1">Expiry</label>
-                <div className="card-expiry" style={{ minHeight: 44, background: "#F4F5F7", border: "1px solid #E8EAED", borderRadius: 8, overflow: "hidden" }} />
-                <div className="card-expiry-error" style={{ fontSize: 12, color: "#ef4444", marginTop: 4, minHeight: 0 }} />
+                <div className={`${containerId.current}-card-expiry`} style={{ minHeight: 44, background: "#F4F5F7", border: "1px solid #E8EAED", borderRadius: 8, overflow: "hidden" }} />
+                <div className={`${containerId.current}-card-expiry-error`} style={{ fontSize: 12, color: "#ef4444", marginTop: 4, minHeight: 0 }} />
               </div>
-              <div className="card-cvv-wrapper flex-1">
+              <div className={`${containerId.current}-card-cvv-wrapper flex-1`}>
                 <label className="block text-[13px] font-medium text-[#4A4A4A] mb-1">CVV</label>
-                <div className="card-cvv" style={{ minHeight: 44, background: "#F4F5F7", border: "1px solid #E8EAED", borderRadius: 8, overflow: "hidden" }} />
-                <div className="card-cvv-error" style={{ fontSize: 12, color: "#ef4444", marginTop: 4, minHeight: 0 }} />
+                <div className={`${containerId.current}-card-cvv`} style={{ minHeight: 44, background: "#F4F5F7", border: "1px solid #E8EAED", borderRadius: 8, overflow: "hidden" }} />
+                <div className={`${containerId.current}-card-cvv-error`} style={{ fontSize: 12, color: "#ef4444", marginTop: 4, minHeight: 0 }} />
               </div>
             </div>
             {/* SDK submit button */}
-            <div className="card-submit submit-button" style={{ minHeight: 52, marginTop: 8, borderRadius: 10, overflow: "hidden" }} />
+            <div className={`card-submit ${containerId.current}-submit-button`} style={{ minHeight: 52, marginTop: 8, borderRadius: 10, overflow: "hidden" }} />
           </div>
         </div>
 
