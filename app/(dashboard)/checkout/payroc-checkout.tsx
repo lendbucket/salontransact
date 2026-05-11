@@ -335,50 +335,50 @@ export function PayrocCheckOut({
 
   return (
     <div id={id}>
-      {status === "loadError" && (
+      {status === "loadError" ? (
         <div className="flex flex-col items-center py-8">
           <p className="text-sm text-[#ef4444] mb-3">{error || "Failed to load payment fields"}</p>
           <button onClick={() => window.location.reload()} className="text-sm text-[#017ea7] underline cursor-pointer">
             Refresh page
           </button>
         </div>
-      )}
-
-      <div style={{ position: "relative" }}>
-        {status === "loading" && (
-          <div className="absolute inset-0 bg-white/90 flex flex-col items-center justify-center z-10 rounded-lg">
-            <Loader2 size={20} strokeWidth={1.5} className="animate-spin text-[#017ea7] mb-2" />
-            <p className="text-[13px] text-[#878787]">Loading payment fields...</p>
-          </div>
-        )}
-
-        <div className="card-container payroc-form space-y-3">
-          <div>
-            <label className="block text-[13px] font-medium text-[#4A4A4A] mb-1">Name on Card</label>
-            <div className="card-holder-name" style={{ minHeight: 44, background: "#F4F5F7", border: "1px solid #E8EAED", borderRadius: 8, overflow: "hidden" }} />
-            <div className="card-holder-name-error" style={{ fontSize: 12, color: "#ef4444", marginTop: 4, minHeight: 0 }} />
-          </div>
-          <div>
-            <label className="block text-[13px] font-medium text-[#4A4A4A] mb-1">Card Number</label>
-            <div className="card-number" style={{ minHeight: 44, background: "#F4F5F7", border: "1px solid #E8EAED", borderRadius: 8, overflow: "hidden" }} />
-            <div className="card-number-error" style={{ fontSize: 12, color: "#ef4444", marginTop: 4, minHeight: 0 }} />
-          </div>
-          <div className="flex gap-3">
-            <div className="flex-1">
-              <label className="block text-[13px] font-medium text-[#4A4A4A] mb-1">Expiry</label>
-              <div className="card-expiry" style={{ minHeight: 44, background: "#F4F5F7", border: "1px solid #E8EAED", borderRadius: 8, overflow: "hidden" }} />
-              <div className="card-expiry-error" style={{ fontSize: 12, color: "#ef4444", marginTop: 4, minHeight: 0 }} />
+      ) : (
+        <div style={{ position: "relative" }}>
+          {status === "loading" && (
+            <div className="absolute inset-0 bg-white/90 flex flex-col items-center justify-center z-10 rounded-lg">
+              <Loader2 size={20} strokeWidth={1.5} className="animate-spin text-[#017ea7] mb-2" />
+              <p className="text-[13px] text-[#878787]">Loading payment fields...</p>
             </div>
-            <div className="card-cvv-wrapper flex-1">
-              <label className="block text-[13px] font-medium text-[#4A4A4A] mb-1">CVV</label>
-              <div className="card-cvv" style={{ minHeight: 44, background: "#F4F5F7", border: "1px solid #E8EAED", borderRadius: 8, overflow: "hidden" }} />
-              <div className="card-cvv-error" style={{ fontSize: 12, color: "#ef4444", marginTop: 4, minHeight: 0 }} />
+          )}
+
+          <div className="card-container payroc-form space-y-3">
+            <div>
+              <label className="block text-[13px] font-medium text-[#4A4A4A] mb-1">Name on Card</label>
+              <div className="card-holder-name" style={{ minHeight: 44, background: "#F4F5F7", border: "1px solid #E8EAED", borderRadius: 8, overflow: "hidden" }} />
+              <div className="card-holder-name-error" style={{ fontSize: 12, color: "#ef4444", marginTop: 4, minHeight: 0 }} />
             </div>
+            <div>
+              <label className="block text-[13px] font-medium text-[#4A4A4A] mb-1">Card Number</label>
+              <div className="card-number" style={{ minHeight: 44, background: "#F4F5F7", border: "1px solid #E8EAED", borderRadius: 8, overflow: "hidden" }} />
+              <div className="card-number-error" style={{ fontSize: 12, color: "#ef4444", marginTop: 4, minHeight: 0 }} />
+            </div>
+            <div className="flex gap-3">
+              <div className="flex-1">
+                <label className="block text-[13px] font-medium text-[#4A4A4A] mb-1">Expiry</label>
+                <div className="card-expiry" style={{ minHeight: 44, background: "#F4F5F7", border: "1px solid #E8EAED", borderRadius: 8, overflow: "hidden" }} />
+                <div className="card-expiry-error" style={{ fontSize: 12, color: "#ef4444", marginTop: 4, minHeight: 0 }} />
+              </div>
+              <div className="card-cvv-wrapper flex-1">
+                <label className="block text-[13px] font-medium text-[#4A4A4A] mb-1">CVV</label>
+                <div className="card-cvv" style={{ minHeight: 44, background: "#F4F5F7", border: "1px solid #E8EAED", borderRadius: 8, overflow: "hidden" }} />
+                <div className="card-cvv-error" style={{ fontSize: 12, color: "#ef4444", marginTop: 4, minHeight: 0 }} />
+              </div>
+            </div>
+            {/* SDK submit button */}
+            <div className="card-submit submit-button" style={{ minHeight: 52, marginTop: 8, borderRadius: 10, overflow: "hidden" }} />
           </div>
-          {/* SDK submit button */}
-          <div className="card-submit submit-button" style={{ minHeight: 52, marginTop: 8, borderRadius: 10, overflow: "hidden" }} />
         </div>
-      </div>
+      )}
 
     </div>
   );
