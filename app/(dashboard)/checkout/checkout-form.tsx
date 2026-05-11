@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Loader2, CheckCircle2, XCircle, Lock, DollarSign, FileText, CreditCard } from "lucide-react";
 import Link from "next/link";
+import { PayrocCheckOut, type PayrocSuccessResult } from "./payroc-checkout";
 
 type Status = "loading" | "ready" | "loadError" | "processing" | "success" | "declined";
 
@@ -33,28 +34,14 @@ export function CheckoutForm() {
   const [savedCards, setSavedCards] = useState<SavedCardOption[]>([]);
   const [selectedSavedCardId, setSelectedSavedCardId] = useState<string | null>(null);
   const [savedCardsLoading, setSavedCardsLoading] = useState(false);
-  const [sessionVersion, setSessionVersion] = useState(0);
+  const [checkoutKey, setCheckoutKey] = useState(0);
   const [showSurcharge, setShowSurcharge] = useState(false);
   const [surchargeMessage, setSurchargeMessage] = useState("");
 
-  const initRef = useRef(false);
-  const containerId = useRef<string>(`hf-${Date.now()}`);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const cardFormRef = useRef<any>(null);
-  const amountRef = useRef("");
-  const descriptionRef = useRef("");
-  const customerEmailRef = useRef("");
-  const saveCardRef = useRef(false);
-  amountRef.current = amount;
-  descriptionRef.current = description;
-  customerEmailRef.current = customerEmail;
-  saveCardRef.current = saveCard;
-
-  // Per-logical-click idempotency. Generated once per Pay attempt, reset on success/declined.
-  // See: https://docs.payroc.com/api/idempotency
+  // Refs for saved-card charge flow (bypasses Hosted Fields)
+  const submittedRef = useRef(false);
   const chargeIdempotencyKeyRef = useRef<string | null>(null);
   const chargeOrderIdRef = useRef<string | null>(null);
-  const submittedRef = useRef(false);
 
   function ensureChargeIdempotencyKey(): { key: string; orderId: string } {
     if (!chargeIdempotencyKeyRef.current) {
@@ -85,9 +72,10 @@ export function CheckoutForm() {
     setSavedCardConfirmed(false);
     setSavedCards([]);
     setSelectedSavedCardId(null);
+    setShowSurcharge(false);
+    setSurchargeMessage("");
     resetChargeIdempotency();
-    initRef.current = false;
-    setSessionVersion((v) => v + 1);
+    setCheckoutKey((k) => k + 1);
   }
 
   // Fetch saved cards when customerEmail is set + valid format
@@ -139,277 +127,38 @@ export function CheckoutForm() {
     };
   }, [customerEmail]);
 
-  // ---- SDK init (DO NOT MODIFY) ----
-  useEffect(() => {
-    if (initRef.current) return;
-    initRef.current = true;
+  // ---- SDK callbacks ----
+  function handleSdkProcessing() {
+    setStatus("processing");
+  }
 
-    (async () => {
-      try {
-        console.log("[HF] Fetching session...");
-        const res = await fetch("/api/payroc/session", { cache: "no-store" });
-        const data = await res.json();
-        if (!data.sessionToken) {
-          console.error("[HF] No session token:", data);
-          setStatus("loadError");
-          return;
-        }
-        console.log("[HF] Session OK, token length:", data.sessionToken.length);
+  function handleSdkSubmissionSuccess(result: PayrocSuccessResult) {
+    setPaymentId(result.paymentId);
+    setApprovalCode(result.approvalCode);
+    setLast4(result.last4);
+    setSavedCardConfirmed(result.savedCardConfirmed);
+    setStatus("success");
+  }
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        if (!(window as any).Payroc) {
-          await new Promise<void>((resolve, reject) => {
-            const s = document.createElement("script");
-            s.src = data.libUrl;
-            if (data.integrity) {
-              s.integrity = data.integrity;
-              s.crossOrigin = "anonymous";
-            }
-            s.onload = () => resolve();
-            s.onerror = () => reject(new Error("SDK load failed"));
-            document.head.appendChild(s);
-          });
-        }
-        console.log("[HF] SDK loaded");
+  function handleSdkSubmissionDeclined(message: string) {
+    setError(message);
+    setStatus("declined");
+  }
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const Payroc = (window as any).Payroc;
-        const cardForm = new Payroc.hostedFields({
-          sessionToken: data.sessionToken,
-          mode: "payment",
-          fields: {
-            card: {
-              cardholderName: {
-                target: `${containerId.current}-card-holder-name`,
-                errorTarget: `${containerId.current}-card-holder-name-error`,
-                placeholder: "Cardholder Name",
-              },
-              cardNumber: {
-                target: `${containerId.current}-card-number`,
-                errorTarget: `${containerId.current}-card-number-error`,
-                placeholder: "Card Number",
-              },
-              expiryDate: {
-                target: `${containerId.current}-card-expiry`,
-                errorTarget: `${containerId.current}-card-expiry-error`,
-                placeholder: "MM/YY",
-              },
-              cvv: {
-                target: `${containerId.current}-card-cvv`,
-                wrapperTarget: `${containerId.current}-card-cvv-wrapper`,
-                errorTarget: `${containerId.current}-card-cvv-error`,
-                placeholder: "CVV",
-              },
-              submit: {
-                target: `${containerId.current}-submit-button`,
-                value: "Pay Now",
-              },
-            },
-          },
-          styles: {
-            css: {
-              input: {
-                "background-color": "transparent",
-                border: "none",
-                "border-radius": "0",
-                padding: "0 12px",
-                "font-family": "Inter, -apple-system, sans-serif",
-                "font-size": "15px",
-                "font-weight": "400",
-                color: "#1A1313",
-                outline: "none",
-                width: "100%",
-                height: "100%",
-                "box-sizing": "border-box",
-                "letter-spacing": "-0.31px",
-              },
-              "input:focus": {
-                outline: "none",
-              },
-              "input::placeholder": {
-                color: "#ABABAB",
-              },
-              button: {
-                "background-color": "#017ea7",
-                color: "#ffffff",
-                border: "none",
-                "border-radius": "10px",
-                width: "100%",
-                height: "52px",
-                "font-family": "Inter, -apple-system, sans-serif",
-                "font-size": "16px",
-                "font-weight": "500",
-                "letter-spacing": "-0.1px",
-                "text-align": "center",
-                cursor: "pointer",
-                padding: "14px 24px",
-                margin: "0",
-                "box-shadow": "0 1px 2px rgba(0,0,0,0.15)",
-                transition: "all 200ms ease",
-              },
-              "button:hover": {
-                "background-color": "#0290be",
-                "box-shadow": "0 2px 4px rgba(0,0,0,0.2)",
-              },
-              body: { margin: "0", padding: "0" },
-              form: { display: "block" },
-            },
-          },
-        });
-        cardFormRef.current = cardForm;
+  function handleSdkLoadError(message: string) {
+    setError(message);
+    setStatus("loadError");
+  }
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        cardForm.on("submissionSuccess", async (evt: any) => {
-          // GUARD: SDK can fire submissionSuccess multiple times in edge cases (network blips, race conditions).
-          // Per Payroc docs, destroy() prevents duplicate event handling but cannot prevent in-flight duplicate fires.
-          // First fire wins; all subsequent fires are no-ops.
-          if (submittedRef.current) {
-            console.warn("[HF] submissionSuccess fired again after first submission — ignoring duplicate");
-            return;
-          }
-          submittedRef.current = true;
+  function handleSdkSurchargingAllowed(message: string) {
+    setShowSurcharge(true);
+    setSurchargeMessage(message);
+  }
 
-          // Destroy the form immediately so the SDK cannot fire submissionSuccess from this instance again.
-          // https://docs.payroc.com/guides/take-payments/hosted-fields/extend-your-integration/close-a-session
-          if (cardFormRef.current) {
-            try {
-              cardFormRef.current.destroy();
-              cardFormRef.current = null;
-              console.log("[HF] destroy() called after submissionSuccess");
-            } catch (destroyErr) {
-              console.error("[HF] destroy() after submissionSuccess failed:", destroyErr);
-            }
-          }
-
-          const token = evt?.token;
-          console.log("[HF] submissionSuccess, token:", token?.substring(0, 20));
-          setStatus("processing");
-
-          const amt = parseFloat(amountRef.current) || 0;
-          if (amt <= 0) {
-            setError("Enter an amount first");
-            setStatus("ready");
-            submittedRef.current = false; // allow retry after fixing amount
-            return;
-          }
-
-          const { key: chargeIdempotencyKey, orderId } = ensureChargeIdempotencyKey();
-
-          try {
-            const pr = await fetch("/api/payroc/checkout", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                token,
-                amount: amt,
-                description: descriptionRef.current || "Payment",
-                orderId,
-                chargeIdempotencyKey,
-                ...(saveCardRef.current && customerEmailRef.current
-                  ? {
-                      saveCard: true,
-                      customerEmail: customerEmailRef.current,
-                    }
-                  : {}),
-              }),
-            });
-            const result = await pr.json();
-            console.log("[HF] Payment result:", result);
-
-            if (result.success) {
-              setPaymentId(result.paymentId || "");
-              setApprovalCode(result.approvalCode || "");
-              setLast4(result.last4 || "");
-              setSavedCardConfirmed(Boolean(result.savedCardId));
-              setStatus("success");
-            } else {
-              setError(result.declineReason || result.error || "Declined");
-              setStatus("declined");
-              resetChargeIdempotency();
-            }
-          } catch {
-            setError("Network error");
-            setStatus("declined");
-            resetChargeIdempotency();
-          }
-        });
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        cardForm.on("submissionError", (evt: any) => {
-          console.error("[HF] submissionError, will show Try Again:", evt);
-          setError(evt?.message || "Payment submission failed. Please try again.");
-          setStatus("declined");
-        });
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        cardForm.on("error", (evt: any) => {
-          console.error("[HF] error event:", JSON.stringify(evt));
-          const errType = evt?.type;
-          const errMessage = evt?.message;
-          const errField = evt?.field;
-          if (errType === "submission" || errType === "field") {
-            const userMessage =
-              errMessage && errMessage.length > 0
-                ? errMessage
-                : errField
-                  ? `Please check the ${errField} field and try again.`
-                  : "Card submission failed. Please try again.";
-            setError(userMessage);
-            setStatus("declined");
-          } else if (errType === "init") {
-            setError("Payment fields failed to load. Please refresh.");
-            setStatus("loadError");
-          } else if (errType === "config") {
-            console.error("[HF] CONFIG ERROR — this is a code bug:", errMessage);
-            setError("Payment system configuration error. Please refresh.");
-            setStatus("loadError");
-          }
-        });
-
-        cardForm.on("ready", () => {
-          console.log("[HF] Fields ready");
-        });
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        cardForm.on("surcharge-info", (evt: any) => {
-          console.log("[HF] Surcharge info:", evt);
-        });
-
-        cardForm.on("surchargingAllowed", (evt: { percentage: number; disclosure: string }) => {
-          console.log("[HF] Surcharging allowed:", evt);
-          setShowSurcharge(true);
-          setSurchargeMessage(evt.disclosure);
-        });
-
-        cardForm.on("surchargingNotAllowed", () => {
-          console.log("[HF] Surcharging not allowed");
-          setShowSurcharge(false);
-          setSurchargeMessage("");
-        });
-
-        cardForm.initialize();
-        console.log("[HF] Initialized");
-        setStatus("ready");
-      } catch (err) {
-        console.error("[HF] Init failed:", err);
-        setStatus("loadError");
-      }
-    })();
-
-    return () => {
-      if (cardFormRef.current) {
-        try {
-          cardFormRef.current.destroy();
-          console.log("[HF] destroy() called on unmount");
-        } catch (err) {
-          console.error("[HF] destroy() failed:", err);
-        }
-        cardFormRef.current = null;
-      }
-      initRef.current = false;
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionVersion]);
+  function handleSdkSurchargingNotAllowed() {
+    setShowSurcharge(false);
+    setSurchargeMessage("");
+  }
 
   // Charge a selected saved card (bypasses Hosted Fields)
   async function handleSavedCardCharge() {
@@ -751,51 +500,20 @@ export function CheckoutForm() {
         </div>
         <div className="h-px bg-[#F4F5F7] mb-5" />
 
-        {status === "loadError" && (
-          <div className="flex flex-col items-center py-8">
-            <p className="text-sm text-[#ef4444] mb-3">Failed to load payment fields</p>
-            <button onClick={() => window.location.reload()} className="text-sm text-[#017ea7] underline cursor-pointer">
-              Refresh page
-            </button>
-          </div>
-        )}
-
-        {/* Fields — always in DOM */}
-        <div style={{ position: "relative" }}>
-          {status === "loading" && (
-            <div className="absolute inset-0 bg-white/90 flex flex-col items-center justify-center z-10 rounded-lg">
-              <Loader2 size={20} strokeWidth={1.5} className="animate-spin text-[#017ea7] mb-2" />
-              <p className="text-[13px] text-[#878787]">Loading payment fields...</p>
-            </div>
-          )}
-
-          <div key={sessionVersion} className="card-container payroc-form space-y-3">
-            <div>
-              <label className="block text-[13px] font-medium text-[#4A4A4A] mb-1">Name on Card</label>
-              <div className={`${containerId.current}-card-holder-name`} style={{ minHeight: 44, background: "#F4F5F7", border: "1px solid #E8EAED", borderRadius: 8, overflow: "hidden" }} />
-              <div className={`${containerId.current}-card-holder-name-error`} style={{ fontSize: 12, color: "#ef4444", marginTop: 4, minHeight: 0 }} />
-            </div>
-            <div>
-              <label className="block text-[13px] font-medium text-[#4A4A4A] mb-1">Card Number</label>
-              <div className={`${containerId.current}-card-number`} style={{ minHeight: 44, background: "#F4F5F7", border: "1px solid #E8EAED", borderRadius: 8, overflow: "hidden" }} />
-              <div className={`${containerId.current}-card-number-error`} style={{ fontSize: 12, color: "#ef4444", marginTop: 4, minHeight: 0 }} />
-            </div>
-            <div className="flex gap-3">
-              <div className="flex-1">
-                <label className="block text-[13px] font-medium text-[#4A4A4A] mb-1">Expiry</label>
-                <div className={`${containerId.current}-card-expiry`} style={{ minHeight: 44, background: "#F4F5F7", border: "1px solid #E8EAED", borderRadius: 8, overflow: "hidden" }} />
-                <div className={`${containerId.current}-card-expiry-error`} style={{ fontSize: 12, color: "#ef4444", marginTop: 4, minHeight: 0 }} />
-              </div>
-              <div className={`${containerId.current}-card-cvv-wrapper flex-1`}>
-                <label className="block text-[13px] font-medium text-[#4A4A4A] mb-1">CVV</label>
-                <div className={`${containerId.current}-card-cvv`} style={{ minHeight: 44, background: "#F4F5F7", border: "1px solid #E8EAED", borderRadius: 8, overflow: "hidden" }} />
-                <div className={`${containerId.current}-card-cvv-error`} style={{ fontSize: 12, color: "#ef4444", marginTop: 4, minHeight: 0 }} />
-              </div>
-            </div>
-            {/* SDK submit button */}
-            <div className={`card-submit ${containerId.current}-submit-button`} style={{ minHeight: 52, marginTop: 8, borderRadius: 10, overflow: "hidden" }} />
-          </div>
-        </div>
+        <PayrocCheckOut
+          key={checkoutKey}
+          id={`checkout-card-form-${checkoutKey}`}
+          amount={amount}
+          description={description}
+          customerEmail={customerEmail}
+          saveCard={saveCard}
+          onProcessing={handleSdkProcessing}
+          onSubmissionSuccess={handleSdkSubmissionSuccess}
+          onSubmissionDeclined={handleSdkSubmissionDeclined}
+          onLoadError={handleSdkLoadError}
+          onSurchargingAllowed={handleSdkSurchargingAllowed}
+          onSurchargingNotAllowed={handleSdkSurchargingNotAllowed}
+        />
 
         {showSurcharge && surchargeMessage && (
           <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 mt-3">
@@ -806,10 +524,6 @@ export function CheckoutForm() {
         {error && (
           <p className="text-[13px] text-[#ef4444] mt-3">{error}</p>
         )}
-
-        <p className="flex items-center gap-1.5 text-[11px] text-[#878787] mt-4">
-          <Lock size={10} strokeWidth={1.5} /> 256-bit encrypted · Powered by SalonTransact
-        </p>
       </div>
 
       {/* TOTAL + CANCEL */}
