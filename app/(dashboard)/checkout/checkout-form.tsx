@@ -387,9 +387,24 @@ export function CheckoutForm() {
           setSurchargeMessage("");
         });
 
-        cardForm.initialize();
-        console.log("[HF] Initialized");
-        setStatus("ready");
+        // Guard: wait for target divs to exist before initializing (hard-refresh race condition)
+        const targetSelector = `.${containerId.current}-card-number`;
+        let retries = 0;
+        const maxRetries = 10;
+        const waitForDOM = () => {
+          if (document.querySelector(targetSelector)) {
+            cardForm.initialize();
+            console.log("[HF] Initialized");
+            setStatus("ready");
+          } else if (retries < maxRetries) {
+            retries++;
+            requestAnimationFrame(waitForDOM);
+          } else {
+            console.error("[HF] Target div not found after", maxRetries, "frames:", targetSelector);
+            setStatus("loadError");
+          }
+        };
+        requestAnimationFrame(waitForDOM);
       } catch (err) {
         console.error("[HF] Init failed:", err);
         setStatus("loadError");
