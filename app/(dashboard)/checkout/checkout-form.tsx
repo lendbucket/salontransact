@@ -180,28 +180,28 @@ export function CheckoutForm() {
           fields: {
             card: {
               cardholderName: {
-                target: `${containerId.current}-card-holder-name`,
-                errorTarget: `${containerId.current}-card-holder-name-error`,
+                target: `.${containerId.current}-card-holder-name`,
+                errorTarget: `.${containerId.current}-card-holder-name-error`,
                 placeholder: "Cardholder Name",
               },
               cardNumber: {
-                target: `${containerId.current}-card-number`,
-                errorTarget: `${containerId.current}-card-number-error`,
+                target: `.${containerId.current}-card-number`,
+                errorTarget: `.${containerId.current}-card-number-error`,
                 placeholder: "Card Number",
               },
               expiryDate: {
-                target: `${containerId.current}-card-expiry`,
-                errorTarget: `${containerId.current}-card-expiry-error`,
+                target: `.${containerId.current}-card-expiry`,
+                errorTarget: `.${containerId.current}-card-expiry-error`,
                 placeholder: "MM/YY",
               },
               cvv: {
-                target: `${containerId.current}-card-cvv`,
-                wrapperTarget: `${containerId.current}-card-cvv-wrapper`,
-                errorTarget: `${containerId.current}-card-cvv-error`,
+                target: `.${containerId.current}-card-cvv`,
+                wrapperTarget: `.${containerId.current}-card-cvv-wrapper`,
+                errorTarget: `.${containerId.current}-card-cvv-error`,
                 placeholder: "CVV",
               },
               submit: {
-                target: `${containerId.current}-submit-button`,
+                target: `.${containerId.current}-submit-button`,
                 value: "Pay Now",
               },
             },
