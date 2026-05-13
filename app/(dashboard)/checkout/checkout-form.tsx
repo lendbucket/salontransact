@@ -172,6 +172,21 @@ export function CheckoutForm() {
         }
         console.log("[HF] SDK loaded");
 
+        // Guard: wait for target divs to exist before SDK construction.
+        // SDK validates target selectors at construction time; on hard refresh
+        // React hasn't painted divs yet. Poll with rAF, cap at 10 frames.
+        const targetSelector = `.${containerId.current}-card-number`;
+        let domRetries = 0;
+        while (!document.querySelector(targetSelector) && domRetries < 10) {
+          await new Promise(r => requestAnimationFrame(r));
+          domRetries++;
+        }
+        if (!document.querySelector(targetSelector)) {
+          console.error("[HF] Target div not found after 10 frames:", targetSelector);
+          setStatus("loadError");
+          return;
+        }
+
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const Payroc = (window as any).Payroc;
         const cardForm = new Payroc.hostedFields({
@@ -387,24 +402,9 @@ export function CheckoutForm() {
           setSurchargeMessage("");
         });
 
-        // Guard: wait for target divs to exist before initializing (hard-refresh race condition)
-        const targetSelector = `.${containerId.current}-card-number`;
-        let retries = 0;
-        const maxRetries = 10;
-        const waitForDOM = () => {
-          if (document.querySelector(targetSelector)) {
-            cardForm.initialize();
-            console.log("[HF] Initialized");
-            setStatus("ready");
-          } else if (retries < maxRetries) {
-            retries++;
-            requestAnimationFrame(waitForDOM);
-          } else {
-            console.error("[HF] Target div not found after", maxRetries, "frames:", targetSelector);
-            setStatus("loadError");
-          }
-        };
-        requestAnimationFrame(waitForDOM);
+        cardForm.initialize();
+        console.log("[HF] Initialized");
+        setStatus("ready");
       } catch (err) {
         console.error("[HF] Init failed:", err);
         setStatus("loadError");
