@@ -174,15 +174,17 @@ export function CheckoutForm() {
 
         // Guard: wait for target divs to exist before SDK construction.
         // SDK validates target selectors at construction time; on hard refresh
-        // React hasn't painted divs yet. Poll with rAF, cap at 10 frames.
+        // React hasn't committed first paint yet. Yield once, then poll with rAF.
         const targetSelector = `.${containerId.current}-card-number`;
+        // Yield to event loop so React can commit pending render before we poll.
+        await new Promise(r => setTimeout(r, 0));
         let domRetries = 0;
-        while (!document.querySelector(targetSelector) && domRetries < 10) {
+        while (!document.querySelector(targetSelector) && domRetries < 30) {
           await new Promise(r => requestAnimationFrame(r));
           domRetries++;
         }
         if (!document.querySelector(targetSelector)) {
-          console.error("[HF] Target div not found after 10 frames:", targetSelector);
+          console.error("[HF] Target div not found after 30 frames:", targetSelector);
           setStatus("loadError");
           return;
         }
