@@ -51,6 +51,10 @@ export async function POST(request: Request) {
       saveCard,
       secureTokenId,
       chargeIdempotencyKey: clientIdempotencyKey,
+      billingStreet,
+      billingCity,
+      billingState,
+      billingZip,
     } = body;
 
     console.log("[PAYMENT-DEBUG] Token:", token?.substring(0, 30) + "...");
@@ -288,6 +292,25 @@ export async function POST(request: Request) {
               firstName: customerFirstName || undefined,
               lastName: customerLastName || undefined,
               emailAddress: customerEmail || undefined,
+              ...(saveCard === true &&
+              typeof billingStreet === "string" &&
+              billingStreet.trim().length > 0 &&
+              typeof billingCity === "string" &&
+              billingCity.trim().length > 0 &&
+              typeof billingState === "string" &&
+              billingState.trim().length > 0 &&
+              typeof billingZip === "string" &&
+              billingZip.trim().length > 0
+                ? {
+                    billingAddress: {
+                      address1: billingStreet.trim(),
+                      city: billingCity.trim(),
+                      state: billingState.trim(),
+                      country: "US",
+                      postalCode: billingZip.trim(),
+                    },
+                  }
+                : {}),
             }
           : undefined,
     };

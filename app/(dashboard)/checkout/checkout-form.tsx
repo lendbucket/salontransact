@@ -30,6 +30,10 @@ export function CheckoutForm() {
   const [customerEmail, setCustomerEmail] = useState("");
   const [saveCard, setSaveCard] = useState(false);
   const [savedCardConfirmed, setSavedCardConfirmed] = useState(false);
+  const [billingStreet, setBillingStreet] = useState("");
+  const [billingCity, setBillingCity] = useState("");
+  const [billingState, setBillingState] = useState("");
+  const [billingZip, setBillingZip] = useState("");
   const [savedCards, setSavedCards] = useState<SavedCardOption[]>([]);
   const [selectedSavedCardId, setSelectedSavedCardId] = useState<string | null>(null);
   const [savedCardsLoading, setSavedCardsLoading] = useState(false);
@@ -49,6 +53,15 @@ export function CheckoutForm() {
   descriptionRef.current = description;
   customerEmailRef.current = customerEmail;
   saveCardRef.current = saveCard;
+
+  const billingStreetRef = useRef("");
+  const billingCityRef = useRef("");
+  const billingStateRef = useRef("");
+  const billingZipRef = useRef("");
+  billingStreetRef.current = billingStreet;
+  billingCityRef.current = billingCity;
+  billingStateRef.current = billingState;
+  billingZipRef.current = billingZip;
 
   // Per-logical-click idempotency. Generated once per Pay attempt, reset on success/declined.
   // See: https://docs.payroc.com/api/idempotency
@@ -82,6 +95,10 @@ export function CheckoutForm() {
     setLast4("");
     setCustomerEmail("");
     setSaveCard(false);
+    setBillingStreet("");
+    setBillingCity("");
+    setBillingState("");
+    setBillingZip("");
     setSavedCardConfirmed(false);
     setSavedCards([]);
     setSelectedSavedCardId(null);
@@ -310,6 +327,20 @@ export function CheckoutForm() {
             return;
           }
 
+          if (saveCardRef.current) {
+            if (
+              !billingStreetRef.current.trim() ||
+              !billingCityRef.current.trim() ||
+              !billingStateRef.current.trim() ||
+              !billingZipRef.current.trim()
+            ) {
+              setError("Billing address is required when saving a card.");
+              setStatus("ready");
+              submittedRef.current = false;
+              return;
+            }
+          }
+
           const { key: chargeIdempotencyKey, orderId } = ensureChargeIdempotencyKey();
 
           try {
@@ -326,6 +357,10 @@ export function CheckoutForm() {
                   ? {
                       saveCard: true,
                       customerEmail: customerEmailRef.current,
+                      billingStreet: billingStreetRef.current,
+                      billingCity: billingCityRef.current,
+                      billingState: billingStateRef.current,
+                      billingZip: billingZipRef.current,
                     }
                   : {}),
               }),
@@ -462,7 +497,6 @@ export function CheckoutForm() {
           orderId,
           chargeIdempotencyKey,
           secureTokenId: selectedSavedCardId,
-          customerEmail: customerEmail.trim().toLowerCase() || undefined,
         }),
       });
       const result = await pr.json();
@@ -694,6 +728,61 @@ export function CheckoutForm() {
                     </span>
                   </span>
                 </label>
+                {saveCard && (
+                  <div className="mt-4 space-y-3 pl-7">
+                    <div>
+                      <label className="block text-[12px] font-medium text-[#4A4A4A] mb-1">
+                        Billing Street
+                      </label>
+                      <input
+                        type="text"
+                        value={billingStreet}
+                        onChange={(e) => setBillingStreet(e.target.value)}
+                        placeholder="123 Main St"
+                        className="w-full h-10 bg-[#F4F5F7] border border-[#E8EAED] rounded-lg text-[#1A1313] text-sm px-3 outline-none transition-all duration-150 focus:border-[#017ea7] focus:ring-[3px] focus:ring-[#017ea7]/10 focus:bg-white placeholder:text-[#ABABAB]"
+                      />
+                    </div>
+                    <div className="flex gap-3">
+                      <div className="flex-1">
+                        <label className="block text-[12px] font-medium text-[#4A4A4A] mb-1">
+                          City
+                        </label>
+                        <input
+                          type="text"
+                          value={billingCity}
+                          onChange={(e) => setBillingCity(e.target.value)}
+                          placeholder="Corpus Christi"
+                          className="w-full h-10 bg-[#F4F5F7] border border-[#E8EAED] rounded-lg text-[#1A1313] text-sm px-3 outline-none transition-all duration-150 focus:border-[#017ea7] focus:ring-[3px] focus:ring-[#017ea7]/10 focus:bg-white placeholder:text-[#ABABAB]"
+                        />
+                      </div>
+                      <div className="w-20">
+                        <label className="block text-[12px] font-medium text-[#4A4A4A] mb-1">
+                          State
+                        </label>
+                        <input
+                          type="text"
+                          value={billingState}
+                          onChange={(e) => setBillingState(e.target.value)}
+                          placeholder="TX"
+                          maxLength={2}
+                          className="w-full h-10 bg-[#F4F5F7] border border-[#E8EAED] rounded-lg text-[#1A1313] text-sm px-3 outline-none transition-all duration-150 focus:border-[#017ea7] focus:ring-[3px] focus:ring-[#017ea7]/10 focus:bg-white placeholder:text-[#ABABAB] uppercase"
+                        />
+                      </div>
+                      <div className="w-28">
+                        <label className="block text-[12px] font-medium text-[#4A4A4A] mb-1">
+                          ZIP
+                        </label>
+                        <input
+                          type="text"
+                          value={billingZip}
+                          onChange={(e) => setBillingZip(e.target.value)}
+                          placeholder="78401"
+                          className="w-full h-10 bg-[#F4F5F7] border border-[#E8EAED] rounded-lg text-[#1A1313] text-sm px-3 outline-none transition-all duration-150 focus:border-[#017ea7] focus:ring-[3px] focus:ring-[#017ea7]/10 focus:bg-white placeholder:text-[#ABABAB]"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
