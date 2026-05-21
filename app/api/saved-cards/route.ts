@@ -99,17 +99,30 @@ async function resolveMerchantId(
   bodyMerchantId: unknown
 ): Promise<{ merchantId: string } | { error: string; status: number }> {
   if (user.role === "master portal") {
-    if (typeof bodyMerchantId !== "string" || bodyMerchantId.length === 0) {
-      return { error: "master portal must provide merchantId", status: 400 };
+    // If a merchantId was supplied, validate and use it (existing
+    // cross-merchant access pattern).
+    if (typeof bodyMerchantId === "string" && bodyMerchantId.length > 0) {
+      const exists = await prisma.merchant.findUnique({
+        where: { id: bodyMerchantId },
+        select: { id: true },
+      });
+      if (!exists) {
+        return { error: "merchant not found", status: 404 };
+      }
+      return { merchantId: bodyMerchantId };
     }
-    const exists = await prisma.merchant.findUnique({
-      where: { id: bodyMerchantId },
+    // No merchantId supplied — fall back to the master portal user's own
+    // merchant row (mirrors the resolution pattern in
+    // /api/payroc/checkout/route.ts). This enables the master portal user
+    // to test their own checkout flow without manually passing merchantId.
+    const ownMerchant = await prisma.merchant.findUnique({
+      where: { userId: user.id },
       select: { id: true },
     });
-    if (!exists) {
-      return { error: "merchant not found", status: 404 };
+    if (ownMerchant) {
+      return { merchantId: ownMerchant.id };
     }
-    return { merchantId: bodyMerchantId };
+    return { error: "master portal must provide merchantId", status: 400 };
   }
   if (user.role === "merchant") {
     const merchant = await prisma.merchant.findUnique({
