@@ -303,7 +303,35 @@ export function CheckoutForm() {
           }
           submittedRef.current = true;
 
-          // Destroy the form immediately so the SDK cannot fire submissionSuccess from this instance again.
+          const token = evt?.token;
+          console.log("[HF] submissionSuccess, token:", token?.substring(0, 20));
+
+          // Defense-in-depth validation. Primary defense is the pointer-events guard
+          // on the submit button wrapper. If a click somehow gets through (race
+          // condition, SDK quirk), this prevents destroy() from running and leaving
+          // the form in a stuck state.
+          const amt = parseFloat(amountRef.current) || 0;
+          if (amt <= 0) {
+            setError("Enter an amount before paying.");
+            submittedRef.current = false;
+            return;
+          }
+
+          if (saveCardRef.current) {
+            if (
+              !billingStreetRef.current.trim() ||
+              !billingCityRef.current.trim() ||
+              !billingStateRef.current.trim() ||
+              !billingZipRef.current.trim()
+            ) {
+              setError("Billing address is required to save a card.");
+              submittedRef.current = false;
+              return;
+            }
+          }
+
+          // Validation passed. Now destroy the SDK so it can't fire submissionSuccess
+          // again, then proceed with the charge.
           // https://docs.payroc.com/guides/take-payments/hosted-fields/extend-your-integration/close-a-session
           if (cardFormRef.current) {
             try {
@@ -315,31 +343,7 @@ export function CheckoutForm() {
             }
           }
 
-          const token = evt?.token;
-          console.log("[HF] submissionSuccess, token:", token?.substring(0, 20));
           setStatus("processing");
-
-          const amt = parseFloat(amountRef.current) || 0;
-          if (amt <= 0) {
-            setError("Enter an amount first");
-            setStatus("ready");
-            submittedRef.current = false; // allow retry after fixing amount
-            return;
-          }
-
-          if (saveCardRef.current) {
-            if (
-              !billingStreetRef.current.trim() ||
-              !billingCityRef.current.trim() ||
-              !billingStateRef.current.trim() ||
-              !billingZipRef.current.trim()
-            ) {
-              setError("Billing address is required when saving a card.");
-              setStatus("ready");
-              submittedRef.current = false;
-              return;
-            }
-          }
 
           const { key: chargeIdempotencyKey, orderId } = ensureChargeIdempotencyKey();
 
@@ -520,6 +524,25 @@ export function CheckoutForm() {
   }
 
   const parsedAmount = parseFloat(amount) || 0;
+
+  // Determine if submit should be blocked and why. Used to prevent clicks
+  // on the SDK submit button when prerequisites aren't met, avoiding the
+  // post-destroy() stuck-processing UX bug.
+  const billingFieldsValid =
+    billingStreet.trim().length > 0 &&
+    billingCity.trim().length > 0 &&
+    billingState.trim().length > 0 &&
+    billingZip.trim().length > 0;
+
+  let submitBlockedReason = "";
+  if (parsedAmount <= 0) {
+    submitBlockedReason = "Enter an amount before paying.";
+  } else if (saveCard && !customerEmail.trim()) {
+    submitBlockedReason = "Customer email is required to save a card.";
+  } else if (saveCard && !billingFieldsValid) {
+    submitBlockedReason = "Billing address is required to save a card.";
+  }
+  const submitBlocked = submitBlockedReason.length > 0;
 
   // ---- SUCCESS ----
   if (status === "success") {
@@ -898,8 +921,25 @@ export function CheckoutForm() {
                 <div className={`${containerId.current}-card-cvv-error`} style={{ fontSize: 12, color: "#ef4444", marginTop: 4, minHeight: 0 }} />
               </div>
             </div>
-            {/* SDK submit button */}
-            <div className={`card-submit ${containerId.current}-submit-button`} style={{ minHeight: 52, marginTop: 8, borderRadius: 10, overflow: "hidden" }} />
+            {/* Pre-submit guard message — visible when submit is blocked */}
+            {submitBlocked && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 mt-2 mb-1">
+                <p className="text-[13px] text-amber-900">{submitBlockedReason}</p>
+              </div>
+            )}
+            {/* SDK submit button — pointer-events disabled when submitBlocked */}
+            <div
+              className={`card-submit ${containerId.current}-submit-button`}
+              style={{
+                minHeight: 52,
+                marginTop: 8,
+                borderRadius: 10,
+                overflow: "hidden",
+                pointerEvents: submitBlocked ? "none" : undefined,
+                opacity: submitBlocked ? 0.5 : 1,
+                transition: "opacity 150ms ease",
+              }}
+            />
           </div>
         </div>
 
