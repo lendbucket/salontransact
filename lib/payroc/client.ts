@@ -85,6 +85,70 @@ export async function getPayrocToken(): Promise<string> {
   return tokenCache.token;
 }
 
+export async function getTerminalIdForMerchant(
+  merchantId: string,
+  locationId?: string
+): Promise<string> {
+  if (locationId) {
+    const loc = await prisma.location.findFirst({
+      where: { id: locationId, merchantId },
+      select: { id: true, payrocTerminalId: true },
+    });
+    if (!loc || !loc.payrocTerminalId) {
+      throw new Error(
+        `Location ${locationId} not found for merchant ${merchantId} or missing payrocTerminalId`
+      );
+    }
+    console.log(
+      `[PAYROC-TERMINAL] path=specified-location merchantId=${merchantId} locationId=${locationId} terminalId=${loc.payrocTerminalId}`
+    );
+    return loc.payrocTerminalId;
+  }
+
+  const primary = await prisma.location.findFirst({
+    where: { merchantId, isPrimary: true, status: "active" },
+    select: { id: true, payrocTerminalId: true },
+  });
+
+  if (primary && primary.payrocTerminalId) {
+    console.log(
+      `[PAYROC-TERMINAL] path=primary-location merchantId=${merchantId} locationId=${primary.id} terminalId=${primary.payrocTerminalId}`
+    );
+    return primary.payrocTerminalId;
+  }
+
+  // Fallback: no location row (or row exists but payrocTerminalId is null)
+  if (process.env.PAYROC_TERMINAL_ID) {
+    const existingOwner = await prisma.location.findFirst({
+      where: {
+        payrocTerminalId: process.env.PAYROC_TERMINAL_ID,
+        isPrimary: true,
+        status: "active",
+      },
+      select: { merchantId: true },
+    });
+
+    if (existingOwner && existingOwner.merchantId !== merchantId) {
+      throw new Error(
+        `Terminal ID ${process.env.PAYROC_TERMINAL_ID} is owned by merchant ` +
+        `${existingOwner.merchantId}, not requesting merchant ${merchantId}. ` +
+        `Refusing to route to wrong terminal. Provision a Location row for ` +
+        `merchant ${merchantId} with their own payrocTerminalId.`
+      );
+    }
+
+    console.warn(
+      `[PAYROC-TERMINAL] WARN path=env-fallback merchantId=${merchantId} ` +
+      `— no location row found, using process.env.PAYROC_TERMINAL_ID`
+    );
+    return process.env.PAYROC_TERMINAL_ID;
+  }
+
+  throw new Error(
+    `No terminal ID available for merchant ${merchantId} — no location row and PAYROC_TERMINAL_ID env var is not set`
+  );
+}
+
 export async function payrocRequest<T>(
   method: "GET" | "POST" | "PATCH" | "DELETE",
   path: string,
@@ -145,10 +209,13 @@ export async function payrocRequest<T>(
 }
 
 export async function getHostedFieldsSessionToken(
-  scenario: "payment" | "tokenization" = "payment"
-): Promise<{ token: string; expiresAt: string }> {
+  scenario: "payment" | "tokenization" = "payment",
+  merchantId?: string
+): Promise<{ token: string; expiresAt: string; terminalId: string }> {
   const bearerToken = await getPayrocToken();
-  const terminalId = process.env.PAYROC_TERMINAL_ID;
+  const terminalId = merchantId
+    ? await getTerminalIdForMerchant(merchantId)
+    : process.env.PAYROC_TERMINAL_ID;
   const apiUrl =
     process.env.PAYROC_SESSION_HOST || process.env.PAYROC_API_URL;
 
@@ -253,5 +320,6 @@ export async function getHostedFieldsSessionToken(
     expiresAt:
       data.expiresAt ||
       new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+    terminalId: terminalId || data.processingTerminalId,
   };
 }
