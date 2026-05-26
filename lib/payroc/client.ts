@@ -128,6 +128,15 @@ export async function getTerminalIdForMerchant(
       select: { merchantId: true },
     });
 
+    // MISROUTE GUARD: If we're falling back to PAYROC_TERMINAL_ID, verify no
+    // other merchant already owns that terminal in their primary Location row.
+    // This prevents silent misrouting when merchant #2 onboards but hasn't
+    // had their Location row created yet.
+    //
+    // This guard becomes unnecessary after Phase 0a.5 when all merchants have
+    // populated Location.payrocTerminalId rows and the env-fallback path is
+    // never hit. Do NOT remove until the env-fallback branch above is also
+    // removed.
     if (existingOwner && existingOwner.merchantId !== merchantId) {
       throw new Error(
         `Terminal ID ${process.env.PAYROC_TERMINAL_ID} is owned by merchant ` +
@@ -315,11 +324,19 @@ export async function getHostedFieldsSessionToken(
   console.log("All response keys:", Object.keys(data).join(", "));
   console.log("=============================================");
 
+  const resolvedTerminalId = terminalId || data.processingTerminalId;
+  if (!resolvedTerminalId) {
+    throw new Error(
+      "Payroc session created but no terminal ID resolved. " +
+      "Check that PAYROC_TERMINAL_ID env var is set or merchant has a Location row."
+    );
+  }
+
   return {
     token: data.token,
     expiresAt:
       data.expiresAt ||
       new Date(Date.now() + 10 * 60 * 1000).toISOString(),
-    terminalId: terminalId || data.processingTerminalId,
+    terminalId: resolvedTerminalId,
   };
 }
