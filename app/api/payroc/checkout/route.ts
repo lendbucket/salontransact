@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getPayrocToken } from "@/lib/payroc/client";
+import { getPayrocToken, getTerminalIdForMerchant } from "@/lib/payroc/client";
 import { createSecureToken } from "@/lib/payroc/tokens";
 import { isPayrocApiError } from "@/lib/payroc/errors";
 import crypto from "crypto";
@@ -95,7 +95,7 @@ export async function POST(request: Request) {
     const parsedAmount =
       typeof amount === "string" ? parseFloat(amount) : amount;
     const amountInCents = Math.round(parsedAmount * 100);
-    const terminalId = process.env.PAYROC_TERMINAL_ID;
+    const terminalId = await getTerminalIdForMerchant(merchant.id);
 
     // ----- OPTIONAL SAVE CARD FLOW -----
     let secureTokenIdForPayment: string | null = null;

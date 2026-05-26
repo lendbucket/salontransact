@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { getHostedFieldsSessionToken } from "@/lib/payroc/client";
 import { getHostedFieldsConfig } from "@/lib/payroc/hosted-fields";
 
@@ -20,8 +21,24 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const userId = (session.user as { id?: string })?.id;
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const merchant = await prisma.merchant.findUnique({
+      where: { userId },
+    });
+
+    if (!merchant) {
+      return NextResponse.json(
+        { error: "Merchant not found" },
+        { status: 401 }
+      );
+    }
+
     const sessionCreatedAt = Date.now();
-    const result = await getHostedFieldsSessionToken("payment");
+    const result = await getHostedFieldsSessionToken("payment", merchant.id);
     const config = getHostedFieldsConfig();
 
     console.log("[SESSION-DEBUG] Token received in", Date.now() - sessionCreatedAt, "ms");
@@ -34,7 +51,7 @@ export async function GET() {
     return NextResponse.json({
       sessionToken: result.token,
       expiresAt: result.expiresAt,
-      terminalId: process.env.PAYROC_TERMINAL_ID,
+      terminalId: result.terminalId,
       libUrl: config.url,
       integrity: config.integrityHash,
       _sessionCreatedAt: sessionCreatedAt,
