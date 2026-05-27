@@ -383,3 +383,59 @@ export interface BinLookupResponse {
   debit: boolean
   surcharging?: BinLookupSurcharging
 }
+
+// ===== Recurring payment types (Subscriptions V1) =====
+// Per https://docs.payroc.com/api/schema/payments/payments/process-a-payment
+// Shape for MOTO channel + secureToken + credentialOnFile recurring MIT.
+
+export interface RecurringCredentialOnFile {
+  // TODO: Confirm exact sub-fields with Pat (Payroc) for recurring MIT charges.
+  // Using initiator=merchant + type=recurring per Visa/MC recurring rules.
+  initiator: 'merchant'
+  type: 'recurring'
+}
+
+export interface SecureTokenPaymentMethod {
+  type: 'secureToken'
+  token: string
+}
+
+export interface RecurringPaymentRequest {
+  channel: 'moto'
+  processingTerminalId: string
+  operator: string
+  order: {
+    orderId: string
+    orderDate: string
+    description: string
+    amount: number  // cents (e.g., 1500 = $15.00). Payroc /payments
+                    // endpoint expects integer minor units; confirmed
+                    // against production checkout/route.ts.
+    currency: 'USD'
+  }
+  paymentMethod: SecureTokenPaymentMethod
+  credentialOnFile: RecurringCredentialOnFile
+  customer?: {
+    firstName?: string
+    lastName?: string
+    emailAddress?: string
+  }
+}
+
+export interface PayrocPaymentResponseV2 {
+  paymentId: string
+  order: {
+    orderId: string
+    amount: number
+    currency: string
+  }
+  card?: {
+    type?: string
+    cardNumber?: string
+  }
+  transactionResult: {
+    responseCode: string
+    responseMessage: string
+    approvalCode?: string
+  }
+}
