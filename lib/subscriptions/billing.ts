@@ -8,8 +8,8 @@
  *   - /api/subscriptions/[id]/charge-now admin manual trigger
  *
  * Every charge is idempotent: the Payroc Idempotency-Key is derived
- * from invoiceId + attemptCount so duplicate cron fires cannot
- * double-charge.
+ * from invoiceId + UTC date bucket so duplicate cron fires on the
+ * same day cannot double-charge.
  *
  * See docs/subscriptions-platform-design.md Section 6 for architecture.
  */
@@ -24,9 +24,15 @@ import crypto from "crypto";
 // ─────────────────────────────────────────────────────────────────
 
 /**
- * Builds a deterministic UUID v4 from an arbitrary string input.
- * Used to derive Payroc Idempotency-Keys from invoiceId + attemptCount
- * so duplicate cron fires produce the same key and Payroc deduplicates.
+ * Builds a deterministic UUID v4-FORMATTED string from an arbitrary
+ * string input. Used to derive Payroc Idempotency-Keys so duplicate
+ * cron fires produce the same key and Payroc deduplicates.
+ *
+ * NOTE: This is NOT a true RFC 4122 v4 UUID (which is randomly
+ * generated). The output has the version nibble (4) and variant
+ * bits (RFC 4122) set to satisfy the format constraint, but the
+ * source bytes are SHA-256 of the input. Payroc validates the
+ * format, not the entropy source.
  */
 export function deterministicUuid(input: string): string {
   const hash = crypto.createHash("sha256").update(input).digest();
@@ -65,76 +71,81 @@ export async function chargeInvoice(invoiceId: string): Promise<ChargeInvoiceRes
   console.log(`[BILLING] cid=${cid} START chargeInvoice invoice=${invoiceId}`);
 
   try {
-    // ── 1. Load invoice + subscription + relations ──────────────
-    const invoice = await prisma.subscriptionInvoice.findUnique({
-      where: { id: invoiceId },
-      include: {
-        subscription: {
-          include: {
-            plan: true,
-            savedCard: true,
-            merchant: true,
+    // ── 1. Acquire row lock + validate state + increment attempt ──
+    // All in one transaction so concurrent cron fires can't both
+    // pass the guard checks and double-charge.
+    const lockResult = await prisma.$transaction(async (tx) => {
+      // Row lock prevents concurrent chargeInvoice calls for the
+      // same invoiceId from both proceeding.
+      await tx.$queryRaw`SELECT id FROM "SubscriptionInvoice" WHERE id = ${invoiceId} FOR UPDATE`;
+
+      // Re-read invoice + relations under the lock.
+      const invoice = await tx.subscriptionInvoice.findUnique({
+        where: { id: invoiceId },
+        include: {
+          subscription: {
+            include: {
+              plan: true,
+              savedCard: true,
+              merchant: true,
+            },
           },
         },
-      },
-    });
+      });
 
-    if (!invoice) {
-      console.error(`[BILLING] cid=${cid} invoice ${invoiceId} not found`);
-      return { success: false, error: "Invoice not found" };
-    }
+      if (!invoice) {
+        return { kind: "not-found" as const };
+      }
 
-    const { subscription } = invoice;
+      const { subscription } = invoice;
 
-    // ── 2. Idempotency: already-paid invoices return success ────
-    if (invoice.status === "paid") {
-      console.log(
-        `[BILLING] cid=${cid} invoice already paid, paymentId=${invoice.paymentId}`
-      );
-      return { success: true, payrocPaymentId: invoice.paymentId ?? undefined };
-    }
+      // Idempotency: already-paid → success
+      if (invoice.status === "paid") {
+        return {
+          kind: "already-paid" as const,
+          paymentId: invoice.paymentId ?? undefined,
+        };
+      }
 
-    // ── 3. Guard: only charge pending or failed_retrying invoices ──
-    if (invoice.status !== "pending" && invoice.status !== "failed_retrying") {
-      console.log(
-        `[BILLING] cid=${cid} invoice=${invoiceId} status=${invoice.status} — skipping (not chargeable)`
-      );
-      return { success: false, error: `Invoice status is ${invoice.status}, not chargeable` };
-    }
+      // Invoice status guard
+      if (invoice.status !== "pending" && invoice.status !== "failed_retrying") {
+        return {
+          kind: "wrong-invoice-status" as const,
+          status: invoice.status,
+        };
+      }
 
-    // ── 4. Guard: subscription must be in a billable state ──────
-    if (
-      subscription.status !== "active" &&
-      subscription.status !== "trialing" &&
-      subscription.status !== "past_due"
-    ) {
-      console.log(
-        `[BILLING] cid=${cid} invoice=${invoiceId} subscription=${subscription.id} ` +
-        `status=${subscription.status} — skipping (not billable)`
-      );
-      return {
-        success: false,
-        error: `Subscription status is ${subscription.status}, not billable`,
-      };
-    }
+      // Subscription status guard
+      if (
+        subscription.status !== "active" &&
+        subscription.status !== "trialing" &&
+        subscription.status !== "past_due"
+      ) {
+        return {
+          kind: "wrong-subscription-status" as const,
+          status: subscription.status,
+        };
+      }
 
-    // ── 5. Guard: saved card must be active with a payment token ──
-    const { savedCard } = subscription;
-    if (savedCard.status !== "active") {
-      return { success: false, error: `Saved card ${savedCard.id} is ${savedCard.status}` };
-    }
-    if (!savedCard.payrocToken) {
-      return {
-        success: false,
-        error: `Saved card ${savedCard.id} missing payment token`,
-      };
-    }
+      // Saved card guard
+      const { savedCard } = subscription;
+      if (savedCard.status !== "active") {
+        return {
+          kind: "card-not-active" as const,
+          savedCardId: savedCard.id,
+          status: savedCard.status,
+        };
+      }
+      if (!savedCard.payrocToken) {
+        return {
+          kind: "missing-token" as const,
+          savedCardId: savedCard.id,
+        };
+      }
 
-    // ── 6. Increment attempt + write billed_attempt event ───────
-    // Both writes happen in one transaction so the attemptCount used
-    // in the idempotency key is consistent with the audit trail.
-    const updatedInvoice = await prisma.$transaction(async (tx) => {
-      const inv = await tx.subscriptionInvoice.update({
+      // All guards passed. Increment attempt + write billed_attempt event
+      // atomically under the lock.
+      const updated = await tx.subscriptionInvoice.update({
         where: { id: invoiceId },
         data: {
           attemptCount: { increment: 1 },
@@ -149,47 +160,83 @@ export async function chargeInvoice(invoiceId: string): Promise<ChargeInvoiceRes
           actor: "system:billing-engine",
           payload: {
             invoiceId,
-            attemptCount: inv.attemptCount,
+            attemptCount: updated.attemptCount,
             amountCents: invoice.totalCents,
           },
         },
       });
 
-      return inv;
+      return {
+        kind: "proceed" as const,
+        invoice,
+        subscription,
+        savedCard,
+        attemptCount: updated.attemptCount,
+      };
     });
 
-    const attemptCount = updatedInvoice.attemptCount;
+    // ── 2. Handle non-proceed outcomes from the locked transaction ──
+    if (lockResult.kind === "not-found") {
+      console.error(`[BILLING] cid=${cid} invoice ${invoiceId} not found`);
+      return { success: false, error: "Invoice not found" };
+    }
+    if (lockResult.kind === "already-paid") {
+      console.log(`[BILLING] cid=${cid} invoice already paid, paymentId=${lockResult.paymentId}`);
+      return { success: true, payrocPaymentId: lockResult.paymentId };
+    }
+    if (lockResult.kind === "wrong-invoice-status") {
+      console.log(`[BILLING] cid=${cid} invoice=${invoiceId} status=${lockResult.status} — not chargeable`);
+      return { success: false, error: `Invoice status is ${lockResult.status}, not chargeable` };
+    }
+    if (lockResult.kind === "wrong-subscription-status") {
+      console.log(`[BILLING] cid=${cid} subscription status=${lockResult.status} — not billable`);
+      return { success: false, error: `Subscription status is ${lockResult.status}, not billable` };
+    }
+    if (lockResult.kind === "card-not-active") {
+      return { success: false, error: `Saved card ${lockResult.savedCardId} is ${lockResult.status}` };
+    }
+    if (lockResult.kind === "missing-token") {
+      return { success: false, error: `Saved card ${lockResult.savedCardId} missing payment token` };
+    }
 
-    // ── 7. Build deterministic idempotency key ──────────────────
+    // From here on, we have invoice + subscription + savedCard from
+    // the locked transaction result.
+    const { invoice, subscription, savedCard, attemptCount } = lockResult;
+
+    // ── 3. Build deterministic idempotency key (per-day) ────────
+    // Key = invoiceId + UTC date. Same invoice on same UTC day → same
+    // key → Payroc deduplicates. Next day → new key → legitimate
+    // retry possible. attemptCount does NOT feed the key — it's only
+    // an internal counter for dunning logic.
+    //
+    // This handles the crash-between-increment-and-Payroc-call scenario:
+    // if we crash after incrementing but before charging, the retry on
+    // the same day uses the same key and Payroc returns the cached
+    // result (or processes once).
+    const utcDate = new Date().toISOString().split("T")[0];  // "YYYY-MM-DD"
     const idempotencyKey = deterministicUuid(
-      `subscription_invoice_${invoiceId}_attempt_${attemptCount}`
+      `subscription_invoice_${invoiceId}_date_${utcDate}`
     );
 
-    // ── 8. Resolve terminal ID for this merchant ────────────────
+    // ── 4. Resolve terminal ID for this merchant ────────────────
     const terminalId = await getTerminalIdForMerchant(subscription.merchantId);
 
-    // ── 9. Build Payroc payment payload ─────────────────────────
-    // FIX 1: no `customer` field. For MIT recurring charges the customer
-    // association is bound to the saved token — repeating customer info
-    // is unnecessary, and the subscription include doesn't load customer.
-    //
-    // FIX 2: orderId uses the full invoiceId (no .slice()). Payroc
-    // accepts up to 50 chars; truncation risks idempotency collisions.
+    // ── 5. Build Payroc payment payload ─────────────────────────
     const paymentPayload: RecurringPaymentRequest = {
-      // TODO: confirm "moto" is correct channel for MIT recurring with Matt/Payroc
+      // TODO: confirm "moto" is correct channel for MIT recurring with Pat (Payroc)
       channel: "moto",
       processingTerminalId: terminalId,
       operator: (subscription.merchant.businessName || "SalonTransact").slice(0, 50),
       order: {
         orderId: invoiceId,
-        orderDate: new Date().toISOString().split("T")[0],
+        orderDate: utcDate,
         description: `Subscription: ${subscription.plan.name}`.slice(0, 100),
         amount: invoice.totalCents,
         currency: "USD",
       },
       paymentMethod: {
         type: "secureToken",
-        token: savedCard.payrocToken,
+        token: savedCard.payrocToken!,
       },
       credentialOnFile: {
         initiator: "merchant",
@@ -199,10 +246,10 @@ export async function chargeInvoice(invoiceId: string): Promise<ChargeInvoiceRes
 
     console.log(
       `[BILLING] cid=${cid} invoice=${invoiceId} attempt=${attemptCount} ` +
-      `amount=${invoice.totalCents} terminal=${terminalId} idempotencyKey=${idempotencyKey}`
+      `amount=${invoice.totalCents} terminal=${terminalId} idempotencyKey=${idempotencyKey} dateBucket=${utcDate}`
     );
 
-    // ── 10. Send charge to Payroc ───────────────────────────────
+    // ── 6. Send charge to Payroc ────────────────────────────────
     const bearerToken = await getPayrocToken();
     const apiUrl = process.env.PAYROC_API_URL;
 
@@ -230,14 +277,64 @@ export async function chargeInvoice(invoiceId: string): Promise<ChargeInvoiceRes
       `body=${responseText.substring(0, 500)}`
     );
 
-    // ── 11. Parse Payroc response ───────────────────────────────
+    // ── 7. Handle infrastructure errors (5xx, 401, 429) separately ──
+    // These are NOT payment declines — they are transient infrastructure
+    // failures and should NOT increment the failedPaymentCount counter
+    // (which feeds dunning). Mark invoice failed_retrying without
+    // touching the subscription's failure counter.
+    if (!payrRes.ok) {
+      const isTransient = payrRes.status >= 500 || payrRes.status === 401 || payrRes.status === 429;
+      const failureReason = `Payroc HTTP ${payrRes.status}: ${responseText.substring(0, 300)}`;
+
+      await prisma.$transaction(async (tx) => {
+        await tx.subscriptionInvoice.update({
+          where: { id: invoiceId },
+          data: {
+            status: "failed_retrying",
+            failureReason,
+          },
+        });
+
+        // Only increment failure counter for actual payment failures (4xx
+        // that aren't 401/429), not for transient infrastructure errors.
+        if (!isTransient) {
+          await tx.subscription.update({
+            where: { id: subscription.id },
+            data: {
+              failedPaymentCount: { increment: 1 },
+              lastFailureAt: new Date(),
+            },
+          });
+        }
+
+        await tx.subscriptionEvent.create({
+          data: {
+            subscriptionId: subscription.id,
+            eventType: "subscription.billed_failed",
+            actor: "system:billing-engine",
+            payload: {
+              invoiceId,
+              attemptCount,
+              httpStatus: payrRes.status,
+              transient: isTransient,
+              failureReason,
+            },
+          },
+        });
+      });
+
+      console.error(`[BILLING] cid=${cid} Payroc HTTP ${payrRes.status} (transient=${isTransient}): ${failureReason}`);
+      return { success: false, error: failureReason };
+    }
+
+    // ── 8. Parse Payroc response ────────────────────────────────
     const txnResult = payrocResponse.transactionResult as Record<string, unknown> | undefined;
     const responseCode = (txnResult?.responseCode ?? payrocResponse.responseCode ?? null) as string | null;
     const responseMessage = (txnResult?.responseMessage ?? payrocResponse.responseMessage ?? null) as string | null;
     const approvalCode = (txnResult?.approvalCode ?? payrocResponse.approvalCode ?? null) as string | null;
     const payrocPaymentId = (payrocResponse.paymentId ?? null) as string | null;
 
-    // ── 12. Handle success ──────────────────────────────────────
+    // ── 9. Handle success ───────────────────────────────────────
     if (responseCode === "A") {
       console.log(
         `[BILLING] cid=${cid} invoice=${invoiceId} APPROVED paymentId=${payrocPaymentId} approvalCode=${approvalCode}`
@@ -297,7 +394,7 @@ export async function chargeInvoice(invoiceId: string): Promise<ChargeInvoiceRes
       };
     }
 
-    // ── 13. Handle decline / failure ────────────────────────────
+    // ── 10. Handle decline / failure ───────────────────────────
     console.warn(
       `[BILLING] cid=${cid} invoice=${invoiceId} DECLINED responseCode=${responseCode} ` +
       `message=${responseMessage}`
@@ -344,7 +441,7 @@ export async function chargeInvoice(invoiceId: string): Promise<ChargeInvoiceRes
       declineReason: responseMessage ?? "Payment declined",
     };
 
-  // ── 14. Unexpected error catch ──────────────────────────────
+  // ── 11. Unexpected error catch ──────────────────────────────
   // FIX 3: findUnique runs BEFORE the transaction so we have a known
   // subscriptionId. Guarded with `if (inv)` to avoid FK violations.
   } catch (err) {

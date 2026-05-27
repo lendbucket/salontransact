@@ -28,11 +28,11 @@ export interface TaxResult {
   taxJurisdictionApplied: string | null
 }
 
-const ZERO_TAX: TaxResult = {
+const ZERO_TAX: Readonly<TaxResult> = Object.freeze({
   taxCents: 0,
   taxRateApplied: null,
   taxJurisdictionApplied: null,
-};
+});
 
 export function calculateTax(input: TaxInput): TaxResult {
   if (input.customer.taxExempt) return ZERO_TAX;

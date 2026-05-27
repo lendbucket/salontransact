@@ -35,6 +35,8 @@ const ALLOWED_TRANSITIONS: Record<SubscriptionStatus, Set<SubscriptionStatus>> =
   incomplete:          new Set(["trialing", "active", "incomplete_expired", "canceled"]),
   trialing:            new Set(["active", "past_due", "canceled"]),
   active:              new Set(["active", "past_due", "paused", "canceled"]),
+  // active → active is intentional: billing cycle renewal on successful charge
+  // writes a subscription.renewed event. See TRANSITION_EVENT_TYPES.
   past_due:            new Set(["active", "paused", "canceled"]),
   paused:              new Set(["active", "canceled"]),
   canceled:            new Set(),
@@ -152,9 +154,13 @@ export async function transition(
         sideEffects.nextBillingDate = null;
       }
 
-      // When leaving active with a scheduled cancel, clear cancelAt
-      // (the cancel has now been executed or the sub moved to another state)
-      if (fromState === "active" && toState !== "active") {
+      // Clear cancelAt whenever transitioning to a terminal state, OR
+      // whenever leaving active to a non-active state. This prevents
+      // stale scheduled-cancel dates from lingering on subscriptions
+      // that have already canceled.
+      if (toState === "canceled" || toState === "incomplete_expired") {
+        sideEffects.cancelAt = null;
+      } else if (fromState === "active" && toState !== "active") {
         sideEffects.cancelAt = null;
       }
 

@@ -408,7 +408,9 @@ export interface RecurringPaymentRequest {
     orderId: string
     orderDate: string
     description: string
-    amount: number
+    amount: number  // cents (e.g., 1500 = $15.00). Payroc /payments
+                    // endpoint expects integer minor units; confirmed
+                    // against production checkout/route.ts.
     currency: 'USD'
   }
   paymentMethod: SecureTokenPaymentMethod
