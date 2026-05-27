@@ -200,6 +200,21 @@ export async function POST(request: Request) {
       );
     }
 
+    // Card-to-customer validation: if savedCard is customer-scoped
+    // (savedCard.customerId is non-null), require it to match the
+    // request's customerId. Cards without customerId (e.g., legacy
+    // data, manual setup) are allowed for any customer of the merchant.
+    if (savedCard.customerId !== null && savedCard.customerId !== data.customerId) {
+      return NextResponse.json(
+        {
+          error:
+            "Saved card belongs to a different customer. Cards with " +
+            "customer scope cannot be used for other customers.",
+        },
+        { status: 400 }
+      );
+    }
+
     // ── Compute billing periods and status ──────────────────────
     const now = new Date();
     const interval = plan.interval as "WEEKLY" | "MONTHLY" | "ANNUAL";
@@ -397,6 +412,9 @@ export async function GET(request: Request) {
       where.planId = planIdFilter;
     }
 
+    // TODO: pagination — V1 silently truncates at 100. PR D admin UI
+    // and Phase 2 will add cursor-based pagination if merchants
+    // accumulate >100 subscriptions per query.
     const subscriptions = await prisma.subscription.findMany({
       where,
       include: {

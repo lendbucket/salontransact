@@ -16,12 +16,22 @@
 /**
  * Compute the next billing date for a subscription.
  *
+ * CONTRACT: returns the next anchor occurrence strictly after fromDate.
+ * intervalCount governs how many intervals to advance ONLY when the
+ * anchor has already passed in the current period. This is correct
+ * semantics for FIRST-BILL computation (subscription creation, resume).
+ *
+ * For SUBSEQUENT bills, the billing-engine cron should advance from
+ * the LAST billing date by intervalCount, not call this function.
+ * A separate helper (Phase 2) will handle cron advancement.
+ *
  * MONTHLY: next occurrence of anchorDay (1-28) that is strictly after
  *   fromDate. If anchorDay is today, advance to next interval (today's
  *   charge already fired or is about to).
  *
  * WEEKLY: next occurrence of anchorDay (0=Sun, 6=Sat) strictly after
- *   fromDate. Same "today means next" rule.
+ *   fromDate. Same "today means next" rule. May land 1 day out if
+ *   anchorDay was the day before today.
  *
  * ANNUAL: anchorDay is day-of-year (1-365). Convert to month+day,
  *   find next future occurrence. NOTE: ANNUAL semantics may be refined

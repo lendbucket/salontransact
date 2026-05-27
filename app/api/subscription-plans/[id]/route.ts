@@ -192,9 +192,21 @@ export async function PATCH(
       );
     }
 
-    const updated = await prisma.subscriptionPlan.update({
-      where: { id },
+    const updateResult = await prisma.subscriptionPlan.updateMany({
+      where: { id, merchantId: merchant.id },
       data: updateData,
+    });
+
+    if (updateResult.count === 0) {
+      // Should not happen — findFirst above proved existence + ownership.
+      // But in the rare race where the plan was deleted between find and
+      // update, return 404 instead of 500.
+      return NextResponse.json({ error: "Plan not found" }, { status: 404 });
+    }
+
+    // Re-read for response (updateMany doesn't return the row)
+    const updated = await prisma.subscriptionPlan.findFirst({
+      where: { id, merchantId: merchant.id },
     });
 
     return NextResponse.json({ plan: updated });
