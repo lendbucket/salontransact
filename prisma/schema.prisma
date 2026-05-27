@@ -897,7 +897,6 @@ model Subscription {
   @@index([merchantId, status])
   @@index([nextBillingDate, status])
   @@index([customerId])
-  @@index([firstPaymentId])
 }
 
 model SubscriptionInvoice {
