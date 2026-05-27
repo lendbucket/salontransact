@@ -31,7 +31,7 @@
  *
  * WEEKLY: next occurrence of anchorDay (0=Sun, 6=Sat) strictly after
  *   fromDate. Same "today means next" rule. May land 1 day out if
- *   anchorDay was the day before today.
+ *   anchorDay is tomorrow.
  *
  * ANNUAL: anchorDay is day-of-year (1-365). Convert to month+day,
  *   find next future occurrence. NOTE: ANNUAL semantics may be refined
