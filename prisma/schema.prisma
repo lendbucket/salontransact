@@ -934,7 +934,7 @@ model SubscriptionEvent {
   // e.g. "subscription.created", "invoice.paid"
   actor          String
   // e.g. "system", "merchant:cuid", "customer:cuid"
-  data           Json
+  payload        Json
   // event-specific payload
   createdAt      DateTime @default(now())
 
