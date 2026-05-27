@@ -294,11 +294,16 @@ export async function chargeInvoice(invoiceId: string): Promise<ChargeInvoiceRes
     // touching the subscription's failure counter.
     if (!payrRes.ok) {
       const isTransient = payrRes.status >= 500 || payrRes.status === 401 || payrRes.status === 429;
-      const failureReason = `Payroc HTTP ${payrRes.status}: ${responseText.substring(0, 300)}`;
+      const failureReason = `Payroc HTTP ${payrRes.status}` +
+        (responseCode ? ` code=${responseCode}` : ``) +
+        (responseMessage ? ` message=${responseMessage.substring(0, 200)}` : ``);
 
       await prisma.$transaction(async (tx) => {
-        await tx.subscriptionInvoice.update({
-          where: { id: invoiceId },
+        await tx.subscriptionInvoice.updateMany({
+          where: {
+            id: invoiceId,
+            status: { in: ["pending", "failed_retrying"] },
+          },
           data: {
             status: "failed_retrying",
             failureReason,
@@ -344,8 +349,11 @@ export async function chargeInvoice(invoiceId: string): Promise<ChargeInvoiceRes
       );
 
       await prisma.$transaction(async (tx) => {
-        await tx.subscriptionInvoice.update({
-          where: { id: invoiceId },
+        await tx.subscriptionInvoice.updateMany({
+          where: {
+            id: invoiceId,
+            status: { in: ["pending", "failed_retrying"] },
+          },
           data: {
             status: "paid",
             paymentId: payrocPaymentId,
@@ -404,8 +412,11 @@ export async function chargeInvoice(invoiceId: string): Promise<ChargeInvoiceRes
     );
 
     await prisma.$transaction(async (tx) => {
-      await tx.subscriptionInvoice.update({
-        where: { id: invoiceId },
+      await tx.subscriptionInvoice.updateMany({
+        where: {
+          id: invoiceId,
+          status: { in: ["pending", "failed_retrying"] },
+        },
         data: {
           status: "failed_retrying",
           failureReason: (responseMessage ?? "Payment declined").substring(0, 300),
