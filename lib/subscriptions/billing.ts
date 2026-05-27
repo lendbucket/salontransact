@@ -236,6 +236,8 @@ export async function chargeInvoice(invoiceId: string): Promise<ChargeInvoiceRes
           sequence: "subsequent",
           processingModel: "recurring",
           referenceDataOfFirstTxn: {
+            // non-null: isFirstCharge === false implies firstPaymentId
+            // was set on a prior successful charge and is immutable.
             paymentId: subscription.firstPaymentId!,
           },
         };
@@ -384,10 +386,24 @@ export async function chargeInvoice(invoiceId: string): Promise<ChargeInvoiceRes
         // attempt to atomically claim firstPaymentId via updateMany
         // with a `firstPaymentId: null` filter. If count === 0, a
         // concurrent first-charge already won the race and we just
-        // log it — Payroc-level deduplication (deterministic per-day
-        // idempotency key) already prevents the actual double-charge,
-        // but we want to make sure our DB tracks the WINNING
-        // paymentId, not whichever charge happened to commit last.
+        // log it.
+        //
+        // CONCURRENCY MODEL — these two protections are load-bearing
+        // together and must NOT be removed independently:
+        //   1. Payroc-level dedup: the deterministic per-day
+        //      idempotency key in Step 3 (invoiceId + UTC date) means
+        //      two concurrent workers building sequence:"first"
+        //      payloads will produce the SAME Idempotency-Key, so
+        //      Payroc executes only ONE actual charge. This prevents
+        //      a double-charge on the customer's card.
+        //   2. DB-level claim: the updateMany below with
+        //      `firstPaymentId: null` filter ensures only ONE worker
+        //      persists firstPaymentId, even if both successfully
+        //      received responses from Payroc (e.g., one cached, one
+        //      fresh). This prevents firstPaymentId from being
+        //      overwritten with the wrong value.
+        // Together they guarantee correctness under concurrent first-
+        // charge races. Removing either breaks the invariant.
         if (isFirstCharge) {
           const claimResult = await tx.subscription.updateMany({
             where: { id: subscription.id, firstPaymentId: null },
