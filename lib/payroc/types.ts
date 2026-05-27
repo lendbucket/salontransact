@@ -386,14 +386,37 @@ export interface BinLookupResponse {
 
 // ===== Recurring payment types (Subscriptions V1) =====
 // Per https://docs.payroc.com/api/schema/payments/payments/process-a-payment
-// Shape for MOTO channel + secureToken + credentialOnFile recurring MIT.
+// Confirmed via Chris Boutwell screenshots (2026-05-27, Payroc docs).
+// Shape for POS channel + secureToken + standingInstructions recurring MIT.
+//
+// standingInstructions lives INSIDE the order object, NOT at the top
+// level. The deprecated credentialOnFile block is not present in the
+// Payroc spec — standingInstructions replaces it.
 
-export interface RecurringCredentialOnFile {
-  // TODO: Confirm exact sub-fields with Pat (Payroc) for recurring MIT charges.
-  // Using initiator=merchant + type=recurring per Visa/MC recurring rules.
-  initiator: 'merchant'
-  type: 'recurring'
+export interface RecurringStandingInstructionsReference {
+  paymentId: string
 }
+
+// Discriminated union: enforces at compile-time that "subsequent"
+// charges MUST include referenceDataOfFirstTxn (per Payroc spec
+// requirement that recurring MIT references the first paymentId).
+// "first" charges MUST NOT include it (we don't have one yet).
+//
+// processingModel is Payroc enum:
+// - "recurring" = regular billing cycle with no fixed end date
+// - "installment" = fixed-duration plan
+// - "unscheduled" = ad-hoc card-on-file charge
+// Subscriptions always use "recurring".
+export type RecurringStandingInstructions =
+  | {
+      sequence: 'first'
+      processingModel: 'unscheduled' | 'recurring' | 'installment'
+    }
+  | {
+      sequence: 'subsequent'
+      processingModel: 'unscheduled' | 'recurring' | 'installment'
+      referenceDataOfFirstTxn: RecurringStandingInstructionsReference
+    }
 
 export interface SecureTokenPaymentMethod {
   type: 'secureToken'
@@ -401,7 +424,13 @@ export interface SecureTokenPaymentMethod {
 }
 
 export interface RecurringPaymentRequest {
-  channel: 'moto'
+  channel: 'pos'
+  // Per Chris Boutwell (Payroc) verbal confirmation 2026-05-27: all
+  // recurring subscription charges use channel "pos" regardless of
+  // how the original card was captured. The channel rule in the
+  // docs (WEB/MOTO/POS based on where the customer authorized) is
+  // satisfied by hardcoding POS for the recurring portion of our
+  // subscription product.
   processingTerminalId: string
   operator: string
   order: {
@@ -412,9 +441,9 @@ export interface RecurringPaymentRequest {
                     // endpoint expects integer minor units; confirmed
                     // against production checkout/route.ts.
     currency: 'USD'
+    standingInstructions: RecurringStandingInstructions
   }
   paymentMethod: SecureTokenPaymentMethod
-  credentialOnFile: RecurringCredentialOnFile
   customer?: {
     firstName?: string
     lastName?: string
