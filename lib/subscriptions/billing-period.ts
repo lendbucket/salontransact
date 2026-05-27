@@ -110,6 +110,13 @@ function computeNextWeekly(
     daysUntil += 7 * intervalCount;
   }
 
+  // Semantic note: if anchorDay is the day before today (e.g., anchor
+  // Sun=0, today Sat=6), the next billing is just 1 day out. This is
+  // intentional — the merchant should expect the customer to be charged
+  // on their next anchor occurrence, whether that's 1 day or 7 days
+  // away. If subscriptions need a minimum gap before first bill, that
+  // belongs at the route layer, not in this pure helper.
+
   const next = new Date(fromDate);
   next.setUTCDate(next.getUTCDate() + daysUntil);
   // Zero out time to get start of day
@@ -136,8 +143,10 @@ function computeNextAnnual(
 }
 
 function dayOfYearToDate(dayOfYear: number, year: number): Date {
-  // Jan 1 = day 1. Create Jan 0 (= Dec 31 of prev year) then add days.
+  // Start at Jan 1, then setUTCDate(N) advances to the Nth day of
+  // the year. JS Date handles month/year rollover automatically:
+  // setUTCDate(60) → Feb 29 in leap years, Mar 1 in non-leap years.
   const date = new Date(Date.UTC(year, 0, 1));
-  date.setUTCDate(dayOfYear); // handles month rollover correctly
+  date.setUTCDate(dayOfYear);
   return date;
 }

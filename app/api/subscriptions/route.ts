@@ -56,6 +56,20 @@ import {
 } from "@/lib/subscriptions/billing-period";
 
 // ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+const VALID_SUBSCRIPTION_STATUSES = [
+  "trialing",
+  "active",
+  "past_due",
+  "paused",
+  "canceled",
+  "incomplete",
+  "incomplete_expired",
+] as const;
+
+// ---------------------------------------------------------------------------
 // Validation
 // ---------------------------------------------------------------------------
 
@@ -362,6 +376,14 @@ export async function GET(request: Request) {
 
     const statusFilter = searchParams.get("status");
     if (statusFilter) {
+      if (!(VALID_SUBSCRIPTION_STATUSES as readonly string[]).includes(statusFilter)) {
+        return NextResponse.json(
+          {
+            error: `Invalid status filter: "${statusFilter}". Must be one of: ${VALID_SUBSCRIPTION_STATUSES.join(", ")}`,
+          },
+          { status: 400 }
+        );
+      }
       where.status = statusFilter;
     }
 
