@@ -93,6 +93,10 @@ export function PlanForm({
     initialValues?.publicSignupEnabled ?? false
   );
   const [slug, setSlug] = useState(initialValues?.publicSignupSlug ?? "");
+  // Initialized true on edit to disable auto-derive-slug-from-name
+  // behavior (existing plans already have a slug; never overwrite it
+  // when the user edits the name). On new mode, initialized false so
+  // the slug auto-fills from the name until the user manually edits it.
   const [userEditedSlug, setUserEditedSlug] = useState(mode === "edit");
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -115,10 +119,15 @@ export function PlanForm({
   function validate(): boolean {
     const errs: Record<string, string> = {};
     if (!name.trim()) errs.name = "Plan name is required";
-    if (!amountDisplay || amountCents < 1)
+    if (!amountDisplay) {
+      errs.amount = "Amount is required";
+    } else if (!/^\d+(\.\d{1,2})?$/.test(amountDisplay)) {
+      errs.amount = "Enter a valid amount (up to 2 decimal places, e.g. 25.00)";
+    } else if (amountCents < 1) {
       errs.amount = "Amount must be at least $0.01";
-    if (amountCents > 100_000_000)
+    } else if (amountCents > 100_000_000) {
       errs.amount = "Amount cannot exceed $1,000,000.00";
+    }
     if (intervalCount < 1 || intervalCount > 365)
       errs.intervalCount = "Must be between 1 and 365";
     if (trialDays !== "") {
@@ -359,7 +368,12 @@ export function PlanForm({
           value={trialDays}
           onChange={(e) => setTrialDays(e.target.value)}
           errorText={errors.trialDays}
-          helperText="Free days before first charge. Leave blank for no trial."
+          helperText={
+            mode === "edit"
+              ? "Trial period can only be set at plan creation. Archive and re-create to change."
+              : "Free days before first charge. Leave blank for no trial."
+          }
+          disabled={mode === "edit"}
         />
       </div>
 
@@ -372,17 +386,29 @@ export function PlanForm({
           id="publicSignupEnabled"
           checked={publicSignupEnabled}
           onChange={(e) => setPublicSignupEnabled(e.target.checked)}
-          style={{ width: 16, height: 16, accentColor: "#017ea7" }}
+          disabled={mode === "edit"}
+          style={{
+            width: 16,
+            height: 16,
+            accentColor: "#017ea7",
+            cursor: mode === "edit" ? "not-allowed" : "pointer",
+          }}
         />
         <label
           htmlFor="publicSignupEnabled"
-          style={{ fontSize: 14, color: "#1A1313" }}
+          style={{
+            fontSize: 14,
+            color: "#1A1313",
+            opacity: mode === "edit" ? 0.55 : 1,
+          }}
         >
           Enable public signup URL
         </label>
       </div>
       <p style={{ fontSize: 12, color: "#878787", marginTop: 4, marginLeft: 24 }}>
-        Customers can subscribe via a public URL
+        {mode === "edit"
+          ? "Public signup settings can only be set at plan creation. Archive and re-create to change."
+          : "Customers can subscribe via a public URL"}
       </p>
 
       {publicSignupEnabled && (
@@ -398,6 +424,7 @@ export function PlanForm({
             errorText={errors.slug}
             helperText={`Subscribe URL: portal.salontransact.com/subscribe/${slug || "..."}`}
             maxLength={100}
+            disabled={mode === "edit"}
           />
         </div>
       )}
