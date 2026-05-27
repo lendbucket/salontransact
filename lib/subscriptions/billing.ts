@@ -226,7 +226,7 @@ export async function chargeInvoice(invoiceId: string): Promise<ChargeInvoiceRes
     // had a successful charge. First charge → sequence="first" with no
     // referenceDataOfFirstTxn. All subsequent charges → sequence="subsequent"
     // with referenceDataOfFirstTxn.paymentId pointing at the first paymentId.
-    const isFirstCharge = subscription.firstPaymentId === null;
+    const isFirstCharge = subscription.firstPaymentId == null;
     const standingInstructions: RecurringPaymentRequest["order"]["standingInstructions"] = isFirstCharge
       ? {
           sequence: "first",
@@ -378,20 +378,53 @@ export async function chargeInvoice(invoiceId: string): Promise<ChargeInvoiceRes
           },
         });
 
-        // Reset failure counters on the subscription. Also persist
-        // firstPaymentId if this is the first successful charge — the
-        // ?? guard preserves the existing value if a prior charge has
-        // already set it. Once set, firstPaymentId is immutable; all
-        // subsequent MIT charges reference it via
-        // standingInstructions.referenceDataOfFirstTxn.paymentId.
-        await tx.subscription.update({
-          where: { id: subscription.id },
-          data: {
-            failedPaymentCount: 0,
-            lastFailureAt: null,
-            firstPaymentId: subscription.firstPaymentId ?? payrocPaymentId,
-          },
-        });
+        // Reset failure counters on the subscription.
+        //
+        // If this was the first charge (isFirstCharge === true),
+        // attempt to atomically claim firstPaymentId via updateMany
+        // with a `firstPaymentId: null` filter. If count === 0, a
+        // concurrent first-charge already won the race and we just
+        // log it — Payroc-level deduplication (deterministic per-day
+        // idempotency key) already prevents the actual double-charge,
+        // but we want to make sure our DB tracks the WINNING
+        // paymentId, not whichever charge happened to commit last.
+        if (isFirstCharge) {
+          const claimResult = await tx.subscription.updateMany({
+            where: { id: subscription.id, firstPaymentId: null },
+            data: {
+              failedPaymentCount: 0,
+              lastFailureAt: null,
+              firstPaymentId: payrocPaymentId,
+            },
+          });
+
+          if (claimResult.count === 0) {
+            // Concurrent job already claimed firstPaymentId for this
+            // subscription. Just reset failure counters without
+            // touching firstPaymentId.
+            console.warn(
+              `[BILLING] cid=${cid} concurrent first-charge race detected ` +
+              `for subscription=${subscription.id} — firstPaymentId already claimed`
+            );
+            await tx.subscription.update({
+              where: { id: subscription.id },
+              data: {
+                failedPaymentCount: 0,
+                lastFailureAt: null,
+              },
+            });
+          }
+        } else {
+          // Subsequent charge — just reset failure counters.
+          // firstPaymentId is already set and immutable.
+          await tx.subscription.update({
+            where: { id: subscription.id },
+            data: {
+              failedPaymentCount: 0,
+              lastFailureAt: null,
+            },
+          });
+        }
 
         await tx.subscriptionEvent.create({
           data: {
@@ -404,8 +437,9 @@ export async function chargeInvoice(invoiceId: string): Promise<ChargeInvoiceRes
               approvalCode,
               amountCents: invoice.totalCents,
               attemptCount,
-              isFirstCharge,
-              sequence: isFirstCharge ? "first" : "subsequent",
+              sequence: standingInstructions.sequence,
+              // sequence is derived from the actual standingInstructions
+              // object that was sent to Payroc — single source of truth.
             },
           },
         });

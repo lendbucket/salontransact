@@ -397,22 +397,26 @@ export interface RecurringStandingInstructionsReference {
   paymentId: string
 }
 
-export interface RecurringStandingInstructions {
-  sequence: 'first' | 'subsequent'
-  // Position in the payment plan sequence per Payroc docs.
-  // "first" = the initial charge for this subscription, no
-  // referenceDataOfFirstTxn (we don't have one yet).
-  // "subsequent" = every charge after the first, must include
-  // referenceDataOfFirstTxn pointing at the first paymentId.
-  processingModel: 'unscheduled' | 'recurring' | 'installment'
-  // Payroc enum. Subscriptions always use "recurring" (regular billing
-  // cycle with no fixed end date). "installment" is for fixed-duration
-  // plans, "unscheduled" is for ad-hoc card-on-file charges.
-  referenceDataOfFirstTxn?: RecurringStandingInstructionsReference
-  // Optional per the docs, but the docs explicitly recommend always
-  // sending it. We always include it on "subsequent" charges and
-  // never on "first".
-}
+// Discriminated union: enforces at compile-time that "subsequent"
+// charges MUST include referenceDataOfFirstTxn (per Payroc spec
+// requirement that recurring MIT references the first paymentId).
+// "first" charges MUST NOT include it (we don't have one yet).
+//
+// processingModel is Payroc enum:
+// - "recurring" = regular billing cycle with no fixed end date
+// - "installment" = fixed-duration plan
+// - "unscheduled" = ad-hoc card-on-file charge
+// Subscriptions always use "recurring".
+export type RecurringStandingInstructions =
+  | {
+      sequence: 'first'
+      processingModel: 'unscheduled' | 'recurring' | 'installment'
+    }
+  | {
+      sequence: 'subsequent'
+      processingModel: 'unscheduled' | 'recurring' | 'installment'
+      referenceDataOfFirstTxn: RecurringStandingInstructionsReference
+    }
 
 export interface SecureTokenPaymentMethod {
   type: 'secureToken'
