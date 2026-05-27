@@ -868,6 +868,14 @@ model Subscription {
   cancellationReason String?
   failedPaymentCount Int       @default(0)
   lastFailureAt      DateTime?
+  firstPaymentId     String?
+  // Payroc paymentId from the very first successful charge.
+  // Set once on the first successful chargeInvoice and immutable
+  // thereafter. Used to populate the
+  // order.standingInstructions.referenceDataOfFirstTxn.paymentId
+  // field on all subsequent recurring MIT charges per Payroc spec.
+  // Null means no successful charge has been made yet (e.g., still
+  // trialing or first charge failed).
   source             String
   // "master_portal" | "stylist" | "customer_signup"
   mandateAcceptedAt  DateTime

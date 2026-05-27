@@ -222,9 +222,28 @@ export async function chargeInvoice(invoiceId: string): Promise<ChargeInvoiceRes
     const terminalId = await getTerminalIdForMerchant(subscription.merchantId);
 
     // ── 5. Build Payroc payment payload ─────────────────────────
+    // Determine sequence based on whether this subscription has ever
+    // had a successful charge. First charge → sequence="first" with no
+    // referenceDataOfFirstTxn. All subsequent charges → sequence="subsequent"
+    // with referenceDataOfFirstTxn.paymentId pointing at the first paymentId.
+    const isFirstCharge = subscription.firstPaymentId === null;
+    const standingInstructions: RecurringPaymentRequest["order"]["standingInstructions"] = isFirstCharge
+      ? {
+          sequence: "first",
+          processingModel: "recurring",
+        }
+      : {
+          sequence: "subsequent",
+          processingModel: "recurring",
+          referenceDataOfFirstTxn: {
+            paymentId: subscription.firstPaymentId!,
+          },
+        };
+
     const paymentPayload: RecurringPaymentRequest = {
-      // TODO: confirm "moto" is correct channel for MIT recurring with Pat (Payroc)
-      channel: "moto",
+      // Channel "pos" for all recurring subscription charges per Chris
+      // Boutwell (Payroc) verbal confirmation 2026-05-27.
+      channel: "pos",
       processingTerminalId: terminalId,
       operator: (subscription.merchant.businessName || "SalonTransact").slice(0, 50),
       order: {
@@ -233,14 +252,11 @@ export async function chargeInvoice(invoiceId: string): Promise<ChargeInvoiceRes
         description: `Subscription: ${subscription.plan.name}`.slice(0, 100),
         amount: invoice.totalCents,
         currency: "USD",
+        standingInstructions,
       },
       paymentMethod: {
         type: "secureToken",
         token: savedCard.payrocToken!,
-      },
-      credentialOnFile: {
-        initiator: "merchant",
-        type: "recurring",
       },
     };
 
@@ -362,12 +378,18 @@ export async function chargeInvoice(invoiceId: string): Promise<ChargeInvoiceRes
           },
         });
 
-        // Reset failure counters on the subscription
+        // Reset failure counters on the subscription. Also persist
+        // firstPaymentId if this is the first successful charge — the
+        // ?? guard preserves the existing value if a prior charge has
+        // already set it. Once set, firstPaymentId is immutable; all
+        // subsequent MIT charges reference it via
+        // standingInstructions.referenceDataOfFirstTxn.paymentId.
         await tx.subscription.update({
           where: { id: subscription.id },
           data: {
             failedPaymentCount: 0,
             lastFailureAt: null,
+            firstPaymentId: subscription.firstPaymentId ?? payrocPaymentId,
           },
         });
 
@@ -382,6 +404,8 @@ export async function chargeInvoice(invoiceId: string): Promise<ChargeInvoiceRes
               approvalCode,
               amountCents: invoice.totalCents,
               attemptCount,
+              isFirstCharge,
+              sequence: isFirstCharge ? "first" : "subsequent",
             },
           },
         });
