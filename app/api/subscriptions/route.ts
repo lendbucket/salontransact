@@ -229,7 +229,11 @@ export async function POST(request: Request) {
     if (isTrialing) {
       status = "trialing";
       currentPeriodStart = now;
-      trialEnd = new Date(now.getTime() + data.trialDays! * 24 * 60 * 60 * 1000);
+      // Use setUTCDate (calendar-day arithmetic) instead of millisecond
+      // math to avoid 1-hour drift across DST boundaries. now is UTC,
+      // and Date.setUTCDate handles month/year rollover.
+      trialEnd = new Date(now);
+      trialEnd.setUTCDate(trialEnd.getUTCDate() + data.trialDays!);
       currentPeriodEnd = trialEnd;
       nextBillingDate = trialEnd;
     } else {

@@ -271,24 +271,59 @@ export async function PATCH(
         );
       }
 
-      await prisma.$transaction(async (tx) => {
-        await tx.subscription.update({
-          where: { id: sub.id },
-          data: { cancelAt: cancelAtDate },
-        });
-        await tx.subscriptionEvent.create({
-          data: {
-            subscriptionId: sub.id,
-            eventType: "subscription.cancel_scheduled",
-            actor,
-            payload: {
-              cancelAt: action.cancelAt,
-              reason: action.reason ?? null,
-              scheduledBy: userId,
+      // Use updateMany with status-guard inside the transaction to
+      // protect against a concurrent cancel-immediate that may have
+      // flipped status to "canceled" between the stale sub load above
+      // and this write. count===0 means the status changed under us;
+      // throw to roll back the transaction and surface a 409.
+      try {
+        await prisma.$transaction(async (tx) => {
+          const updateResult = await tx.subscription.updateMany({
+            where: {
+              id: sub.id,
+              merchantId: merchant.id,
+              status: {
+                in: [...ACTION_MAP.cancel.validFromStates],
+              },
             },
-          },
+            data: { cancelAt: cancelAtDate },
+          });
+
+          if (updateResult.count === 0) {
+            // Status changed concurrently (e.g., cancel-immediate fired)
+            // — abort the transaction by throwing.
+            throw new Error("STATUS_CHANGED_CONCURRENTLY");
+          }
+
+          await tx.subscriptionEvent.create({
+            data: {
+              subscriptionId: sub.id,
+              eventType: "subscription.cancel_scheduled",
+              actor,
+              payload: {
+                cancelAt: action.cancelAt,
+                reason: action.reason ?? null,
+                scheduledBy: userId,
+              },
+            },
+          });
         });
-      });
+      } catch (txErr) {
+        if (
+          txErr instanceof Error &&
+          txErr.message === "STATUS_CHANGED_CONCURRENTLY"
+        ) {
+          return NextResponse.json(
+            {
+              error:
+                "Subscription status changed concurrently. " +
+                "Reload the subscription and try again.",
+            },
+            { status: 409 }
+          );
+        }
+        throw txErr;
+      }
 
       // Re-read for response
       const updated = await prisma.subscription.findFirst({
