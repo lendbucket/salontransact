@@ -272,9 +272,19 @@ export async function chargeInvoice(invoiceId: string): Promise<ChargeInvoiceRes
       payrocResponse = { rawText: responseText };
     }
 
+    // Parse response now to extract safe fields for logging.
+    // Do NOT log responseText.substring(0, N) — that captures masked
+    // card numbers and any other fields Payroc may include.
+    const txnResult = payrocResponse.transactionResult as Record<string, unknown> | undefined;
+    const responseCode = (txnResult?.responseCode ?? payrocResponse.responseCode ?? null) as string | null;
+    const responseMessage = (txnResult?.responseMessage ?? payrocResponse.responseMessage ?? null) as string | null;
+    const approvalCode = (txnResult?.approvalCode ?? payrocResponse.approvalCode ?? null) as string | null;
+    const payrocPaymentId = (payrocResponse.paymentId ?? null) as string | null;
+
     console.log(
       `[BILLING] cid=${cid} invoice=${invoiceId} payroc status=${payrRes.status} ` +
-      `body=${responseText.substring(0, 500)}`
+      `paymentId=${payrocPaymentId ?? "none"} responseCode=${responseCode ?? "none"} ` +
+      `approvalCode=${approvalCode ?? "none"}`
     );
 
     // ── 7. Handle infrastructure errors (5xx, 401, 429) separately ──
@@ -327,14 +337,7 @@ export async function chargeInvoice(invoiceId: string): Promise<ChargeInvoiceRes
       return { success: false, error: failureReason };
     }
 
-    // ── 8. Parse Payroc response ────────────────────────────────
-    const txnResult = payrocResponse.transactionResult as Record<string, unknown> | undefined;
-    const responseCode = (txnResult?.responseCode ?? payrocResponse.responseCode ?? null) as string | null;
-    const responseMessage = (txnResult?.responseMessage ?? payrocResponse.responseMessage ?? null) as string | null;
-    const approvalCode = (txnResult?.approvalCode ?? payrocResponse.approvalCode ?? null) as string | null;
-    const payrocPaymentId = (payrocResponse.paymentId ?? null) as string | null;
-
-    // ── 9. Handle success ───────────────────────────────────────
+    // ── 8. Handle success ───────────────────────────────────────
     if (responseCode === "A") {
       console.log(
         `[BILLING] cid=${cid} invoice=${invoiceId} APPROVED paymentId=${payrocPaymentId} approvalCode=${approvalCode}`
@@ -394,7 +397,7 @@ export async function chargeInvoice(invoiceId: string): Promise<ChargeInvoiceRes
       };
     }
 
-    // ── 10. Handle decline / failure ───────────────────────────
+    // ── 9. Handle decline / failure ────────────────────────────
     console.warn(
       `[BILLING] cid=${cid} invoice=${invoiceId} DECLINED responseCode=${responseCode} ` +
       `message=${responseMessage}`
@@ -441,7 +444,7 @@ export async function chargeInvoice(invoiceId: string): Promise<ChargeInvoiceRes
       declineReason: responseMessage ?? "Payment declined",
     };
 
-  // ── 11. Unexpected error catch ──────────────────────────────
+  // ── 10. Unexpected error catch ──────────────────────────────
   // FIX 3: findUnique runs BEFORE the transaction so we have a known
   // subscriptionId. Guarded with `if (inv)` to avoid FK violations.
   } catch (err) {
