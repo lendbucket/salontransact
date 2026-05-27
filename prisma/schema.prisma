@@ -7,24 +7,24 @@ datasource db {
 }
 
 model User {
-  id                     String    @id @default(cuid())
-  name                   String?
-  email                  String    @unique
-  emailVerified          DateTime?
-  emailVerificationToken String?   @unique
-  image                  String?
-  password               String?
-  role                   String    @default("merchant")
-  approvalStatus               String    @default("pending")
-  notificationDigestFrequency  String    @default("off")
+  id                           String               @id @default(cuid())
+  name                         String?
+  email                        String               @unique
+  emailVerified                DateTime?
+  emailVerificationToken       String?              @unique
+  image                        String?
+  password                     String?
+  role                         String               @default("merchant")
+  approvalStatus               String               @default("pending")
+  notificationDigestFrequency  String               @default("off")
   notificationLastDigestSentAt DateTime?
-  createdAt                    DateTime  @default(now())
-  updatedAt              DateTime  @updatedAt
-  accounts               Account[]
-  sessions               Session[]
-  merchant               Merchant?
-  merchantApplication    MerchantApplication?
-  notifications          Notification[]
+  createdAt                    DateTime             @default(now())
+  updatedAt                    DateTime             @updatedAt
+  accounts                     Account[]
+  sessions                     Session[]
+  merchant                     Merchant?
+  merchantApplication          MerchantApplication?
+  notifications                Notification[]
 }
 
 model Account {
@@ -41,6 +41,7 @@ model Account {
   id_token          String?
   session_state     String?
   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@unique([provider, providerAccountId])
 }
 
@@ -56,95 +57,109 @@ model VerificationToken {
   identifier String
   token      String   @unique
   expires    DateTime
+
   @@unique([identifier, token])
 }
 
 model Merchant {
-  id                    String        @id @default(cuid())
-  userId                String        @unique
-  businessName          String
-  businessType          String?
-  email                 String
-  phone                 String?
-  address               String?
-  city                  String?
-  state                 String?
-  zip                   String?
-  stripeAccountId       String?       @unique
-  stripeAccountStatus   String        @default("pending")
-  stripeOnboardingUrl   String?
-  payoutsEnabled        Boolean       @default(false)
-  chargesEnabled        Boolean       @default(false)
-  monthlyVolume         Float         @default(0)
-  totalVolume           Float         @default(0)
-  totalTransactions     Int           @default(0)
-  plan                  String        @default("starter")
-  status                String        @default("active")
-  createdAt             DateTime      @default(now())
-  updatedAt             DateTime      @updatedAt
-  ein                   String?
-  dbaName               String?
-  ownerFirstName        String?
-  ownerLastName         String?
-  ownerDob              String?
-  ownerSsnLast4         String?
-  ownerTitle            String?
-  ownershipPercentage   Int?
-  ownerAddress          String?
-  bankAccountHolder     String?
-  bankRoutingNumber     String?
-  bankAccountNumber     String?
-  bankAccountType       String?
-  fundingSpeed          String?
-  avgTransaction        String?
-  paymentMethods        String[]
+  id                     String    @id @default(cuid())
+  userId                 String    @unique
+  businessName           String
+  businessType           String?
+  email                  String
+  phone                  String?
+  address                String?
+  city                   String?
+  state                  String?
+  zip                    String?
+  stripeAccountId        String?   @unique
+  stripeAccountStatus    String    @default("pending")
+  stripeOnboardingUrl    String?
+  payoutsEnabled         Boolean   @default(false)
+  chargesEnabled         Boolean   @default(false)
+  monthlyVolume          Float     @default(0)
+  totalVolume            Float     @default(0)
+  totalTransactions      Int       @default(0)
+  plan                   String    @default("starter")
+  status                 String    @default("active")
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+  ein                    String?
+  dbaName                String?
+  ownerFirstName         String?
+  ownerLastName          String?
+  ownerDob               String?
+  ownerSsnLast4          String?
+  ownerTitle             String?
+  ownershipPercentage    Int?
+  ownerAddress           String?
+  bankAccountHolder      String?
+  bankRoutingNumber      String?
+  bankAccountNumber      String?
+  bankAccountType        String?
+  fundingSpeed           String?
+  avgTransaction         String?
+  paymentMethods         String[]
   applicationSubmittedAt DateTime?
-  user                  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  transactions          Transaction[]
-  payouts               Payout[]
-  apiKeys               ApiKey[]
-  webhooks              Webhook[]
-  savedPaymentMethods   SavedPaymentMethod[]
-  devices               Device[]
-  batches               Batch[]
-  contracts             Contract[]
-  customers             Customer[]
-  stylists              Stylist[]
-  bookings              Booking[]
-  cardEntryTokens       CardEntryToken[]
-  velocityAlerts        VelocityAlert[]
-  chargebackAlerts      ChargebackAlert[]
-  locations             Location[]
+
+  // Tax configuration for subscription invoices and any non-subscription
+  // billing that uses merchant-rate tax. See subscriptions-platform-design.md
+  // Section 10 for full rationale.
+  taxRateBasisPoints Int     @default(0)
+  // basis points (e.g. 825 = 8.25%). 0 = no tax.
+  taxJurisdiction    String?
+  // free-text label like "Corpus Christi, TX". Audit/reference only.
+  taxEnabled         Boolean @default(false)
+  // master switch. If false, no tax on any invoice regardless of rate.
+
+  user                User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions        Transaction[]
+  payouts             Payout[]
+  apiKeys             ApiKey[]
+  webhooks            Webhook[]
+  savedPaymentMethods SavedPaymentMethod[]
+  devices             Device[]
+  batches             Batch[]
+  contracts           Contract[]
+  customers           Customer[]
+  stylists            Stylist[]
+  bookings            Booking[]
+  cardEntryTokens     CardEntryToken[]
+  velocityAlerts      VelocityAlert[]
+  chargebackAlerts    ChargebackAlert[]
+  locations           Location[]
+  subscriptionPlans   SubscriptionPlan[]
+  subscriptions       Subscription[]
 }
 
 model Transaction {
-  id               String    @id @default(cuid())
-  merchantId       String
-  stripePaymentId  String?   @unique
-  amount           Float
-  currency         String    @default("usd")
-  status           String
-  description      String?
-  customerEmail    String?
-  customerName     String?
-  customerId       String?
-  stylistId        String?
-  bookingId        String?
-  tipAmount        Float     @default(0)
-  items            Json?
-  fee              Float     @default(0)
-  net              Float     @default(0)
-  refunded         Boolean   @default(false)
-  refundAmount     Float     @default(0)
-  metadata         Json?
-  riskScore        Int       @default(0)
-  riskFactors      Json?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-  merchant         Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
-  customer         Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  stylist          Stylist?  @relation(fields: [stylistId], references: [id], onDelete: SetNull)
-  booking          Booking?  @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  id              String    @id @default(cuid())
+  merchantId      String
+  stripePaymentId String?   @unique
+  amount          Float
+  currency        String    @default("usd")
+  status          String
+  description     String?
+  customerEmail   String?
+  customerName    String?
+  customerId      String?
+  stylistId       String?
+  bookingId       String?
+  tipAmount       Float     @default(0)
+  items           Json?
+  fee             Float     @default(0)
+  net             Float     @default(0)
+  refunded        Boolean   @default(false)
+  refundAmount    Float     @default(0)
+  metadata        Json?
+  riskScore       Int       @default(0)
+  riskFactors     Json?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  merchant        Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  customer        Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  stylist         Stylist?  @relation(fields: [stylistId], references: [id], onDelete: SetNull)
+  booking         Booking?  @relation(fields: [bookingId], references: [id], onDelete: SetNull)
 
   @@index([customerId])
   @@index([stylistId])
@@ -188,16 +203,16 @@ model ApiKey {
 }
 
 model IdempotencyKey {
-  id              String   @id @default(cuid())
-  apiKeyId        String
-  key             String
-  requestHash     String
-  responseStatus  Int
-  responseBody    Json
-  createdAt       DateTime @default(now())
-  expiresAt       DateTime
+  id             String   @id @default(cuid())
+  apiKeyId       String
+  key            String
+  requestHash    String
+  responseStatus Int
+  responseBody   Json
+  createdAt      DateTime @default(now())
+  expiresAt      DateTime
 
-  apiKey          ApiKey   @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+  apiKey ApiKey @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
 
   @@unique([apiKeyId, key])
   @@index([expiresAt])
@@ -205,17 +220,17 @@ model IdempotencyKey {
 }
 
 model Webhook {
-  id              String    @id @default(cuid())
+  id              String            @id @default(cuid())
   merchantId      String
   url             String
   events          String[]
-  active          Boolean   @default(true)
+  active          Boolean           @default(true)
   secret          String
   description     String?
   lastTriggeredAt DateTime?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  merchant        Merchant           @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  merchant        Merchant          @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   deliveries      WebhookDelivery[]
 
   @@index([merchantId])
@@ -224,26 +239,26 @@ model Webhook {
 }
 
 model WebhookDelivery {
-  id              String   @id @default(cuid())
-  webhookId       String
-  merchantId      String
-  eventType       String
-  eventId         String
-  payload         Json
-  signature       String
+  id         String @id @default(cuid())
+  webhookId  String
+  merchantId String
+  eventType  String
+  eventId    String
+  payload    Json
+  signature  String
 
-  status          String   @default("pending")
-  responseStatus  Int?
-  responseBody    String?
-  errorMessage    String?
-  attemptCount    Int      @default(0)
-  lastAttemptAt   DateTime?
-  nextRetryAt     DateTime?
+  status         String    @default("pending")
+  responseStatus Int?
+  responseBody   String?
+  errorMessage   String?
+  attemptCount   Int       @default(0)
+  lastAttemptAt  DateTime?
+  nextRetryAt    DateTime?
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  webhook         Webhook  @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+  webhook Webhook @relation(fields: [webhookId], references: [id], onDelete: Cascade)
 
   @@index([webhookId])
   @@index([merchantId])
@@ -293,23 +308,23 @@ model Affiliate {
 }
 
 model RefundOperation {
-  id                  String   @id @default(cuid())
-  operation           String
-  payrocPaymentId     String
-  payrocRefundId      String?
-  idempotencyKey      String   @unique
-  amountCents         Int
-  description         String?
-  operatorUserId      String
-  operatorEmail       String
-  merchantId          String?
-  status              String
-  payrocRequestBody   Json?
-  payrocResponseBody  Json?
-  payrocStatusCode    Int?
-  errorMessage        String?
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  operation          String
+  payrocPaymentId    String
+  payrocRefundId     String?
+  idempotencyKey     String   @unique
+  amountCents        Int
+  description        String?
+  operatorUserId     String
+  operatorEmail      String
+  merchantId         String?
+  status             String
+  payrocRequestBody  Json?
+  payrocResponseBody Json?
+  payrocStatusCode   Int?
+  errorMessage       String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   @@index([payrocPaymentId])
   @@index([merchantId])
@@ -336,9 +351,10 @@ model SavedPaymentMethod {
   updatedAt           DateTime  @updatedAt
   lastUsedAt          DateTime?
 
-  merchant            Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
-  customer            Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  bookings            Booking[]
+  merchant      Merchant       @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  customer      Customer?      @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  bookings      Booking[]
+  subscriptions Subscription[]
 
   @@index([merchantId, customerEmail])
   @@index([payrocSecureTokenId])
@@ -348,19 +364,19 @@ model SavedPaymentMethod {
 }
 
 model Device {
-  id            String    @id @default(cuid())
-  merchantId    String
-  serialNumber  String    @unique
-  model         String?
-  label         String?
-  status        String    @default("active")
-  pairedAt      DateTime  @default(now())
-  lastSeenAt    DateTime?
-  lastChargeAt  DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id           String    @id @default(cuid())
+  merchantId   String
+  serialNumber String    @unique
+  model        String?
+  label        String?
+  status       String    @default("active")
+  pairedAt     DateTime  @default(now())
+  lastSeenAt   DateTime?
+  lastChargeAt DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
-  merchant      Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  merchant Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
 
   @@index([merchantId])
   @@index([status])
@@ -402,9 +418,9 @@ model WebhookEvent {
 }
 
 model MerchantApplication {
-  id                String   @id @default(cuid())
-  userId            String   @unique
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   legalBusinessName String
   dba               String?
@@ -413,16 +429,16 @@ model MerchantApplication {
   businessPhone     String
   website           String?
 
-  addressStreet     String
-  addressCity       String
-  addressState      String
-  addressZip        String
-  addressCountry    String   @default("US")
+  addressStreet  String
+  addressCity    String
+  addressState   String
+  addressZip     String
+  addressCountry String @default("US")
 
-  ownerFullName     String
-  ownerEmail        String
-  ownerPhone        String
-  ownerTitle        String   @default("Owner")
+  ownerFullName String
+  ownerEmail    String
+  ownerPhone    String
+  ownerTitle    String @default("Owner")
 
   bankName          String
   accountHolderName String
@@ -430,50 +446,50 @@ model MerchantApplication {
   accountNumber     String
   accountType       String
 
-  monthlyVolume     String
-  averageTicket     String
-  mccCode           String
-  agreementAccepted          Boolean  @default(false)
-  signedAgreementContractId  String?
+  monthlyVolume             String
+  averageTicket             String
+  mccCode                   String
+  agreementAccepted         Boolean @default(false)
+  signedAgreementContractId String?
 
   // Master review fields
-  internalNotes              String?
-  approvedAt                 DateTime?
-  approvedById               String?
-  approvedByEmail            String?
-  rejectedAt                 DateTime?
-  rejectedById               String?
-  rejectedByEmail            String?
-  rejectionReason            String?
+  internalNotes   String?
+  approvedAt      DateTime?
+  approvedById    String?
+  approvedByEmail String?
+  rejectedAt      DateTime?
+  rejectedById    String?
+  rejectedByEmail String?
+  rejectionReason String?
 
   // Payroc boarding fields
-  payrocSubmittedAt          DateTime?
-  payrocSubmittedById        String?
-  payrocSubmittedByEmail     String?
-  payrocActivatedAt          DateTime?
-  payrocActivatedById        String?
-  payrocActivatedByEmail     String?
-  payrocMid                  String?
+  payrocSubmittedAt      DateTime?
+  payrocSubmittedById    String?
+  payrocSubmittedByEmail String?
+  payrocActivatedAt      DateTime?
+  payrocActivatedById    String?
+  payrocActivatedByEmail String?
+  payrocMid              String?
 
-  status            String   @default("submitted")
-  submittedAt       DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  status      String   @default("submitted")
+  submittedAt DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@index([userId])
   @@index([status])
 }
 
 model AuditLog {
-  id          String   @id @default(cuid())
-  actorId     String
-  actorEmail  String
-  actorRole   String
-  action      String
-  targetType  String
-  targetId    String
-  merchantId  String?
-  metadata    Json?
-  createdAt   DateTime @default(now())
+  id            String         @id @default(cuid())
+  actorId       String
+  actorEmail    String
+  actorRole     String
+  action        String
+  targetType    String
+  targetId      String
+  merchantId    String?
+  metadata      Json?
+  createdAt     DateTime       @default(now())
   notifications Notification[]
 
   @@index([actorId])
@@ -484,20 +500,20 @@ model AuditLog {
 }
 
 model Batch {
-  id                  String    @id @default(cuid())
-  payrocBatchId       String    @unique
-  merchantId          String
-  totalAmount         Float
-  totalFeesCustomer   Float     @default(0)
-  transactionCount    Int       @default(0)
-  status              String
-  openedAt            DateTime
-  closedAt            DateTime?
-  settledAt           DateTime?
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
-  merchant            Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
-  payouts             Payout[]
+  id                String    @id @default(cuid())
+  payrocBatchId     String    @unique
+  merchantId        String
+  totalAmount       Float
+  totalFeesCustomer Float     @default(0)
+  transactionCount  Int       @default(0)
+  status            String
+  openedAt          DateTime
+  closedAt          DateTime?
+  settledAt         DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  merchant          Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  payouts           Payout[]
 
   @@index([merchantId])
   @@index([status])
@@ -506,21 +522,21 @@ model Batch {
 }
 
 model Notification {
-  id          String    @id @default(cuid())
-  userId      String
-  merchantId  String?
-  category    String
-  severity    String
-  title       String
-  message     String
-  link        String?
-  metadata    Json?
-  auditLogId  String?
-  read        Boolean   @default(false)
-  readAt      DateTime?
-  createdAt   DateTime  @default(now())
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  auditLog    AuditLog? @relation(fields: [auditLogId], references: [id], onDelete: SetNull)
+  id         String    @id @default(cuid())
+  userId     String
+  merchantId String?
+  category   String
+  severity   String
+  title      String
+  message    String
+  link       String?
+  metadata   Json?
+  auditLogId String?
+  read       Boolean   @default(false)
+  readAt     DateTime?
+  createdAt  DateTime  @default(now())
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  auditLog   AuditLog? @relation(fields: [auditLogId], references: [id], onDelete: SetNull)
 
   @@index([userId, read])
   @@index([userId, createdAt])
@@ -566,7 +582,7 @@ model Contract {
   notes           String?
   createdAt       DateTime @default(now())
 
-  merchant        Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  merchant Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
 
   @@index([merchantId])
   @@index([docType])
@@ -575,20 +591,25 @@ model Contract {
 }
 
 model Customer {
-  id                  String    @id @default(cuid())
-  merchantId          String
-  email               String
-  name                String?
-  phone               String?
-  firstSeenAt         DateTime  @default(now())
-  lastSeenAt          DateTime  @default(now())
-  totalTransactions   Int       @default(0)
-  totalSpentCents     Int       @default(0)
+  id                String   @id @default(cuid())
+  merchantId        String
+  email             String
+  name              String?
+  phone             String?
+  firstSeenAt       DateTime @default(now())
+  lastSeenAt        DateTime @default(now())
+  totalTransactions Int      @default(0)
+  totalSpentCents   Int      @default(0)
 
-  merchant            Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  taxExempt Boolean @default(false)
+  // when true, all invoices for this customer have $0 tax regardless
+  // of merchant settings or plan settings.
+
+  merchant            Merchant             @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   transactions        Transaction[]
   savedPaymentMethods SavedPaymentMethod[]
   bookings            Booking[]
+  subscriptions       Subscription[]
 
   @@unique([merchantId, email])
   @@index([merchantId])
@@ -597,24 +618,24 @@ model Customer {
 }
 
 model Stylist {
-  id              String    @id @default(cuid())
-  merchantId      String
-  name            String
-  email           String?
-  phone           String?
-  role            String    @default("stylist")
-  commissionRate  Float?
-  hourlyRate      Float?
-  payoutMethod    String?
-  status          String    @default("active")
-  externalRef     String?
+  id             String  @id @default(cuid())
+  merchantId     String
+  name           String
+  email          String?
+  phone          String?
+  role           String  @default("stylist")
+  commissionRate Float?
+  hourlyRate     Float?
+  payoutMethod   String?
+  status         String  @default("active")
+  externalRef    String?
 
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  merchant        Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
-  transactions    Transaction[]
-  bookings        Booking[]
+  merchant     Merchant      @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+  bookings     Booking[]
 
   @@unique([merchantId, externalRef])
   @@index([merchantId])
@@ -623,37 +644,37 @@ model Stylist {
 }
 
 model Booking {
-  id                    String    @id @default(cuid())
-  merchantId            String
-  stylistId             String?
-  customerId            String?
-  savedPaymentMethodId  String?
+  id                   String  @id @default(cuid())
+  merchantId           String
+  stylistId            String?
+  customerId           String?
+  savedPaymentMethodId String?
 
-  scheduledFor          DateTime
-  durationMinutes       Int       @default(60)
-  serviceCode           String?
-  serviceName           String?
-  expectedAmountCents   Int       @default(0)
+  scheduledFor        DateTime
+  durationMinutes     Int      @default(60)
+  serviceCode         String?
+  serviceName         String?
+  expectedAmountCents Int      @default(0)
 
-  status                String    @default("booked")
-  authHoldId            String?
-  authHoldAmountCents   Int?
-  authHoldExpiresAt     DateTime?
+  status              String    @default("booked")
+  authHoldId          String?
+  authHoldAmountCents Int?
+  authHoldExpiresAt   DateTime?
 
-  externalBookingId     String?
-  externalSource        String?
+  externalBookingId String?
+  externalSource    String?
 
-  notes                 String?
+  notes String?
 
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  merchant              Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
-  stylist               Stylist?  @relation(fields: [stylistId], references: [id], onDelete: SetNull)
-  customer              Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  savedPaymentMethod    SavedPaymentMethod? @relation(fields: [savedPaymentMethodId], references: [id], onDelete: SetNull)
-  transactions          Transaction[]
-  cardEntryTokens       CardEntryToken[]
+  merchant           Merchant            @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  stylist            Stylist?            @relation(fields: [stylistId], references: [id], onDelete: SetNull)
+  customer           Customer?           @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  savedPaymentMethod SavedPaymentMethod? @relation(fields: [savedPaymentMethodId], references: [id], onDelete: SetNull)
+  transactions       Transaction[]
+  cardEntryTokens    CardEntryToken[]
 
   @@unique([merchantId, externalSource, externalBookingId])
   @@index([merchantId])
@@ -664,27 +685,27 @@ model Booking {
 }
 
 model CardEntryToken {
-  id                    String    @id @default(cuid())
-  merchantId            String
-  bookingId             String?
-  customerPhone         String
-  customerName          String?
-  customerEmail         String?
+  id            String  @id @default(cuid())
+  merchantId    String
+  bookingId     String?
+  customerPhone String
+  customerName  String?
+  customerEmail String?
 
-  signedToken           String    @unique
-  expiresAt             DateTime
-  usedAt                DateTime?
-  status                String    @default("active")
+  signedToken                   String    @unique
+  expiresAt                     DateTime
+  usedAt                        DateTime?
+  status                        String    @default("active")
   resultingSavedPaymentMethodId String?
 
-  smsSentAt             DateTime?
-  smsSid                String?
+  smsSentAt DateTime?
+  smsSid    String?
 
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  merchant              Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
-  booking               Booking?  @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  merchant Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  booking  Booking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
 
   @@index([merchantId])
   @@index([bookingId])
@@ -693,22 +714,22 @@ model CardEntryToken {
 }
 
 model VelocityAlert {
-  id              String   @id @default(cuid())
+  id              String    @id @default(cuid())
   merchantId      String
   ruleCode        String
   ruleDescription String
-  severity        String   @default("warn")
-  status          String   @default("detected")
+  severity        String    @default("warn")
+  status          String    @default("detected")
   customerId      String?
   customerEmail   String?
   cardLast4       String?
   triggerData     Json?
   amountCents     Int?
-  detectedAt      DateTime @default(now())
+  detectedAt      DateTime  @default(now())
   reviewedAt      DateTime?
   reviewedBy      String?
 
-  merchant        Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  merchant Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
 
   @@index([merchantId])
   @@index([ruleCode])
@@ -718,20 +739,20 @@ model VelocityAlert {
 }
 
 model ChargebackAlert {
-  id               String   @id @default(cuid())
-  merchantId       String
-  threshold        String
-  ratioPercent     Float
-  chargebackCount  Int
-  totalCharges     Int
-  windowDays       Int      @default(90)
-  emailSentTo      String?
-  smsSentTo        String?
-  emailSentAt      DateTime?
-  smsSentAt        DateTime?
-  createdAt        DateTime @default(now())
+  id              String    @id @default(cuid())
+  merchantId      String
+  threshold       String
+  ratioPercent    Float
+  chargebackCount Int
+  totalCharges    Int
+  windowDays      Int       @default(90)
+  emailSentTo     String?
+  smsSentTo       String?
+  emailSentAt     DateTime?
+  smsSentAt       DateTime?
+  createdAt       DateTime  @default(now())
 
-  merchant         Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  merchant Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
 
   @@index([merchantId])
   @@index([threshold])
@@ -750,27 +771,176 @@ model ChargebackAlert {
 // stays nullable.
 // ─────────────────────────────────────────────────────────────────────
 model Location {
-  id                  String    @id @default(cuid())
-  merchantId          String
-  name                String
-  addressLine1        String?
-  addressLine2        String?
-  city                String?
-  state               String?
-  zip                 String?
-  phone               String?
-  timezone            String    @default("America/Chicago")
-  payrocTerminalId    String?
-  status              String    @default("active")
-  isPrimary           Boolean   @default(false)
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
+  id               String   @id @default(cuid())
+  merchantId       String
+  name             String
+  addressLine1     String?
+  addressLine2     String?
+  city             String?
+  state            String?
+  zip              String?
+  phone            String?
+  timezone         String   @default("America/Chicago")
+  payrocTerminalId String?
+  status           String   @default("active")
+  isPrimary        Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
-  merchant            Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  merchant Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
 
   @@index([merchantId])
   @@index([merchantId, status])
   @@index([payrocTerminalId])
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Subscriptions Platform V1 — see docs/subscriptions-platform-design.md
+//
+// Recurring billing platform. SubscriptionPlan is the template
+// (merchant-defined product). Subscription is a customer's active
+// agreement against a plan. SubscriptionInvoice is one cycle's billing
+// record. SubscriptionEvent is the audit log for all subscription
+// state changes.
+//
+// Status/source/interval fields use String (not Prisma enum) for
+// consistency with the rest of the codebase. Allowed values are
+// documented in each field's inline comment.
+//
+// All money in cents as Int. All timestamps UTC.
+// ─────────────────────────────────────────────────────────────────
+
+model SubscriptionPlan {
+  id                  String   @id @default(cuid())
+  merchantId          String
+  name                String
+  description         String?
+  status              String   @default("active")
+  // "active" | "archived"
+  amountCents         Int
+  // price per interval in cents
+  currency            String   @default("usd")
+  taxable             Boolean  @default(true)
+  // whether tax applies to this plan
+  interval            String
+  // "WEEKLY" | "MONTHLY" | "ANNUAL"
+  intervalCount       Int      @default(1)
+  // e.g. 2 + MONTHLY = every 2 months
+  trialDays           Int?
+  // null = no trial
+  publicSignupEnabled Boolean  @default(false)
+  publicSignupSlug    String?  @unique
+  // URL slug for customer self-signup
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  merchant      Merchant       @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  subscriptions Subscription[]
+
+  @@index([merchantId, status])
+}
+
+model Subscription {
+  id                 String    @id @default(cuid())
+  merchantId         String
+  // denormalized from plan for query perf
+  planId             String
+  customerId         String
+  savedCardId        String
+  status             String
+  // "trialing" | "active" | "past_due" | "paused" | "canceled"
+  // | "incomplete" | "incomplete_expired"
+  // No default — every code path that creates a subscription must explicitly
+  // set the status. The correct initial status depends on the channel
+  // (master_portal/stylist channels create active or trialing; customer
+  // signup creates incomplete pending payment validation).
+  anchorDay          Int
+  // billing anchor day-of-month (1–28)
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  nextBillingDate    DateTime?
+  // null when canceled/paused
+  trialEnd           DateTime?
+  cancelAt           DateTime?
+  // scheduled future cancel
+  canceledAt         DateTime?
+  // actual cancel timestamp
+  cancellationReason String?
+  failedPaymentCount Int       @default(0)
+  lastFailureAt      DateTime?
+  source             String
+  // "master_portal" | "stylist" | "customer_signup"
+  mandateAcceptedAt  DateTime
+  // when customer agreed to recurring
+  mandateText        String
+  // the text they agreed to
+  mandateIpAddress   String?
+  mandateUserAgent   String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  merchant  Merchant              @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  plan      SubscriptionPlan      @relation(fields: [planId], references: [id], onDelete: Restrict)
+  customer  Customer              @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  savedCard SavedPaymentMethod    @relation(fields: [savedCardId], references: [id], onDelete: Restrict)
+  invoices  SubscriptionInvoice[]
+  events    SubscriptionEvent[]
+
+  @@index([merchantId, status])
+  @@index([nextBillingDate, status])
+  @@index([customerId])
+}
+
+model SubscriptionInvoice {
+  id                       String    @id @default(cuid())
+  subscriptionId           String
+  merchantId               String
+  // denormalized for queries
+  periodStart              DateTime
+  periodEnd                DateTime
+  subtotalCents            Int
+  // pre-tax amount
+  taxCents                 Int
+  // computed tax
+  totalCents               Int
+  // subtotal + tax
+  taxRateAtBilling         Int?
+  // basis points snapshot at billing time
+  taxJurisdictionAtBilling String?
+  // jurisdiction snapshot
+  status                   String    @default("pending")
+  // "pending" | "paid" | "failed_retrying" | "failed_terminal" | "refunded" | "voided"
+  paymentId                String?
+  // Payroc payment ID when paid
+  paidAt                   DateTime?
+  attemptCount             Int       @default(0)
+  lastAttemptAt            DateTime?
+  nextAttemptAt            DateTime?
+  failureReason            String?
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([subscriptionId])
+  @@index([status, nextAttemptAt])
+  @@index([merchantId, createdAt])
+}
+
+model SubscriptionEvent {
+  id             String   @id @default(cuid())
+  subscriptionId String
+  eventType      String
+  // e.g. "subscription.created", "invoice.paid"
+  actor          String
+  // e.g. "system", "merchant:cuid", "customer:cuid"
+  data           Json
+  // event-specific payload
+  createdAt      DateTime @default(now())
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([subscriptionId, createdAt])
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -788,26 +958,26 @@ model Location {
 // ─────────────────────────────────────────────────────────────────
 
 model CertTestSession {
-  id              String          @id @default(cuid())
+  id              String  @id @default(cuid())
   name            String
   description     String?
-  status          String          @default("in_progress")  // in_progress | complete | abandoned
+  status          String  @default("in_progress") // in_progress | complete | abandoned
   merchantId      String?
   apiKeyId        String?
   terminalSerial  String?
   createdByUserId String
 
-  totalTests      Int             @default(0)
-  passedTests     Int             @default(0)
-  failedTests     Int             @default(0)
-  skippedTests    Int             @default(0)
+  totalTests   Int @default(0)
+  passedTests  Int @default(0)
+  failedTests  Int @default(0)
+  skippedTests Int @default(0)
 
-  startedAt       DateTime        @default(now())
-  completedAt     DateTime?
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  runs            CertTestRun[]
+  runs CertTestRun[]
 
   @@index([status])
   @@index([createdByUserId])
@@ -815,30 +985,30 @@ model CertTestSession {
 }
 
 model CertTestRun {
-  id            String           @id @default(cuid())
-  sessionId     String
+  id        String @id @default(cuid())
+  sessionId String
 
-  testCaseId    String           // matches the id in lib/cert/test-cases.ts
-  sheetName     String           // "CNP" or "CP"
-  sectionName   String           // e.g. "Credit Card Sale NO Secure Token"
-  transactionType String          // e.g. "Sale", "Pre-Authorization", "Capture", "Void/Reversal"
-  scenario      String           // full scenario directions from spreadsheet
-  expectedResult String          // e.g. "Approved", "Decline", "Approve/Decline"
-  required      Boolean          @default(false)
+  testCaseId      String // matches the id in lib/cert/test-cases.ts
+  sheetName       String // "CNP" or "CP"
+  sectionName     String // e.g. "Credit Card Sale NO Secure Token"
+  transactionType String // e.g. "Sale", "Pre-Authorization", "Capture", "Void/Reversal"
+  scenario        String // full scenario directions from spreadsheet
+  expectedResult  String // e.g. "Approved", "Decline", "Approve/Decline"
+  required        Boolean @default(false)
 
-  status        String           @default("pending")  // pending | running | passed | failed | skipped
-  paymentId     String?          // Payroc paymentId / uniqueRef when test runs
-  sessionToken  String?          // For Hosted Fields tests
-  notes         String?
-  errorMessage  String?
-  testAmountCents Int?           // Amount used (controls Payroc test response)
-  testCardLast4 String?
+  status          String  @default("pending") // pending | running | passed | failed | skipped
+  paymentId       String? // Payroc paymentId / uniqueRef when test runs
+  sessionToken    String? // For Hosted Fields tests
+  notes           String?
+  errorMessage    String?
+  testAmountCents Int? // Amount used (controls Payroc test response)
+  testCardLast4   String?
 
-  ranAt         DateTime?
-  createdAt     DateTime         @default(now())
-  updatedAt     DateTime         @updatedAt
+  ranAt     DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
-  session       CertTestSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  session CertTestSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@index([sessionId])
   @@index([sessionId, sheetName])
