@@ -89,11 +89,15 @@ export function PlanDetailClient({
     }
   }
 
-  function handleCopyLink() {
-    const url = `portal.salontransact.com/subscribe/${plan.publicSignupSlug}`;
-    navigator.clipboard.writeText(url);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  async function handleCopyLink() {
+    const url = `https://portal.salontransact.com/subscribe/${plan.publicSignupSlug}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      showToast("error", "Could not copy link. Copy it manually from the URL field.");
+    }
   }
 
   const detailRow = (label: string, value: React.ReactNode) => (

@@ -348,7 +348,7 @@ export function PlansListClient({ initialPlans }: Props) {
           </div>
 
           {/* Mobile cards */}
-          <div className="md:hidden" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div className="md:hidden flex flex-col" style={{ gap: 12 }}>
             {filtered.map((plan) => (
               <Card
                 key={plan.id}

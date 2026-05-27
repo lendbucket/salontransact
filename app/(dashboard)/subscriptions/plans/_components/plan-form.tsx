@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TaxPreview } from "./tax-preview";
@@ -80,7 +80,7 @@ export function PlanForm({
     initialValues?.amountCents ? (initialValues.amountCents / 100).toFixed(2) : ""
   );
   const [taxable, setTaxable] = useState(initialValues?.taxable ?? true);
-  const [interval, setInterval] = useState<"WEEKLY" | "MONTHLY" | "ANNUAL">(
+  const [interval, setBillingInterval] = useState<"WEEKLY" | "MONTHLY" | "ANNUAL">(
     initialValues?.interval ?? "MONTHLY"
   );
   const [intervalCount, setIntervalCount] = useState(
@@ -104,7 +104,10 @@ export function PlanForm({
     }
   }, [name, mode, userEditedSlug]);
 
-  const amountCents = Math.round(parseFloat(amountDisplay || "0") * 100);
+  const amountCents = useMemo(
+    () => Math.round(parseFloat(amountDisplay || "0") * 100),
+    [amountDisplay]
+  );
 
   const intervalLabel = interval.toLowerCase();
   const intervalSuffix = intervalCount > 1 ? "s" : "";
@@ -323,7 +326,7 @@ export function PlanForm({
           disabled={immutableFieldsDisabled}
           value={interval}
           onChange={(e) =>
-            setInterval(e.target.value as "WEEKLY" | "MONTHLY" | "ANNUAL")
+            setBillingInterval(e.target.value as "WEEKLY" | "MONTHLY" | "ANNUAL")
           }
         >
           <option value="WEEKLY">Weekly</option>
