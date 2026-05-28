@@ -431,6 +431,13 @@ export async function GET(request: Request) {
             intervalCount: true,
           },
         },
+        customer: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
       },
       orderBy: { createdAt: "desc" },
       take: 100,
