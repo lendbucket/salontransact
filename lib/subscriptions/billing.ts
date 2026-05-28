@@ -256,8 +256,20 @@ export async function chargeInvoice(invoiceId: string): Promise<ChargeInvoiceRes
     // where the original auth happened. D2 will surface this as a
     // selector on subscription creation; V1 subscriptions all default
     // to pos until then.
+    //
+    // Runtime guard: column is freeform String? at the DB level. If a
+    // bad value lands there (direct SQL, future migration, a bug in D2
+    // form submission), default to "pos" rather than passing it to
+    // Payroc and getting an opaque channel-error response. Tradeoff:
+    // a wrong value silently becomes "pos" rather than surfacing a
+    // descriptive error. Acceptable for V1 — the bad-value path
+    // shouldn't exist once D2 ships proper validation, and "pos" is
+    // the conservative fallback for the in-person master-stub use case.
+    const rawChannel = subscription.originatingChannel;
     const channelForCharge: "pos" | "web" | "moto" =
-      (subscription.originatingChannel as "pos" | "web" | "moto" | null | undefined) ?? "pos";
+      rawChannel === "pos" || rawChannel === "web" || rawChannel === "moto"
+        ? rawChannel
+        : "pos";
 
     const paymentPayload: RecurringPaymentRequest = {
       channel: channelForCharge,
