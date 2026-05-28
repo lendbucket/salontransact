@@ -31,6 +31,11 @@ interface SubscriptionListRow {
     interval: string;
     intervalCount: number;
   };
+  customer: {
+    id: string;
+    name: string | null;
+    email: string;
+  };
 }
 
 const STATUS_FILTERS = [
@@ -243,10 +248,10 @@ export function AllListClient() {
                     <tr key={row.id} style={{ borderTop: "1px solid #F4F5F7" }}>
                       <Td>
                         <span style={{ fontWeight: 500, color: "#1A1313" }}>
-                          {row.customerId.slice(0, 12)}…
+                          {row.customer.name ?? row.customer.email}
                         </span>
                         <div style={{ fontSize: 11, color: "#878787", marginTop: 2 }}>
-                          {row.source}
+                          {row.customer.name ? row.customer.email : row.source}
                         </div>
                       </Td>
                       <Td>
@@ -316,7 +321,7 @@ export function AllListClient() {
                     </span>
                   </div>
                   <div style={{ fontSize: 12, color: "#4A4A4A", marginBottom: 4 }}>
-                    {row.customerId.slice(0, 16)}…
+                    {row.customer.name ?? row.customer.email}
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#878787" }}>
                     <span>Next: {fmtDate(row.nextBillingDate)}</span>
