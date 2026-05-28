@@ -395,6 +395,10 @@ export interface BinLookupResponse {
 
 export interface RecurringStandingInstructionsReference {
   paymentId: string
+  cardSchemeReferenceId?: string
+  // Optional card-scheme issuer reference ID per Chris Boutwell
+  // (Payroc) spec 2026-05-27. When the first charge response
+  // includes it, persist and forward it on subsequent charges.
 }
 
 // Discriminated union: enforces at compile-time that "subsequent"
@@ -424,13 +428,14 @@ export interface SecureTokenPaymentMethod {
 }
 
 export interface RecurringPaymentRequest {
-  channel: 'pos'
-  // Per Chris Boutwell (Payroc) verbal confirmation 2026-05-27: all
-  // recurring subscription charges use channel "pos" regardless of
-  // how the original card was captured. The channel rule in the
-  // docs (WEB/MOTO/POS based on where the customer authorized) is
-  // satisfied by hardcoding POS for the recurring portion of our
-  // subscription product.
+  channel: 'pos' | 'web' | 'moto'
+  // CORRECTED 2026-05-27 PM (Chris Boutwell, Slack): channel must
+  // match where the consumer originally authorized the auth. POS
+  // for in-person card capture, WEB for website, MOTO for phone/
+  // mail order. We store the channel per-subscription in
+  // Subscription.originatingChannel and pass it through here.
+  // Default to "pos" when null on the subscription row (matches
+  // master-stub-merchant in-person use case for V1).
   processingTerminalId: string
   operator: string
   order: {
@@ -453,6 +458,11 @@ export interface RecurringPaymentRequest {
 
 export interface PayrocPaymentResponseV2 {
   paymentId: string
+  cardSchemeReferenceId?: string
+  // Card scheme reference ID — Chris's docs show this may be
+  // returned at the top level on first charges. We probe multiple
+  // locations (top-level, card.*, transactionResult.*) in
+  // billing.ts since the exact response shape isn't documented.
   order: {
     orderId: string
     amount: number
@@ -461,10 +471,12 @@ export interface PayrocPaymentResponseV2 {
   card?: {
     type?: string
     cardNumber?: string
+    cardSchemeReferenceId?: string
   }
   transactionResult: {
     responseCode: string
     responseMessage: string
     approvalCode?: string
+    cardSchemeReferenceId?: string
   }
 }

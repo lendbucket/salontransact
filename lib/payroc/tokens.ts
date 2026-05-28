@@ -42,15 +42,24 @@ export async function getSecureToken(
 /**
  * Partially update a Secure Token. PATCH per docs.
  *
+ * Optional terminalId parameter overrides the env-var TERMINAL_ID
+ * for multi-merchant use (subscriptions need to update tokens
+ * against the specific merchant's terminal, not the env-var
+ * default). When omitted, falls back to PAYROC_TERMINAL_ID env
+ * var — preserves backward compatibility with cert tests and
+ * legacy callers.
+ *
  * https://docs.payroc.com/api/schema/tokenization/secure-tokens/partially-update
  */
 export async function updateSecureToken(
   secureTokenId: string,
-  updates: UpdateSecureTokenRequest
+  updates: UpdateSecureTokenRequest,
+  terminalId?: string
 ): Promise<CreateSecureTokenResponse> {
+  const tid = terminalId ?? TERMINAL_ID
   return payrocRequest<CreateSecureTokenResponse>(
     'PATCH',
-    `/processing-terminals/${TERMINAL_ID}/secure-tokens/${encodeURIComponent(secureTokenId)}`,
+    `/processing-terminals/${tid}/secure-tokens/${encodeURIComponent(secureTokenId)}`,
     updates
   )
 }

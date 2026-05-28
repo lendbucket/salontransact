@@ -876,6 +876,18 @@ model Subscription {
   // field on all subsequent recurring MIT charges per Payroc spec.
   // Null means no successful charge has been made yet (e.g., still
   // trialing or first charge failed).
+  firstCardSchemeReferenceId  String?
+  // Card scheme (Visa/Mastercard/etc) reference ID captured from
+  // Payroc's response on the first successful charge. Used alongside
+  // firstPaymentId in referenceDataOfFirstTxn for subsequent MIT
+  // charges per Chris Boutwell (Payroc) spec 2026-05-27. Optional;
+  // omitted from subsequent-charge payloads when null.
+  originatingChannel          String?
+  // Channel where the original card authorization happened — "pos"
+  // (in-person), "web", or "moto". Per Chris Boutwell (Payroc)
+  // 2026-05-27, all MIT charges must use the same channel as the
+  // original auth. Null means default to "pos" at charge time
+  // (matches the master-stub-merchant in-person use case for V1).
   source             String
   // "master_portal" | "stylist" | "customer_signup"
   mandateAcceptedAt  DateTime
