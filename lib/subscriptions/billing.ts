@@ -355,11 +355,17 @@ export async function chargeInvoice(invoiceId: string): Promise<ChargeInvoiceRes
     // response shape isn't documented. Chris Boutwell's spec shows
     // it should be returned somewhere on first-charge responses;
     // first match wins. Null is fine — we only persist when non-null.
+    // Each probe is typeof-guarded: if Payroc returns a non-string
+    // (number, nested object, etc.) at any location, we treat it as
+    // missing rather than silently casting and storing garbage in a
+    // String? column.
+    const pickString = (v: unknown): string | null =>
+      typeof v === "string" && v.length > 0 ? v : null;
     const cardSchemeReferenceId =
-      (payrocResponse.cardSchemeReferenceId ??
-        card?.cardSchemeReferenceId ??
-        txnResult?.cardSchemeReferenceId ??
-        null) as string | null;
+      pickString(payrocResponse.cardSchemeReferenceId) ??
+      pickString(card?.cardSchemeReferenceId) ??
+      pickString(txnResult?.cardSchemeReferenceId) ??
+      null;
 
     console.log(
       `[BILLING] cid=${cid} invoice=${invoiceId} payroc status=${payrRes.status} ` +
