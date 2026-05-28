@@ -373,16 +373,23 @@ export async function chargeInvoice(invoiceId: string): Promise<ChargeInvoiceRes
     // String? column.
     const pickString = (v: unknown): string | null =>
       typeof v === "string" && v.length > 0 ? v : null;
-    const cardSchemeReferenceId =
-      pickString(payrocResponse.cardSchemeReferenceId) ??
-      pickString(card?.cardSchemeReferenceId) ??
-      pickString(txnResult?.cardSchemeReferenceId) ??
-      null;
+    // Track which probe location matched so Friday's empirical test
+    // can lock in the canonical response shape and a future PR can
+    // drop the other two probes. Logs "none" when no match — also
+    // useful: tells us whether Payroc returned it at all on first
+    // charges with mitAgreement=recurring tokens.
+    const probeTop = pickString(payrocResponse.cardSchemeReferenceId);
+    const probeCard = pickString(card?.cardSchemeReferenceId);
+    const probeTxn = pickString(txnResult?.cardSchemeReferenceId);
+    const cardSchemeReferenceId = probeTop ?? probeCard ?? probeTxn ?? null;
+    const cardSchemeReferenceIdSource: "top" | "card" | "txnResult" | "none" =
+      probeTop ? "top" : probeCard ? "card" : probeTxn ? "txnResult" : "none";
 
     console.log(
       `[BILLING] cid=${cid} invoice=${invoiceId} payroc status=${payrRes.status} ` +
       `paymentId=${payrocPaymentId ?? "none"} responseCode=${responseCode ?? "none"} ` +
-      `approvalCode=${approvalCode ?? "none"}`
+      `approvalCode=${approvalCode ?? "none"} ` +
+      `cardSchemeRefSource=${cardSchemeReferenceIdSource}`
     );
 
     // ── 7. Handle infrastructure errors (5xx, 401, 429) separately ──
