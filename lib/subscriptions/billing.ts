@@ -16,6 +16,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { getPayrocToken, getTerminalIdForMerchant } from "@/lib/payroc/client";
+import { updateSecureToken } from "@/lib/payroc/tokens";
 import type { RecurringPaymentRequest } from "@/lib/payroc/types";
 import crypto from "crypto";
 
@@ -239,13 +240,39 @@ export async function chargeInvoice(invoiceId: string): Promise<ChargeInvoiceRes
             // non-null: isFirstCharge === false implies firstPaymentId
             // was set on a prior successful charge and is immutable.
             paymentId: subscription.firstPaymentId!,
+            // Include cardSchemeReferenceId when we captured it on
+            // the first charge (Chris Boutwell spec 2026-05-27).
+            // Omit the property entirely when null/undefined so we
+            // don't send empty strings to Payroc.
+            ...(subscription.firstCardSchemeReferenceId
+              ? { cardSchemeReferenceId: subscription.firstCardSchemeReferenceId }
+              : {}),
           },
         };
 
+    // Determine channel from the subscription. Null defaults to "pos"
+    // (in-person master-stub-merchant V1 use case). Per Chris Boutwell
+    // (Payroc) 2026-05-27 PM Slack correction: channel MUST match
+    // where the original auth happened. D2 will surface this as a
+    // selector on subscription creation; V1 subscriptions all default
+    // to pos until then.
+    //
+    // Runtime guard: column is freeform String? at the DB level. If a
+    // bad value lands there (direct SQL, future migration, a bug in D2
+    // form submission), default to "pos" rather than passing it to
+    // Payroc and getting an opaque channel-error response. Tradeoff:
+    // a wrong value silently becomes "pos" rather than surfacing a
+    // descriptive error. Acceptable for V1 — the bad-value path
+    // shouldn't exist once D2 ships proper validation, and "pos" is
+    // the conservative fallback for the in-person master-stub use case.
+    const rawChannel = subscription.originatingChannel;
+    const channelForCharge: "pos" | "web" | "moto" =
+      rawChannel === "pos" || rawChannel === "web" || rawChannel === "moto"
+        ? rawChannel
+        : "pos";
+
     const paymentPayload: RecurringPaymentRequest = {
-      // Channel "pos" for all recurring subscription charges per Chris
-      // Boutwell (Payroc) verbal confirmation 2026-05-27.
-      channel: "pos",
+      channel: channelForCharge,
       processingTerminalId: terminalId,
       operator: (subscription.merchant.businessName || "SalonTransact").slice(0, 50),
       order: {
@@ -266,6 +293,43 @@ export async function chargeInvoice(invoiceId: string): Promise<ChargeInvoiceRes
       `[BILLING] cid=${cid} invoice=${invoiceId} attempt=${attemptCount} ` +
       `amount=${invoice.totalCents} terminal=${terminalId} idempotencyKey=${idempotencyKey} dateBucket=${utcDate}`
     );
+
+    // ── 5.5 Promote token mitAgreement → "recurring" on first charge ──
+    // Saved cards are tokenized with mitAgreement="unscheduled" by the
+    // existing checkout flow (app/api/payroc/checkout/route.ts). For
+    // subscription use, Payroc spec (Chris Boutwell 2026-05-27) requires
+    // mitAgreement="recurring" on the underlying secureToken. We PATCH
+    // the token immediately before the first charge to bring it into
+    // compliance.
+    //
+    // Best-effort: a failure here logs but does NOT abort the charge.
+    // The downstream charge will reveal whether Payroc actually rejects
+    // unscheduled-token recurring MITs (their behavior on this is not
+    // documented in our reference material). If it succeeds, we're fine.
+    // If it fails for mitAgreement reasons, the error will be
+    // informative for Friday debugging.
+    //
+    // Idempotent: PATCH-ing a token that's already "recurring" is a
+    // no-op per docs. Safe to call on every first charge attempt.
+    if (isFirstCharge && savedCard.payrocSecureTokenId) {
+      try {
+        await updateSecureToken(
+          savedCard.payrocSecureTokenId,
+          { mitAgreement: "recurring" },
+          terminalId
+        );
+        console.log(
+          `[BILLING] cid=${cid} token ${savedCard.payrocSecureTokenId.slice(0, 8)}... ` +
+          `promoted to mitAgreement=recurring`
+        );
+      } catch (mitErr) {
+        const msg = mitErr instanceof Error ? mitErr.message : String(mitErr);
+        console.warn(
+          `[BILLING] cid=${cid} mitAgreement promotion failed (non-fatal, proceeding ` +
+          `with charge): ${msg}`
+        );
+      }
+    }
 
     // ── 6. Send charge to Payroc ────────────────────────────────
     const bearerToken = await getPayrocToken();
@@ -294,15 +358,38 @@ export async function chargeInvoice(invoiceId: string): Promise<ChargeInvoiceRes
     // Do NOT log responseText.substring(0, N) — that captures masked
     // card numbers and any other fields Payroc may include.
     const txnResult = payrocResponse.transactionResult as Record<string, unknown> | undefined;
+    const card = payrocResponse.card as Record<string, unknown> | undefined;
     const responseCode = (txnResult?.responseCode ?? payrocResponse.responseCode ?? null) as string | null;
     const responseMessage = (txnResult?.responseMessage ?? payrocResponse.responseMessage ?? null) as string | null;
     const approvalCode = (txnResult?.approvalCode ?? payrocResponse.approvalCode ?? null) as string | null;
     const payrocPaymentId = (payrocResponse.paymentId ?? null) as string | null;
+    // Probe three locations for cardSchemeReferenceId since exact
+    // response shape isn't documented. Chris Boutwell's spec shows
+    // it should be returned somewhere on first-charge responses;
+    // first match wins. Null is fine — we only persist when non-null.
+    // Each probe is typeof-guarded: if Payroc returns a non-string
+    // (number, nested object, etc.) at any location, we treat it as
+    // missing rather than silently casting and storing garbage in a
+    // String? column.
+    const pickString = (v: unknown): string | null =>
+      typeof v === "string" && v.length > 0 ? v : null;
+    // Track which probe location matched so Friday's empirical test
+    // can lock in the canonical response shape and a future PR can
+    // drop the other two probes. Logs "none" when no match — also
+    // useful: tells us whether Payroc returned it at all on first
+    // charges with mitAgreement=recurring tokens.
+    const probeTop = pickString(payrocResponse.cardSchemeReferenceId);
+    const probeCard = pickString(card?.cardSchemeReferenceId);
+    const probeTxn = pickString(txnResult?.cardSchemeReferenceId);
+    const cardSchemeReferenceId = probeTop ?? probeCard ?? probeTxn ?? null;
+    const cardSchemeReferenceIdSource: "top" | "card" | "txnResult" | "none" =
+      probeTop ? "top" : probeCard ? "card" : probeTxn ? "txnResult" : "none";
 
     console.log(
       `[BILLING] cid=${cid} invoice=${invoiceId} payroc status=${payrRes.status} ` +
       `paymentId=${payrocPaymentId ?? "none"} responseCode=${responseCode ?? "none"} ` +
-      `approvalCode=${approvalCode ?? "none"}`
+      `approvalCode=${approvalCode ?? "none"} ` +
+      `cardSchemeRefSource=${cardSchemeReferenceIdSource}`
     );
 
     // ── 7. Handle infrastructure errors (5xx, 401, 429) separately ──
@@ -411,6 +498,11 @@ export async function chargeInvoice(invoiceId: string): Promise<ChargeInvoiceRes
               failedPaymentCount: 0,
               lastFailureAt: null,
               firstPaymentId: payrocPaymentId,
+              // Persist cardSchemeReferenceId atomically with
+              // firstPaymentId — Payroc may have returned it. If null,
+              // the column simply stays null and subsequent charges
+              // omit cardSchemeReferenceId from referenceDataOfFirstTxn.
+              firstCardSchemeReferenceId: cardSchemeReferenceId,
             },
           });
 
