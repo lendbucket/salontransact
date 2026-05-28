@@ -31,6 +31,7 @@ import {
   Users,
   ShieldAlert,
   Calendar,
+  Repeat,
 } from "lucide-react";
 
 type NavLink = {
@@ -51,6 +52,7 @@ const links: NavLink[] = [
   { href: "/transactions", label: "Transactions", icon: ArrowLeftRight, section: "Payments" },
   { href: "/saved-cards", label: "Saved Cards", icon: CreditCard, section: "Payments" },
   { href: "/customers", label: "Customers", icon: Users, section: "Payments" },
+  { href: "/subscriptions/plans", label: "Subscriptions", icon: Repeat, section: "Payments" },
   { href: "/payouts", label: "Payouts", icon: Wallet, section: "Payments" },
   { href: "/statements", label: "Statements", icon: FileText, section: "Payments" },
   // Operations
